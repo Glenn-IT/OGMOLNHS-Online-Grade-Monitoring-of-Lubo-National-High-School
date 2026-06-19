@@ -11,8 +11,17 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // ── Route guards ────────────────────────────────────────────────────────────
+
+function isApiRequest(): bool {
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    return str_contains($uri, '/api/');
+}
+
 function requireLogin(): void {
     if (empty($_SESSION['user_id'])) {
+        if (isApiRequest()) {
+            jsonResponse(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
         header('Location: /OGMS-Lubo-National-High-School/index.php');
         exit;
     }
@@ -21,6 +30,9 @@ function requireLogin(): void {
 function requireAdmin(): void {
     requireLogin();
     if ($_SESSION['role'] !== 'admin') {
+        if (isApiRequest()) {
+            jsonResponse(['success' => false, 'message' => 'Forbidden. Admin access required.'], 403);
+        }
         header('Location: /OGMS-Lubo-National-High-School/views/student/dashboard.php');
         exit;
     }
@@ -29,6 +41,9 @@ function requireAdmin(): void {
 function requireStudent(): void {
     requireLogin();
     if ($_SESSION['role'] !== 'student') {
+        if (isApiRequest()) {
+            jsonResponse(['success' => false, 'message' => 'Forbidden. Student access required.'], 403);
+        }
         header('Location: /OGMS-Lubo-National-High-School/views/admin/dashboard.php');
         exit;
     }
