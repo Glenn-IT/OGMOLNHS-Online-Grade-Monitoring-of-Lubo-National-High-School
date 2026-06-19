@@ -44,12 +44,18 @@ $syId = insert($pdo, 'school_years', ['label' => '2024-2025', 'is_active' => 1])
 $log[] = "school_years: inserted SY 2024-2025 (id=$syId)";
 
 // ─── 2. SECTIONS ───────────────────────────────────────────────────────────
-$sections = [
-    'Rizal'     => insert($pdo, 'sections', ['name' => 'Grade 10 - Rizal',     'grade_level' => 10, 'school_year_id' => $syId]),
-    'Bonifacio' => insert($pdo, 'sections', ['name' => 'Grade 10 - Bonifacio', 'grade_level' => 10, 'school_year_id' => $syId]),
-    'Mabini'    => insert($pdo, 'sections', ['name' => 'Grade 10 - Mabini',    'grade_level' => 10, 'school_year_id' => $syId]),
-];
-$log[] = 'sections: inserted 3 sections';
+$sections = [];
+foreach ([7, 8, 9, 10] as $grade) {
+    foreach (['Rizal', 'Bonifacio', 'Mabini'] as $name) {
+        $key = "Grade $grade - $name";
+        $sections[$key] = insert($pdo, 'sections', [
+            'name'           => $key,
+            'grade_level'    => $grade,
+            'school_year_id' => $syId,
+        ]);
+    }
+}
+$log[] = 'sections: inserted 12 sections (Grades 7–10, 3 sections each)';
 
 // ─── 3. ADMIN ──────────────────────────────────────────────────────────────
 $adminId = insert($pdo, 'users', [
@@ -98,26 +104,23 @@ $subjectDefs = [
     'SUB008' => ['Values Education',   'VE',    'T008'],
 ];
 
-// Create one set of subjects per section so grades can link section properly.
-// For simplicity we create them once (no section_id — shared) as per the schema.
 $subjectIds = [];
 foreach ($subjectDefs as $key => [$name, $code, $teacherKey]) {
     $subjectIds[$key] = insert($pdo, 'subjects', [
         'name'       => $name,
         'code'       => $code,
         'teacher_id' => $teacherIds[$teacherKey],
-        'section_id' => null,
     ]);
 }
 $log[] = 'subjects: 8 subjects inserted';
 
 // ─── 6. STUDENTS ───────────────────────────────────────────────────────────
 $studentDefs = [
-    'S001' => ['202400000001', 'Juan dela Cruz',  'student@lnhs.edu.ph',  '09123456789', 'Brgy. Lubo, Cavite City', 'Male',   '2008-05-15', 'Rizal'],
-    'S002' => ['202400000002', 'Maria Santos',    'maria@lnhs.edu.ph',    '09234567890', 'Brgy. Lubo, Cavite City', 'Female', '2008-03-22', 'Rizal'],
-    'S003' => ['202400000003', 'Pedro Reyes',     'pedro@lnhs.edu.ph',    '09345678901', 'Brgy. Lubo, Cavite City', 'Male',   '2008-07-10', 'Bonifacio'],
-    'S004' => ['202400000004', 'Ana Garcia',      'ana@lnhs.edu.ph',      '09456789012', 'Brgy. Lubo, Cavite City', 'Female', '2008-11-05', 'Bonifacio'],
-    'S005' => ['202400000005', 'Carlos Mendoza',  'carlos@lnhs.edu.ph',   '09567890123', 'Brgy. Lubo, Cavite City', 'Male',   '2008-09-18', 'Mabini'],
+    'S001' => ['202400000001', 'Juan dela Cruz',  'student@lnhs.edu.ph',  '09123456789', 'Brgy. Lubo, Cavite City', 'Male',   '2008-05-15', 'Grade 10 - Rizal'],
+    'S002' => ['202400000002', 'Maria Santos',    'maria@lnhs.edu.ph',    '09234567890', 'Brgy. Lubo, Cavite City', 'Female', '2008-03-22', 'Grade 10 - Rizal'],
+    'S003' => ['202400000003', 'Pedro Reyes',     'pedro@lnhs.edu.ph',    '09345678901', 'Brgy. Lubo, Cavite City', 'Male',   '2008-07-10', 'Grade 10 - Bonifacio'],
+    'S004' => ['202400000004', 'Ana Garcia',      'ana@lnhs.edu.ph',      '09456789012', 'Brgy. Lubo, Cavite City', 'Female', '2008-11-05', 'Grade 10 - Bonifacio'],
+    'S005' => ['202400000005', 'Carlos Mendoza',  'carlos@lnhs.edu.ph',   '09567890123', 'Brgy. Lubo, Cavite City', 'Male',   '2008-09-18', 'Grade 10 - Mabini'],
 ];
 
 $studentIds = [];
