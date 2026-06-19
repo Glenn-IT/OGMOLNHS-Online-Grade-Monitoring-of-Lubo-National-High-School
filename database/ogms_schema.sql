@@ -45,9 +45,7 @@ CREATE TABLE IF NOT EXISTS subjects (
     name        VARCHAR(100) NOT NULL,
     code        VARCHAR(20),
     teacher_id  INT,
-    section_id  INT,
-    FOREIGN KEY (teacher_id) REFERENCES users(id),
-    FOREIGN KEY (section_id) REFERENCES sections(id)
+    FOREIGN KEY (teacher_id) REFERENCES users(id)
 );
 
 -- ─── ENROLLMENTS ──────────────────────────────────────────────────────────────
