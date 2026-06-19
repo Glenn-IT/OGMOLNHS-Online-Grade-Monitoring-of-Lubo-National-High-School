@@ -45,7 +45,7 @@ if (!empty($_SESSION['user_id'])) {
               <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                 <input type="email" id="stuEmail" class="form-control"
-                  placeholder="student@lnhs.edu.ph" value="student@lnhs.edu.ph" required />
+                  placeholder="Enter your email address" required />
               </div>
             </div>
             <div class="mb-3">
@@ -53,18 +53,14 @@ if (!empty($_SESSION['user_id'])) {
               <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-lock"></i></span>
                 <input type="password" id="stuPassword" class="form-control"
-                  placeholder="Enter password" value="student123" required />
+                  placeholder="Enter your password" required />
                 <button type="button" class="btn btn-outline-secondary"
                   onclick="togglePwd('stuPassword',this)" style="border-radius:0 8px 8px 0">
                   <i class="fas fa-eye"></i>
                 </button>
               </div>
             </div>
-            <div class="d-flex justify-content-between mb-3">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="rememberMe" />
-                <label class="form-check-label" style="font-size:0.8rem" for="rememberMe">Remember me</label>
-              </div>
+            <div class="d-flex justify-content-end mb-3">
               <a href="views/student/forgot-password.php" style="font-size:0.8rem;color:var(--primary)">Forgot Password?</a>
             </div>
             <button type="submit" class="btn-primary-custom" id="stuSubmitBtn">
@@ -76,12 +72,6 @@ if (!empty($_SESSION['user_id'])) {
             <span style="font-size:0.85rem;color:#64748b">Don't have an account? </span>
             <a href="views/student/signup.php" style="color:var(--primary);font-weight:600;font-size:0.85rem">Sign Up</a>
           </div>
-          <div class="mt-3 p-2 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0">
-            <p class="mb-0" style="font-size:0.75rem;color:#166534">
-              <i class="fas fa-info-circle me-1"></i>
-              Demo: <strong>student@lnhs.edu.ph</strong> / <strong>student123</strong>
-            </p>
-          </div>
         </div>
 
         <!-- Admin Login Form -->
@@ -92,7 +82,7 @@ if (!empty($_SESSION['user_id'])) {
               <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-user-shield"></i></span>
                 <input type="email" id="adminEmail" class="form-control"
-                  placeholder="admin@lnhs.edu.ph" value="admin@lnhs.edu.ph" required />
+                  placeholder="Enter your email address" required />
               </div>
             </div>
             <div class="mb-3">
@@ -100,7 +90,7 @@ if (!empty($_SESSION['user_id'])) {
               <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-lock"></i></span>
                 <input type="password" id="adminPassword" class="form-control"
-                  placeholder="Enter password" value="admin123" required />
+                  placeholder="Enter your password" required />
                 <button type="button" class="btn btn-outline-secondary"
                   onclick="togglePwd('adminPassword',this)" style="border-radius:0 8px 8px 0">
                   <i class="fas fa-eye"></i>
@@ -112,12 +102,6 @@ if (!empty($_SESSION['user_id'])) {
               <i class="fas fa-shield-alt me-2"></i>Login as Admin
             </button>
           </form>
-          <div class="mt-3 p-2 rounded" style="background:#faf5ff;border:1px solid #e9d5ff">
-            <p class="mb-0" style="font-size:0.75rem;color:#6b21a8">
-              <i class="fas fa-info-circle me-1"></i>
-              Demo: <strong>admin@lnhs.edu.ph</strong> / <strong>admin123</strong>
-            </p>
-          </div>
         </div>
 
       </div>
