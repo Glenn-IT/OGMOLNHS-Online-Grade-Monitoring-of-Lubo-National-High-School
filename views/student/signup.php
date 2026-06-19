@@ -44,7 +44,7 @@ if (!empty($_SESSION['user_id'])) {
             </div>
             <div class="col-12">
               <label class="form-label">Email Address</label>
-              <input type="email" id="signupEmail" class="form-control" placeholder="you@lnhs.edu.ph" required />
+              <input type="email" id="signupEmail" class="form-control" placeholder="you@gmail.com" required />
             </div>
             <div class="col-12">
               <label class="form-label">Password</label>
