@@ -81,7 +81,7 @@ define('CURRENT_VERSION', 'v1.13');
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: #2563eb;
+      background: #dc2626;
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -93,7 +93,7 @@ define('CURRENT_VERSION', 'v1.13');
       transition: background 0.18s;
     }
 
-    .uc-btn:hover { background: #1d4ed8; }
+    .uc-btn:hover { background: #b91c1c; }
   </style>
 </head>
 <body>
@@ -109,8 +109,8 @@ define('CURRENT_VERSION', 'v1.13');
       <i class="fa-solid fa-clock"></i>&nbsp; Coming in a future version
     </div>
     <br />
-    <a href="javascript:history.back()" class="uc-btn">
-      <i class="fa-solid fa-arrow-left"></i> Go Back
+    <a href="/OGMS-Lubo-National-High-School/logout.php" class="uc-btn">
+      <i class="fa-solid fa-right-from-bracket"></i> Logout
     </a>
   </div>
 </body>
