@@ -60,9 +60,11 @@ if (!empty($_SESSION['user_id'])) {
                 </button>
               </div>
             </div>
+            <!-- Forgot Password hidden: not yet available in v1.00
             <div class="d-flex justify-content-end mb-3">
               <a href="views/student/forgot-password.php" style="font-size:0.8rem;color:var(--primary)">Forgot Password?</a>
             </div>
+            -->
             <button type="submit" class="btn-primary-custom" id="stuSubmitBtn">
               <i class="fas fa-sign-in-alt me-2"></i>Login as Student
             </button>
