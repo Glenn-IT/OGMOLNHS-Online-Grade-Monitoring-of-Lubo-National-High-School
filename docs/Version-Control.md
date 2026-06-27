@@ -2,22 +2,22 @@
 
 ## Rollout Schedule
 
-| Version | Feature Unlocked | Pages Live (Cumulative) | Pages Still Gated |
-|---------|-----------------|------------------------|-------------------|
-| v1.00 | Login / Register / Forgot Password | index.php, views/student/signup.php, views/student/forgot-password.php | All admin & student pages (13) |
-| v1.01 | Admin: Dashboard | + views/admin/dashboard.php | 12 pages |
-| v1.02 | Admin: Manage Students | + views/admin/manage-students.php | 11 pages |
-| v1.03 | Admin: Manage Grades | + views/admin/manage-grades.php | 10 pages |
-| v1.04 | Admin: Manage Sections | + views/admin/manage-sections.php | 9 pages |
-| v1.05 | Admin: Analytics | + views/admin/analytics.php | 8 pages |
-| v1.06 | Admin: Reports | + views/admin/reports.php | 7 pages |
-| v1.07 | Admin: SMS Notifications | + views/admin/sms.php | 6 pages |
-| v1.08 | Admin: Profile | + views/admin/profile.php | 5 pages |
-| v1.09 | Student: Dashboard | + views/student/dashboard.php | 4 pages |
-| v1.10 | Student: My Grades | + views/student/grades.php | 3 pages |
-| v1.11 | Student: Analytics | + views/student/analytics.php | 2 pages |
-| v1.12 | Student: Report Card | + views/student/reports.php | 1 page |
-| v1.13 | Student: Profile (Full System) | All pages live | None |
+| Version | Feature Unlocked                   | Pages Live (Cumulative)                                                | Pages Still Gated              |
+| ------- | ---------------------------------- | ---------------------------------------------------------------------- | ------------------------------ |
+| v1.00   | Login / Register / Forgot Password | index.php, views/student/signup.php, views/student/forgot-password.php | All admin & student pages (13) |
+| v1.01   | Admin: Dashboard                   | + views/admin/dashboard.php                                            | 12 pages                       |
+| v1.02   | Admin: Manage Students             | + views/admin/manage-students.php                                      | 11 pages                       |
+| v1.03   | Admin: Manage Grades               | + views/admin/manage-grades.php                                        | 10 pages                       |
+| v1.04   | Admin: Manage Sections             | + views/admin/manage-sections.php                                      | 9 pages                        |
+| v1.05   | Admin: Analytics                   | + views/admin/analytics.php                                            | 8 pages                        |
+| v1.06   | Admin: Reports                     | + views/admin/reports.php                                              | 7 pages                        |
+| v1.07   | Admin: SMS Notifications           | + views/admin/sms.php                                                  | 6 pages                        |
+| v1.08   | Admin: Profile                     | + views/admin/profile.php                                              | 5 pages                        |
+| v1.09   | Student: Dashboard                 | + views/student/dashboard.php                                          | 4 pages                        |
+| v1.10   | Student: My Grades                 | + views/student/grades.php                                             | 3 pages                        |
+| v1.11   | Student: Analytics                 | + views/student/analytics.php                                          | 2 pages                        |
+| v1.12   | Student: Report Card               | + views/student/reports.php                                            | 1 page                         |
+| v1.13   | Student: Profile (Full System)     | All pages live                                                         | None                           |
 
 ---
 
@@ -66,26 +66,28 @@ To browse an old snapshot: `git checkout v1.02` (detached HEAD — read-only). R
 
 ## GitHub Release Tags
 
-| Version | Tag Name | Commit Hash |
-|---------|----------|-------------|
-| v1.00 | v1.00 | a52485037eb84e480da75dd8f2e9f382c837f553 |
-| v1.01 | v1.01 | 825273a6a8c83542e19588b4cc0b3cccd927a529 |
-| v1.02 | v1.02 | da4d7e3b06f7108cc036537fd01fc92875fac5c7 |
-| v1.03 | v1.03 | 021c9d71002f489d130ad8a042ba0107d8d2d717 |
-| v1.04 | v1.04 | dfdc661beaac8530ad074ba2927a75a064b2da40 |
-| v1.05 | v1.05 | c2b8a9e5b8ed8f96e04f71815590b7dbf4d0d7a7 |
-| v1.06 | v1.06 | 061767fcd14dd6a7773f8f6ee7d47787e76d20ae |
-| v1.07 | v1.07 | cb86dff4f6a4bf0152b6e206429165bbe21bf687 |
-| v1.08 | v1.08 | c55124dc067fdfc0a8f150e0a84fc38ea3e9d435 |
-| v1.09 | v1.09 | bcbddcd1ccf898af04f541a06bf70c2b7789d083 |
-| v1.10 | v1.10 | a7670fbcd7d47ede098cad4ef10dae8b307e8498 |
-| v1.11 | v1.11 | c8f8de1d5bee5670b43a627775ca34b38a2fb6b8 |
-| v1.12 | v1.12 | f2bc660e1473f27358a4a469b2c36d90c259f82d |
-| v1.13 | v1.13 | e5d84fc4c5b1d091901ac09f0dd102f80a2ddd77 |
+| Version | Tag Name | Commit Hash                              |
+| ------- | -------- | ---------------------------------------- |
+| v1.00   | v1.00    | a52485037eb84e480da75dd8f2e9f382c837f553 |
+| v1.01   | v1.01    | 825273a6a8c83542e19588b4cc0b3cccd927a529 |
+| v1.02   | v1.02    | da4d7e3b06f7108cc036537fd01fc92875fac5c7 |
+| v1.03   | v1.03    | 021c9d71002f489d130ad8a042ba0107d8d2d717 |
+| v1.04   | v1.04    | dfdc661beaac8530ad074ba2927a75a064b2da40 |
+| v1.05   | v1.05    | c2b8a9e5b8ed8f96e04f71815590b7dbf4d0d7a7 |
+| v1.06   | v1.06    | 061767fcd14dd6a7773f8f6ee7d47787e76d20ae |
+| v1.07   | v1.07    | cb86dff4f6a4bf0152b6e206429165bbe21bf687 |
+| v1.08   | v1.08    | c55124dc067fdfc0a8f150e0a84fc38ea3e9d435 |
+| v1.09   | v1.09    | bcbddcd1ccf898af04f541a06bf70c2b7789d083 |
+| v1.10   | v1.10    | a7670fbcd7d47ede098cad4ef10dae8b307e8498 |
+| v1.11   | v1.11    | c8f8de1d5bee5670b43a627775ca34b38a2fb6b8 |
+| v1.12   | v1.12    | f2bc660e1473f27358a4a469b2c36d90c259f82d |
+| v1.13   | v1.13    | 00690232cca04389a153c6929be17d56f34fc549 |
 
 ---
 
 ## When a Prof or Client Requests Changes After a Presentation
+
+Do The Cherry-Pick
 
 Fix the issue on `main` first, then re-point the tag:
 
