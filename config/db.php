@@ -9,6 +9,12 @@ define('DB_NAME', 'ogms_lnhs');
 define('SMS_API_KEY', '');      // fill in after Semaphore account is created
 define('SMS_SENDER',  'LNHS_OGMS');
 
+define('SMTP_HOST', 'smtp.gmail.com');
+define('SMTP_PORT', 587);
+define('SMTP_USER', 'prototypev1.03@gmail.com');        // fill in: full Gmail address, e.g. yourschool@gmail.com
+define('SMTP_PASS', 'jtnn xljx lvnx cnms');        // fill in: Gmail App Password (not your login password)
+define('SMTP_FROM_NAME', 'OGMS - Lubo National High School');
+
 function getDB(): PDO {
     static $pdo = null;
     if ($pdo === null) {
