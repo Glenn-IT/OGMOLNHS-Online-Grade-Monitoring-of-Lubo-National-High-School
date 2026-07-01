@@ -68,7 +68,7 @@ To browse an old snapshot: `git checkout v1.02` (detached HEAD — read-only). R
 
 | Version | Tag Name | Commit Hash                              |
 | ------- | -------- | ---------------------------------------- |
-| v1.00   | v1.00    | 2202d3f47a24e6915fddae8e9e3eb43f74f0c3c1 |
+| v1.00   | v1.00    | fe77166773b6cfe567e844048114e3c5e9f21b31 |
 | v1.01   | v1.01    | 825273a6a8c83542e19588b4cc0b3cccd927a529 |
 | v1.02   | v1.02    | da4d7e3b06f7108cc036537fd01fc92875fac5c7 |
 | v1.03   | v1.03    | 021c9d71002f489d130ad8a042ba0107d8d2d717 |
