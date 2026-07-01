@@ -68,11 +68,11 @@ if (!empty($_SESSION['user_id'])) {
   <div class="step" id="step2">
     <div class="alert alert-info py-2" style="font-size:.85rem">
       <i class="fas fa-info-circle me-1"></i>
-      Check your email for the reset token. Enter it below along with your new password.
+      Check your email for the 6-digit reset code. Enter it below along with your new password.
     </div>
     <div class="mb-3">
-      <label class="form-label">Reset Token</label>
-      <input type="text" id="resetToken" class="form-control" placeholder="Paste token from email"/>
+      <label class="form-label">Reset Code</label>
+      <input type="text" id="resetToken" class="form-control" placeholder="6-digit code from email" inputmode="numeric" maxlength="6"/>
     </div>
     <div class="mb-3">
       <label class="form-label">New Password</label>
@@ -164,7 +164,7 @@ if (!empty($_SESSION['user_id'])) {
     const password = document.getElementById('newPassword').value;
     const confirm  = document.getElementById('confirmPassword').value;
 
-    if (!token)             { showError('Please enter the reset token.'); return; }
+    if (!token)             { showError('Please enter the reset code.'); return; }
     if (password.length < 8){ showError('Password must be at least 8 characters.'); return; }
     if (password !== confirm){ showError('Passwords do not match.'); return; }
 

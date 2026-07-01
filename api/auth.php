@@ -2,6 +2,7 @@
 // api/auth.php
 require_once '../config/db.php';
 require_once '../config/session.php';
+require_once '../config/mailer.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
@@ -84,18 +85,26 @@ if ($action === 'reset_request') {
     }
 
     $pdo  = getDB();
-    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? AND is_active = 1');
+    $stmt = $pdo->prepare('SELECT id, full_name, email FROM users WHERE email = ? AND is_active = 1');
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
     // Always return success to prevent email enumeration
     if ($user) {
-        $token     = bin2hex(random_bytes(32));
-        $expiresAt = date('Y-m-d H:i:s', strtotime('+1 hour'));
+        $token = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        $pdo->prepare('INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)')
-            ->execute([$user['id'], $token, $expiresAt]);
-        // TODO: send reset link via email or SMS
+        // Compute expiry inside MySQL (not PHP) so it's compared against the same
+        // clock as the NOW() check in reset_confirm — avoids PHP/MySQL timezone drift.
+        $pdo->prepare(
+            'INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, NOW() + INTERVAL 15 MINUTE)'
+        )->execute([$user['id'], $token]);
+
+        $subject = 'OGMS Password Reset Code';
+        $body = '<p>Hello ' . htmlspecialchars($user['full_name']) . ',</p>'
+              . '<p>We received a request to reset your OGMS password. Use the code below within the next 15 minutes:</p>'
+              . '<p style="font-size:1.5rem;font-weight:bold;letter-spacing:4px">' . htmlspecialchars($token) . '</p>'
+              . '<p>If you did not request this, you can safely ignore this email.</p>';
+        sendMail($user['email'], $user['full_name'], $subject, $body);
     }
 
     jsonResponse(['success' => true, 'message' => 'If that email exists, a reset link has been sent.']);
@@ -103,7 +112,15 @@ if ($action === 'reset_request') {
 
 // ─── PASSWORD RESET CONFIRM ────────────────────────────────────────────────
 if ($action === 'reset_confirm') {
-    $token    = trim($_POST['token'] ?? '');
+    // Brute-force guard: 6-digit codes have a small keyspace, so cap attempts per session.
+    $attempts = (int)($_SESSION['reset_attempts'] ?? 0);
+    if ($attempts >= 10) {
+        jsonResponse(['success' => false, 'message' => 'Too many attempts. Please request a new code.'], 429);
+    }
+
+    // Strip all whitespace (not just leading/trailing) — email clients can
+    // insert stray spaces/line breaks when the code wraps and gets copied.
+    $token    = preg_replace('/\s+/', '', $_POST['token'] ?? '');
     $password = $_POST['password'] ?? '';
 
     if (!$token || strlen($password) < 8) {
@@ -118,8 +135,11 @@ if ($action === 'reset_confirm') {
     $reset = $stmt->fetch();
 
     if (!$reset) {
-        jsonResponse(['success' => false, 'message' => 'Reset link is invalid or has expired.'], 400);
+        $_SESSION['reset_attempts'] = $attempts + 1;
+        jsonResponse(['success' => false, 'message' => 'Reset code is invalid or has expired.'], 400);
     }
+
+    unset($_SESSION['reset_attempts']);
 
     $hash = password_hash($password, PASSWORD_BCRYPT);
     $pdo->prepare('UPDATE users SET password = ? WHERE id = ?')
