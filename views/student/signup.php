@@ -44,7 +44,12 @@ if (!empty($_SESSION['user_id'])) {
             </div>
             <div class="col-12">
               <label class="form-label">Email Address</label>
-              <input type="email" id="signupEmail" class="form-control" placeholder="you@gmail.com" required />
+              <div class="input-group has-validation">
+                <input type="email" id="signupEmail" class="form-control" placeholder="you@gmail.com" required
+                  autocomplete="off" novalidate />
+                <span class="input-group-text" id="signupEmailIcon" style="display:none"></span>
+              </div>
+              <div id="signupEmailFeedback" style="font-size:0.78rem;margin-top:0.25rem;display:none"></div>
             </div>
             <div class="col-12">
               <label class="form-label">Password</label>
@@ -93,8 +98,47 @@ if (!empty($_SESSION['user_id'])) {
         btn.innerHTML = `<i class="fas fa-eye${show ? '-slash' : ''}"></i>`;
       }
 
+      const GMAIL_RE = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
+
+      function validateSignupEmail() {
+        const input    = document.getElementById('signupEmail');
+        const icon     = document.getElementById('signupEmailIcon');
+        const feedback = document.getElementById('signupEmailFeedback');
+        const value    = input.value.trim();
+
+        if (!value) {
+          input.classList.remove('is-valid', 'is-invalid');
+          icon.style.display = 'none';
+          feedback.style.display = 'none';
+          return false;
+        }
+
+        const isGmail = GMAIL_RE.test(value);
+        input.classList.toggle('is-valid', isGmail);
+        input.classList.toggle('is-invalid', !isGmail);
+        icon.style.display = '';
+        icon.innerHTML = isGmail
+          ? '<i class="fas fa-check-circle text-success"></i>'
+          : '<i class="fas fa-times-circle text-danger"></i>';
+        feedback.style.display = '';
+        feedback.style.color = isGmail ? '#10b981' : '#dc3545';
+        feedback.textContent = isGmail
+          ? 'Looks good — a valid Gmail address.'
+          : 'Please use a real Gmail address (e.g. you@gmail.com).';
+        return isGmail;
+      }
+
+      document.getElementById('signupEmail').addEventListener('input', validateSignupEmail);
+
       async function handleSignup(e) {
         e.preventDefault();
+
+        if (!validateSignupEmail()) {
+          showToast('Please enter a valid Gmail address.', 'error');
+          document.getElementById('signupEmail').focus();
+          return;
+        }
+
         const pwd  = document.getElementById('signupPwd').value;
         const pwd2 = document.getElementById('signupPwd2').value;
 

@@ -8,11 +8,23 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 // ─── LOGIN ─────────────────────────────────────────────────────────────────
 if ($action === 'login') {
-    // Simple brute-force guard: max 10 failed attempts per session
-    $attempts = (int)($_SESSION['login_attempts'] ?? 0);
-    if ($attempts >= 10) {
-        jsonResponse(['success' => false, 'message' => 'Too many failed attempts. Please restart your browser.'], 429);
+    // Lockout guard: max 3 failed attempts per tab (student/admin tracked separately),
+    // then a 30-second cooldown before the next attempt is allowed.
+    $loginType   = ($_POST['login_type'] ?? 'student') === 'admin' ? 'admin' : 'student';
+    $attemptsKey = "login_attempts_$loginType";
+    $lockKey     = "login_lockout_until_$loginType";
+
+    $lockUntil = (int)($_SESSION[$lockKey] ?? 0);
+    if ($lockUntil > time()) {
+        jsonResponse([
+            'success' => false,
+            'locked'  => true,
+            'seconds' => $lockUntil - time(),
+            'message' => 'Too many failed attempts. Please wait before trying again.',
+        ], 429);
     }
+
+    $attempts = (int)($_SESSION[$attemptsKey] ?? 0);
 
     $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -30,12 +42,29 @@ if ($action === 'login') {
     $user = $stmt->fetch();
 
     if (!$user || !password_verify($password, $user['password'])) {
-        $_SESSION['login_attempts'] = $attempts + 1;
-        jsonResponse(['success' => false, 'message' => 'Invalid email or password.'], 401);
+        $attempts++;
+
+        if ($attempts >= 3) {
+            $_SESSION[$attemptsKey] = 0;
+            $_SESSION[$lockKey]     = time() + 30;
+            jsonResponse([
+                'success' => false,
+                'locked'  => true,
+                'seconds' => 30,
+                'message' => 'Too many failed attempts. Please wait 30 seconds before trying again.',
+            ], 429);
+        }
+
+        $_SESSION[$attemptsKey] = $attempts;
+        jsonResponse([
+            'success'       => false,
+            'attempts_left' => 3 - $attempts,
+            'message'       => 'Invalid email or password. ' . (3 - $attempts) . ' attempt(s) left.',
+        ], 401);
     }
 
     // Reset counter on successful login
-    unset($_SESSION['login_attempts']);
+    unset($_SESSION[$attemptsKey], $_SESSION[$lockKey]);
 
     session_regenerate_id(true);
     $_SESSION['user_id']   = $user['id'];

@@ -97,6 +97,9 @@ if (!empty($_SESSION['user_id'])) {
                 </button>
               </div>
             </div>
+            <div class="d-flex justify-content-end mb-3">
+              <a href="views/student/forgot-password.php" style="font-size:0.8rem;color:var(--primary)">Forgot Password?</a>
+            </div>
             <button type="submit" class="btn-primary-custom" id="adminSubmitBtn"
               style="background:linear-gradient(135deg,#7c3aed,#a78bfa)">
               <i class="fas fa-shield-alt me-2"></i>Login as Admin
@@ -127,6 +130,57 @@ if (!empty($_SESSION['user_id'])) {
         btn.innerHTML = `<i class="fas fa-eye${show ? '-slash' : ''}"></i>`;
       }
 
+      const defaultBtnHtml = {
+        student: '<i class="fas fa-sign-in-alt me-2"></i>Login as Student',
+        admin:   '<i class="fas fa-shield-alt me-2"></i>Login as Admin',
+      };
+      const lockTimers = { student: null, admin: null };
+
+      function formFields(type) {
+        return {
+          email: document.getElementById(type === 'student' ? 'stuEmail'     : 'adminEmail'),
+          pwd:   document.getElementById(type === 'student' ? 'stuPassword'  : 'adminPassword'),
+          btn:   document.getElementById(type === 'student' ? 'stuSubmitBtn' : 'adminSubmitBtn'),
+        };
+      }
+
+      function setFormDisabled(type, disabled) {
+        const { email, pwd, btn } = formFields(type);
+        email.disabled = disabled;
+        pwd.disabled    = disabled;
+        btn.disabled    = disabled;
+      }
+
+      function lockForm(type, seconds) {
+        clearInterval(lockTimers[type]);
+        localStorage.setItem(`ogms_lockout_${type}`, Date.now() + seconds * 1000);
+
+        const { btn } = formFields(type);
+        setFormDisabled(type, true);
+        let remaining = seconds;
+
+        const tick = () => {
+          btn.innerHTML = `<i class="fas fa-lock me-2"></i>Try again in ${remaining}s`;
+          if (remaining <= 0) {
+            clearInterval(lockTimers[type]);
+            localStorage.removeItem(`ogms_lockout_${type}`);
+            setFormDisabled(type, false);
+            btn.innerHTML = defaultBtnHtml[type];
+            return;
+          }
+          remaining--;
+        };
+        tick();
+        lockTimers[type] = setInterval(tick, 1000);
+      }
+
+      // Resume any lockout still in effect after a page refresh
+      ['student', 'admin'].forEach((type) => {
+        const until = parseInt(localStorage.getItem(`ogms_lockout_${type}`) || '0', 10);
+        const secondsLeft = Math.ceil((until - Date.now()) / 1000);
+        if (secondsLeft > 0) lockForm(type, secondsLeft);
+      });
+
       async function doLogin(e, type) {
         e.preventDefault();
         const email    = document.getElementById(type === 'student' ? 'stuEmail'    : 'adminEmail').value.trim();
@@ -138,9 +192,10 @@ if (!empty($_SESSION['user_id'])) {
 
         try {
           const body = new FormData();
-          body.append('action',   'login');
-          body.append('email',    email);
-          body.append('password', password);
+          body.append('action',     'login');
+          body.append('login_type', type);
+          body.append('email',      email);
+          body.append('password',   password);
 
           const res  = await fetch('api/auth.php', { method: 'POST', body });
           const data = await res.json();
@@ -148,19 +203,22 @@ if (!empty($_SESSION['user_id'])) {
           if (data.success) {
             showToast(type === 'admin' ? 'Welcome, Administrator!' : `Welcome back!`, 'success');
             setTimeout(() => { window.location.href = data.redirect; }, 800);
-          } else {
-            showToast(data.message || 'Invalid credentials.', 'error');
-            btn.disabled  = false;
-            btn.innerHTML = type === 'student'
-              ? '<i class="fas fa-sign-in-alt me-2"></i>Login as Student'
-              : '<i class="fas fa-shield-alt me-2"></i>Login as Admin';
+            return;
           }
+
+          if (data.locked) {
+            showToast(data.message || 'Too many failed attempts.', 'error');
+            lockForm(type, data.seconds || 30);
+            return;
+          }
+
+          showToast(data.message || 'Invalid credentials.', 'error');
+          btn.disabled  = false;
+          btn.innerHTML = defaultBtnHtml[type];
         } catch (err) {
           showToast('Server error. Please try again.', 'error');
           btn.disabled  = false;
-          btn.innerHTML = type === 'student'
-            ? '<i class="fas fa-sign-in-alt me-2"></i>Login as Student'
-            : '<i class="fas fa-shield-alt me-2"></i>Login as Admin';
+          btn.innerHTML = defaultBtnHtml[type];
         }
       }
     </script>
