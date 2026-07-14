@@ -18,7 +18,18 @@
 | v1.11   | Student: Analytics                 | + views/student/analytics.php                                          | 2 pages                        |
 | v1.12   | Student: Report Card               | + views/student/reports.php                                            | 1 page                         |
 | v1.13   | Student: Profile (Full System)     | All pages live                                                         | None                           |
-| v2.00   | Re-gate: Admin Dashboard & Manage Students only | index.php, signup.php, forgot-password.php, admin/dashboard.php, admin/manage-students.php | 11 pages (admin analytics/grades/sections/reports/sms/profile, student dashboard/grades/analytics/reports/profile) |
+
+---
+
+## `main` Is Always the Complete Codebase
+
+Unlike the v1.x rollout tags above (which were built by progressively unlocking pages directly on `main`), `main` now always holds the **full, complete system** — every page unlocked. `main` is never re-gated.
+
+Demo snapshot tags that need a *more restrictive* view than `main` currently has (e.g. `v2.00`, gating everything except Login/Register/Forgot Password and Admin Dashboard/Manage Students) are built the same way a post-release fix is: on a **throwaway branch off the desired base commit**, per [Cherry-Pick-Guide.md](Cherry-Pick-Guide.md). The gating commit lives only on the tag, never merged back into `main`.
+
+| Version | Feature                                            | Live Pages                                                                                   | Gated                                                                                     |
+| ------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| v2.00   | Demo snapshot: Login + Admin Dashboard/Manage Students only | index.php, signup.php, forgot-password.php, admin/dashboard.php, admin/manage-students.php | 11 pages (admin analytics/grades/sections/reports/sms/profile, student dashboard/grades/analytics/reports/profile) |
 
 ---
 
