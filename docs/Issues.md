@@ -1,1 +1,0 @@
-1. Manage Student - Add Student - the LRN should not accept letters upon input - the Contact number should 11 digit number and no letters 
