@@ -18,6 +18,7 @@
 | v1.11   | Student: Analytics                 | + views/student/analytics.php                                          | 2 pages                        |
 | v1.12   | Student: Report Card               | + views/student/reports.php                                            | 1 page                         |
 | v1.13   | Student: Profile (Full System)     | All pages live                                                         | None                           |
+| v2.00   | Re-gate: Admin Dashboard & Manage Students only | index.php, signup.php, forgot-password.php, admin/dashboard.php, admin/manage-students.php | 11 pages (admin analytics/grades/sections/reports/sms/profile, student dashboard/grades/analytics/reports/profile) |
 
 ---
 
@@ -82,6 +83,7 @@ To browse an old snapshot: `git checkout v1.02` (detached HEAD — read-only). R
 | v1.11   | v1.11    | c8f8de1d5bee5670b43a627775ca34b38a2fb6b8 |
 | v1.12   | v1.12    | f2bc660e1473f27358a4a469b2c36d90c259f82d |
 | v1.13   | v1.13    | 00690232cca04389a153c6929be17d56f34fc549 |
+| v2.00   | v2.00    | (pending)                                |
 
 ---
 
