@@ -99,8 +99,8 @@ $adminActivePage = 'manage-students';
           <div class="col-md-6"><label class="form-label">First Name *</label><input type="text" id="sFirst" class="form-control" required/></div>
           <div class="col-md-6"><label class="form-label">Last Name *</label><input type="text" id="sLast" class="form-control" required/></div>
           <div class="col-md-6"><label class="form-label">Email *</label><input type="email" id="sEmail" class="form-control" required/></div>
-          <div class="col-md-6"><label class="form-label">LRN (12 digits)</label><input type="text" id="sLrn" class="form-control" maxlength="12"/></div>
-          <div class="col-md-6"><label class="form-label">Contact Number</label><input type="text" id="sContact" class="form-control"/></div>
+          <div class="col-md-6"><label class="form-label">LRN (12 digits)</label><input type="text" id="sLrn" class="form-control" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
+          <div class="col-md-6"><label class="form-label">Contact Number (11 digits)</label><input type="text" id="sContact" class="form-control" maxlength="11" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
           <div class="col-md-6"><label class="form-label">Gender</label>
             <select id="sGender" class="form-select"><option value="">Select</option><option>Male</option><option>Female</option></select>
           </div>
@@ -249,16 +249,20 @@ $adminActivePage = 'manage-students';
     const last  = document.getElementById('sLast').value.trim();
     const email = document.getElementById('sEmail').value.trim().toLowerCase();
     const pwd   = document.getElementById('sPwd').value;
+    const lrn     = document.getElementById('sLrn').value.trim();
+    const contact = document.getElementById('sContact').value.trim();
 
     if (!first || !last || !email) { showToast('Please fill required fields.', 'error'); return; }
     if (!id && !pwd) { showToast('Password is required for new students.', 'error'); return; }
+    if (lrn && !/^\d{12}$/.test(lrn)) { showToast('LRN must be exactly 12 digits.', 'error'); return; }
+    if (contact && !/^\d{11}$/.test(contact)) { showToast('Contact number must be exactly 11 digits.', 'error'); return; }
 
     const body = new FormData();
     if (id) {
       body.append('action',    'update');
       body.append('id',        id);
       body.append('full_name', `${first} ${last}`);
-      body.append('phone',     document.getElementById('sContact').value.trim());
+      body.append('phone',     contact);
       body.append('gender',    document.getElementById('sGender').value);
       body.append('birthdate', document.getElementById('sBirthdate').value);
       body.append('address',   document.getElementById('sAddress').value.trim());
@@ -269,7 +273,8 @@ $adminActivePage = 'manage-students';
       body.append('last_name',  last);
       body.append('email',      email);
       body.append('password',   pwd);
-      body.append('lrn',        document.getElementById('sLrn').value.trim());
+      body.append('lrn',        lrn);
+      body.append('phone',      contact);
     }
 
     try {

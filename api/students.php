@@ -60,6 +60,7 @@ if ($action === 'register') {
     $email     = trim($_POST['email']      ?? '');
     $password  = $_POST['password']        ?? '';
     $lrn       = trim($_POST['lrn']        ?? '');
+    $phone     = trim($_POST['phone']      ?? '');
 
     if (!$firstName || !$lastName || !$email || !$password) {
         jsonResponse(['success' => false, 'message' => 'All fields are required.'], 400);
@@ -72,6 +73,9 @@ if ($action === 'register') {
     }
     if ($lrn && !preg_match('/^\d{12}$/', $lrn)) {
         jsonResponse(['success' => false, 'message' => 'LRN must be exactly 12 digits.'], 400);
+    }
+    if ($phone && !preg_match('/^\d{11}$/', $phone)) {
+        jsonResponse(['success' => false, 'message' => 'Contact number must be exactly 11 digits.'], 400);
     }
 
     $pdo = getDB();
@@ -94,8 +98,8 @@ if ($action === 'register') {
 
     $hash = password_hash($password, PASSWORD_BCRYPT);
     $pdo->prepare(
-        'INSERT INTO users (lrn, full_name, email, password, role) VALUES (?, ?, ?, ?, ?)'
-    )->execute([$lrn ?: null, "$firstName $lastName", $email, $hash, 'student']);
+        'INSERT INTO users (lrn, full_name, email, phone, password, role) VALUES (?, ?, ?, ?, ?, ?)'
+    )->execute([$lrn ?: null, "$firstName $lastName", $email, $phone ?: null, $hash, 'student']);
 
     jsonResponse(['success' => true, 'message' => 'Account created. You can now log in.']);
 }
@@ -107,6 +111,10 @@ if ($action === 'update') {
 
     if ($_SESSION['role'] === 'student' && $id !== (int)$_SESSION['user_id']) {
         jsonResponse(['success' => false, 'message' => 'Access denied.'], 403);
+    }
+
+    if (isset($_POST['phone']) && trim($_POST['phone']) !== '' && !preg_match('/^\d{11}$/', trim($_POST['phone']))) {
+        jsonResponse(['success' => false, 'message' => 'Contact number must be exactly 11 digits.'], 400);
     }
 
     $allowed = ['full_name', 'phone', 'address', 'birthdate', 'gender', 'avatar_url', 'guardian_name'];

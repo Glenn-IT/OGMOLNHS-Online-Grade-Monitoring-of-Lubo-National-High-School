@@ -1,1 +1,1 @@
-Lets craete new tag or version - v2.00 - and the content of the v1.00 functions and Admin: dashboard / Manage Student the rest is gated Under Construction
+1. Manage Student - Add Student - the LRN should not accept letters upon input - the Contact number should 11 digit number and no letters 
