@@ -30,6 +30,7 @@ Demo snapshot tags that need a *more restrictive* view than `main` currently has
 | Version | Feature                                            | Live Pages                                                                                   | Gated                                                                                     |
 | ------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | v2.00   | Demo snapshot: Login + Admin Dashboard/Manage Students only | index.php, signup.php, forgot-password.php, admin/dashboard.php, admin/manage-students.php | 11 pages (admin analytics/grades/sections/reports/sms/profile, student dashboard/grades/analytics/reports/profile) |
+| v3.00   | Demo snapshot: v2.00 + Admin Manage Sections | index.php, signup.php, forgot-password.php, admin/dashboard.php, admin/manage-students.php, admin/manage-sections.php | 10 pages (admin analytics/grades/reports/sms/profile, student dashboard/grades/analytics/reports/profile) |
 
 ---
 
@@ -95,6 +96,7 @@ To browse an old snapshot: `git checkout v1.02` (detached HEAD — read-only). R
 | v1.12   | v1.12    | f2bc660e1473f27358a4a469b2c36d90c259f82d |
 | v1.13   | v1.13    | 00690232cca04389a153c6929be17d56f34fc549 |
 | v2.00   | v2.00    | 1315522a535074774e51873d919305ec7b5b8600 |
+| v3.00   | v3.00    | 066c5b2260c6bbb4659fc3d08767b6cc80de9a11 |
 
 ---
 
