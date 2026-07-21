@@ -100,20 +100,25 @@ $adminActivePage = 'manage-sections';
       </div>
       <div class="modal-body">
         <input type="hidden" id="assignSectionId"/>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Select Student</label>
-          <select id="assignStudentSelect" class="form-select">
-            <option value="">— Choose a student —</option>
-          </select>
+        <div class="mb-2">
+          <label class="form-label fw-semibold">Search Students</label>
+          <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" id="assignSearchInput" placeholder="Search by name or LRN…" oninput="renderAssignList()"/>
+          </div>
         </div>
-        <div class="alert alert-info py-2" style="font-size:.82rem">
+        <div id="assignStudentList" style="max-height:260px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px"></div>
+        <div class="d-flex justify-content-between align-items-center mt-2">
+          <small class="text-muted"><span id="assignSelectedCount">0</span> selected</small>
+        </div>
+        <div class="alert alert-info py-2 mt-2" style="font-size:.82rem">
           <i class="fas fa-info-circle me-1"></i>
-          If the student is already in another section, they will be moved here.
+          If a student is already in another section, they will be moved here.
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn btn-primary" onclick="assignStudent()"><i class="fas fa-user-plus me-1"></i>Assign</button>
+        <button class="btn btn-primary" onclick="assignStudent()"><i class="fas fa-user-plus me-1"></i>Assign Selected</button>
       </div>
     </div>
   </div>
@@ -125,6 +130,7 @@ $adminActivePage = 'manage-sections';
 <script src="../../assets/js/app.js"></script>
 <script>
   let sectionsData = [], allStudents = [], sectionStudentsCache = {};
+  let assignSelectedIds = new Set(), assignCurrentSectionId = null;
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   async function init() {
@@ -136,12 +142,6 @@ $adminActivePage = 'manage-sections';
     const stuData = await stuRes.json();
     sectionsData = secData.data || [];
     allStudents  = stuData.data || [];
-
-    // Populate student select in assign modal
-    const sel = document.getElementById('assignStudentSelect');
-    allStudents.forEach(s =>
-      sel.innerHTML += `<option value="${s.id}">${s.full_name}${s.lrn?' ('+s.lrn+')':''}</option>`
-    );
 
     // Load students per section
     await Promise.all(sectionsData.map(s => loadSectionStudents(s.id)));
@@ -285,33 +285,72 @@ $adminActivePage = 'manage-sections';
 
   // ── Enrollment ────────────────────────────────────────────────────────────
   function openAssignModal(sectionId, sectionName) {
+    assignSelectedIds = new Set();
+    assignCurrentSectionId = sectionId;
     document.getElementById('assignSectionId').value      = sectionId;
     document.getElementById('assignSectionName').textContent = sectionName;
-    document.getElementById('assignStudentSelect').value  = '';
+    document.getElementById('assignSearchInput').value    = '';
+    renderAssignList();
     new bootstrap.Modal(document.getElementById('assignModal')).show();
+  }
+
+  function renderAssignList() {
+    const query = document.getElementById('assignSearchInput').value.trim().toLowerCase();
+    const alreadyIn = new Set((sectionStudentsCache[assignCurrentSectionId] || []).map(s => s.id));
+
+    const matches = allStudents.filter(s => {
+      if (alreadyIn.has(s.id)) return false;
+      if (!query) return true;
+      return s.full_name.toLowerCase().includes(query) || (s.lrn||'').toLowerCase().includes(query);
+    });
+
+    const list = document.getElementById('assignStudentList');
+    list.innerHTML = matches.length ? matches.map(s => `
+      <div class="student-item">
+        <input type="checkbox" class="form-check-input" id="assignChk${s.id}"
+          ${assignSelectedIds.has(s.id) ? 'checked' : ''}
+          onchange="toggleAssignStudent(${s.id}, this.checked)"/>
+        <label class="flex-grow-1 mb-0" for="assignChk${s.id}" style="cursor:pointer">
+          <div style="font-size:.85rem;font-weight:600">${s.full_name}</div>
+          <div style="font-size:.72rem;color:#94a3b8">${s.lrn||'No LRN'}</div>
+        </label>
+      </div>`).join('')
+      : `<div class="empty-section"><i class="fas fa-user-slash me-1"></i>No matching students.</div>`;
+
+    document.getElementById('assignSelectedCount').textContent = assignSelectedIds.size;
+  }
+
+  function toggleAssignStudent(id, checked) {
+    if (checked) assignSelectedIds.add(id);
+    else assignSelectedIds.delete(id);
+    document.getElementById('assignSelectedCount').textContent = assignSelectedIds.size;
   }
 
   async function assignStudent() {
     const sectionId = document.getElementById('assignSectionId').value;
-    const studentId = document.getElementById('assignStudentSelect').value;
-    if (!studentId) { showToast('Please select a student.', 'error'); return; }
+    if (!assignSelectedIds.size) { showToast('Please select at least one student.', 'error'); return; }
 
-    const body = new FormData();
-    body.append('action',     'enroll');
-    body.append('section_id', sectionId);
-    body.append('student_id', studentId);
+    let okCount = 0, failCount = 0;
+    for (const studentId of assignSelectedIds) {
+      const body = new FormData();
+      body.append('action',     'enroll');
+      body.append('section_id', sectionId);
+      body.append('student_id', studentId);
+      try {
+        const res  = await fetch('../../api/sections.php', {method:'POST', body});
+        const data = await res.json();
+        if (data.success) okCount++; else failCount++;
+      } catch(e) { failCount++; }
+    }
 
-    try {
-      const res  = await fetch('../../api/sections.php', {method:'POST', body});
-      const data = await res.json();
-      if (data.success) {
-        bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
-        showToast(data.message, 'success');
-        await refresh();
-      } else {
-        showToast(data.message || 'Error assigning student.', 'error');
-      }
-    } catch(e) { showToast('Server error.', 'error'); }
+    if (okCount) {
+      bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
+      showToast(`${okCount} student${okCount!==1?'s':''} assigned.${failCount?` ${failCount} failed.`:''}`,
+        failCount ? 'error' : 'success');
+      await refresh();
+    } else {
+      showToast('Error assigning students.', 'error');
+    }
   }
 
   async function removeStudent(enrollmentId, sectionId, studentName) {
