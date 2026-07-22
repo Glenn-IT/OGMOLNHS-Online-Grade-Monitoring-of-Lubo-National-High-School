@@ -30,7 +30,7 @@ $adminActivePage = 'sms';
     <main class="page-content fade-in">
       <div class="row g-3 mb-3">
         <div class="col-12">
-          <div style="background:linear-gradient(135deg,#0f172a,#1d4ed8);border-radius:12px;padding:1.25rem 1.5rem;color:#fff;display:flex;align-items:center;gap:1rem">
+          <div style="background:#2c3e50;border-radius:4px;padding:1.25rem 1.5rem;color:#fff;display:flex;align-items:center;gap:1rem">
             <div style="font-size:2.5rem">📱</div>
             <div>
               <h5 class="mb-1 fw-bold">SMS Notification System</h5>

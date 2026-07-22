@@ -112,7 +112,7 @@ $userId = (int)$_SESSION['user_id'];
     document.getElementById('reportContent').innerHTML = `
       <div class="content-card mb-3">
         <div class="card-header-custom"
-          style="background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:12px 12px 0 0">
+          style="background:var(--primary);border-radius:4px 4px 0 0">
           <span class="card-title" style="color:#fff">Student Report Card</span>
           <span style="color:rgba(255,255,255,.8);font-size:.8rem">Generated: ${date}</span>
         </div>

@@ -3,27 +3,27 @@
    ========================================================= */
 
 /* ── Google Font ── */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap");
 
 /* ── CSS Variables ── */
 :root {
-  --primary: #1d4ed8;
-  --primary-dark: #1e3a8a;
-  --primary-light: #dbeafe;
-  --accent: #0ea5e9;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --info: #6366f1;
-  --sidebar-bg: #0f172a;
-  --sidebar-hover: #1e293b;
-  --sidebar-active: #1d4ed8;
+  --primary: #337ab7;
+  --primary-dark: #286090;
+  --primary-light: #d9edf7;
+  --accent: #5bc0de;
+  --success: #5cb85c;
+  --warning: #f0ad4e;
+  --danger: #d9534f;
+  --info: #5bc0de;
+  --sidebar-bg: #2c3e50;
+  --sidebar-hover: #34495e;
+  --sidebar-active: #337ab7;
   --sidebar-width: 260px;
   --header-h: 64px;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
-  --radius: 12px;
-  --transition: 0.22s ease;
-  --font: "Inter", sans-serif;
+  --card-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  --radius: 4px;
+  --transition: 0.15s ease;
+  --font: "Open Sans", "Helvetica Neue", Arial, sans-serif;
 }
 
 /* ── Reset / Base ── */
@@ -70,46 +70,26 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #0ea5e9 100%);
+  background: var(--sidebar-bg);
   padding: 20px;
   position: relative;
   overflow: hidden;
 }
-.auth-wrapper::before {
-  content: "";
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 50%;
-  top: -200px;
-  right: -200px;
-}
-.auth-wrapper::after {
-  content: "";
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 50%;
-  bottom: -150px;
-  left: -100px;
-}
 .auth-card {
   background: #fff;
-  border-radius: 20px;
+  border-radius: var(--radius);
   padding: 2.5rem 2rem;
   width: 100%;
   max-width: 440px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  border: 1px solid #ddd;
+  box-shadow: var(--card-shadow);
   position: relative;
   z-index: 1;
-  animation: slideUp 0.4s ease;
 }
 .auth-card .school-logo {
   width: 72px;
   height: 72px;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background: var(--primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -148,50 +128,41 @@ a {
 }
 .form-control,
 .form-select {
-  border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius);
+  border: 1px solid #ccc;
   padding: 0.6rem 0.85rem;
   font-size: 0.9rem;
-  transition:
-    border-color var(--transition),
-    box-shadow var(--transition);
+  transition: border-color var(--transition);
 }
 .form-control:focus,
 .form-select:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
   outline: none;
 }
 .btn-primary-custom {
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background: var(--primary);
   border: none;
   color: #fff;
   padding: 0.7rem 1.5rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-weight: 600;
-  transition:
-    transform var(--transition),
-    box-shadow var(--transition);
+  transition: background-color var(--transition);
   width: 100%;
   font-size: 1rem;
   cursor: pointer;
 }
 .btn-primary-custom:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(29, 78, 216, 0.35);
-}
-.btn-primary-custom:active {
-  transform: translateY(0);
+  background: var(--primary-dark);
 }
 .input-group-text {
   background: #f8fafc;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px 0 0 8px;
+  border: 1px solid #ccc;
+  border-radius: var(--radius) 0 0 var(--radius);
   color: #94a3b8;
 }
 .input-group .form-control {
   border-left: none;
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
 }
 .input-group .form-control:focus {
   box-shadow: none;
@@ -254,8 +225,8 @@ a {
 .sidebar-logo .logo-icon {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-radius: 10px;
+  background: var(--primary);
+  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -285,7 +256,7 @@ a {
 .user-avatar {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--accent), var(--primary));
+  background: var(--primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -324,9 +295,7 @@ a {
   gap: 0.75rem;
   padding: 0.65rem 1.5rem;
   color: #94a3b8;
-  transition:
-    background var(--transition),
-    color var(--transition);
+  transition: background-color var(--transition), color var(--transition);
   border-left: 3px solid transparent;
   cursor: pointer;
   font-size: 0.875rem;
@@ -344,8 +313,8 @@ a {
   color: #e2e8f0;
 }
 .sidebar-link.active {
-  background: rgba(29, 78, 216, 0.2);
-  color: #93c5fd;
+  background: var(--sidebar-hover);
+  color: #fff;
   border-left-color: var(--primary);
 }
 
@@ -359,17 +328,18 @@ a {
   gap: 0.75rem;
   width: 100%;
   padding: 0.6rem 1rem;
-  background: rgba(239, 68, 68, 0.12);
-  border: none;
-  border-radius: 8px;
-  color: #fca5a5;
+  background: transparent;
+  border: 1px solid #d9534f;
+  border-radius: var(--radius);
+  color: #d9534f;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background var(--transition);
+  transition: background-color var(--transition), color var(--transition);
 }
 .btn-logout:hover {
-  background: rgba(239, 68, 68, 0.25);
+  background: #d9534f;
+  color: #fff;
 }
 
 /* ── Main Content ── */
@@ -385,7 +355,7 @@ a {
 .topbar {
   height: var(--header-h);
   background: #fff;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #ddd;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -416,15 +386,15 @@ a {
 .topbar-btn {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius);
+  border: 1px solid #ccc;
   background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #64748b;
   cursor: pointer;
-  transition: background var(--transition);
+  transition: background-color var(--transition);
   position: relative;
 }
 .topbar-btn:hover {
@@ -448,7 +418,7 @@ a {
 .topbar-avatar {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background: var(--primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -484,19 +454,12 @@ a {
   border-radius: var(--radius);
   padding: 1.25rem;
   box-shadow: var(--card-shadow);
-  border: 1px solid #f1f5f9;
-  transition:
-    transform var(--transition),
-    box-shadow var(--transition);
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
 }
 .stat-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -530,12 +493,12 @@ a {
   background: #fff;
   border-radius: var(--radius);
   box-shadow: var(--card-shadow);
-  border: 1px solid #f1f5f9;
+  border: 1px solid #ddd;
   overflow: hidden;
 }
 .card-header-custom {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #ddd;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -582,12 +545,12 @@ a {
   font-size: 0.7rem;
   font-weight: 600;
   padding: 0.3em 0.65em;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 .badge-grade {
   display: inline-block;
   padding: 0.25rem 0.6rem;
-  border-radius: 6px;
+  border-radius: 2px;
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -596,10 +559,10 @@ a {
 .btn-sm-custom {
   padding: 0.3rem 0.7rem;
   font-size: 0.775rem;
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background-color var(--transition), color var(--transition);
   border: none;
   display: inline-flex;
   align-items: center;
@@ -647,14 +610,14 @@ a {
 }
 .period-btn {
   padding: 0.4rem 1rem;
-  border-radius: 20px;
-  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius);
+  border: 1px solid #ccc;
   background: #fff;
   color: #64748b;
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background-color var(--transition), color var(--transition);
 }
 .period-btn.active {
   background: var(--primary);
@@ -690,15 +653,15 @@ a {
 
 /* ── Modal Customization ── */
 .modal-content {
-  border-radius: 16px;
-  border: none;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius);
+  border: 1px solid #ccc;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.2);
 }
 .modal-header {
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #ddd;
   padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-radius: 16px 16px 0 0;
+  background: var(--primary);
+  border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
 }
 .modal-header .modal-title {
   color: #fff;
@@ -711,7 +674,7 @@ a {
   padding: 1.5rem;
 }
 .modal-footer {
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid #ddd;
   padding: 1rem 1.5rem;
 }
 
@@ -727,15 +690,15 @@ a {
 }
 .toast-item {
   background: #fff;
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 0.875rem 1.25rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 1px solid #ddd;
+  box-shadow: var(--card-shadow);
   display: flex;
   align-items: center;
   gap: 0.75rem;
   min-width: 280px;
   max-width: 380px;
-  animation: slideInRight 0.3s ease;
   border-left: 4px solid var(--primary);
 }
 .toast-item.success {
@@ -792,7 +755,6 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(2px);
 }
 .loading-spinner {
   width: 56px;
@@ -805,28 +767,13 @@ a {
 
 /* ── Welcome Banner ── */
 .welcome-banner {
-  background: linear-gradient(
-    135deg,
-    var(--primary-dark),
-    var(--primary),
-    var(--accent)
-  );
+  background: var(--primary-dark);
   border-radius: var(--radius);
   padding: 1.5rem 2rem;
   color: #fff;
   position: relative;
   overflow: hidden;
   margin-bottom: 1.5rem;
-}
-.welcome-banner::after {
-  content: "";
-  position: absolute;
-  right: -30px;
-  top: -30px;
-  width: 160px;
-  height: 160px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 50%;
 }
 .welcome-banner h2 {
   font-size: 1.4rem;
@@ -842,7 +789,7 @@ a {
   align-items: center;
   gap: 0.4rem;
   background: rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
+  border-radius: var(--radius);
   padding: 0.25rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 600;
@@ -853,7 +800,7 @@ a {
 .profile-avatar-lg {
   width: 96px;
   height: 96px;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background: var(--primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -934,9 +881,9 @@ a {
 /* ── SMS Page ── */
 .sms-log-item {
   padding: 0.75rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #ccc;
   margin-bottom: 0.5rem;
 }
 .sms-log-item .sms-to {
@@ -982,41 +929,10 @@ a {
 }
 
 /* ── Animations ── */
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
-}
-.fade-in {
-  animation: fadeIn 0.3s ease;
 }
 
 /* ── Empty State ── */
@@ -1041,8 +957,8 @@ a {
   align-items: center;
   gap: 0.5rem;
   background: #f8fafc;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
   padding: 0.5rem 0.85rem;
 }
 .search-bar input {
@@ -1064,7 +980,7 @@ a {
   justify-content: center;
   width: 48px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-weight: 700;
   font-size: 0.875rem;
   color: #fff;

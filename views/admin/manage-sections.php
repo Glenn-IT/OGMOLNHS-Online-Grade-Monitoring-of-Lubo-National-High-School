@@ -12,16 +12,15 @@ $adminActivePage = 'manage-sections';
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link rel="stylesheet" href="../../assets/css/style.css"/>
   <style>
-    .section-card { border-radius:12px;border:1px solid #e2e8f0;background:#fff;padding:0;overflow:hidden;transition:box-shadow .2s; }
-    .section-card:hover { box-shadow:0 4px 20px rgba(0,0,0,.08); }
-    .section-card-header { background:#0c1326;color:#fff;padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:center; }
+    .section-card { border-radius:4px;border:1px solid #ccc;background:#fff;padding:0;overflow:hidden; }
+    .section-card-header { background:#2c3e50;color:#fff;padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:center; }
     .section-card-header h6 { margin:0;font-size:1rem;font-weight:700; }
     .section-card-header small { opacity:.7;font-size:.75rem; }
-    .section-meta { display:flex;gap:1rem;padding:.75rem 1.25rem;border-bottom:1px solid #f1f5f9;font-size:.82rem;color:#64748b; }
+    .section-meta { display:flex;gap:1rem;padding:.75rem 1.25rem;border-bottom:1px solid #ddd;font-size:.82rem;color:#64748b; }
     .student-item { display:flex;align-items:center;gap:.75rem;padding:.6rem 1.25rem;border-bottom:1px solid #f8fafc; }
     .student-item:last-child { border-bottom:none; }
     .student-item:hover { background:#f8fafc; }
-    .s-avatar { width:32px;height:32px;border-radius:50%;background:#0c1326;display:flex;align-items:center;
+    .s-avatar { width:32px;height:32px;border-radius:50%;background:#2c3e50;display:flex;align-items:center;
       justify-content:center;color:#fff;font-size:.72rem;font-weight:700;flex-shrink:0; }
     .section-card-footer { padding:.75rem 1.25rem;background:#f8fafc;display:flex;gap:.5rem; }
     .empty-section { padding:2rem 1.25rem;text-align:center;color:#94a3b8;font-size:.85rem; }

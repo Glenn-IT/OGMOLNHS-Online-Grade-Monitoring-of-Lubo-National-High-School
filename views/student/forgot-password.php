@@ -20,15 +20,15 @@ if (!empty($_SESSION['user_id'])) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link rel="stylesheet" href="../../assets/css/style.css"/>
   <style>
-    body { background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #7c3aed 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .auth-card { background: #fff; border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 420px; box-shadow: 0 25px 60px rgba(0,0,0,.3); }
-    .auth-logo { width: 64px; height: 64px; border-radius: 50%; background: #0c1326; display:flex; align-items:center; justify-content:center; font-size:1.8rem; color:#fff; margin: 0 auto 1.5rem; }
+    body { background: #2c3e50; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .auth-card { background: #fff; border-radius: 4px; padding: 2.5rem; width: 100%; max-width: 420px; border: 1px solid #ddd; box-shadow: 0 1px 1px rgba(0,0,0,.05); }
+    .auth-logo { width: 64px; height: 64px; border-radius: 50%; background: #337ab7; display:flex; align-items:center; justify-content:center; font-size:1.8rem; color:#fff; margin: 0 auto 1.5rem; }
     .step { display: none; }
     .step.active { display: block; }
     .step-indicator { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; }
-    .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0; transition: background .3s; }
-    .step-dot.active { background: #1d4ed8; }
-    .step-dot.done   { background: #10b981; }
+    .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; transition: background .3s; }
+    .step-dot.active { background: #337ab7; }
+    .step-dot.done   { background: #5cb85c; }
   </style>
 </head>
 <body>

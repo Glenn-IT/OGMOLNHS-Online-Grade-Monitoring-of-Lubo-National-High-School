@@ -28,7 +28,7 @@ $adminActivePage = 'dashboard';
       </div>
       <div class="topbar-right">
         <div class="topbar-btn"><i class="fas fa-bell"></i><span class="badge-notif">—</span></div>
-        <div class="topbar-avatar" style="background:#0c1326"
+        <div class="topbar-avatar" style="background:#2c3e50"
           onclick="window.location.href='profile.php'">
           <i class="fas fa-user-shield" style="font-size:0.85rem"></i>
         </div>
@@ -36,7 +36,7 @@ $adminActivePage = 'dashboard';
     </header>
 
     <main class="page-content fade-in">
-      <div class="welcome-banner" style="background:linear-gradient(135deg,#1e1b4b,#4c1d95,#7c3aed)">
+      <div class="welcome-banner" style="background:#2c3e50">
         <div class="school-badge"><i class="fas fa-shield-alt me-1"></i>Administrator Panel</div>
         <h2>Welcome, <?= htmlspecialchars($_SESSION['full_name']) ?>!</h2>
         <p>Manage grades, students, and generate reports for Lubo National High School.</p>
