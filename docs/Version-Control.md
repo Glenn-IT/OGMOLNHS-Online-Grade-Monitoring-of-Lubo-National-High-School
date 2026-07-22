@@ -96,7 +96,7 @@ To browse an old snapshot: `git checkout v1.02` (detached HEAD — read-only). R
 | v1.12   | v1.12    | f2bc660e1473f27358a4a469b2c36d90c259f82d |
 | v1.13   | v1.13    | 00690232cca04389a153c6929be17d56f34fc549 |
 | v2.00   | v2.00    | 1315522a535074774e51873d919305ec7b5b8600 |
-| v3.00   | v3.00    | 1d3c1b55aa04bc3c77c43060ff342a9710dbd7e5 |
+| v3.00   | v3.00    | e95e041f5568dbadc965f196b84805ed0dcbb3c9 |
 
 ---
 
