@@ -209,7 +209,6 @@ $adminActivePage = 'manage-students';
         <td>
           <button class="btn-sm-custom btn-view me-1" onclick="viewStudent(${s.id})"><i class="fas fa-eye"></i></button>
           <button class="btn-sm-custom btn-edit me-1" onclick="editStudent(${s.id})"><i class="fas fa-edit"></i></button>
-          <button class="btn-sm-custom btn-delete" onclick="deleteStudent(${s.id})"><i class="fas fa-trash"></i></button>
         </td>
       </tr>`;
     }).join('');
