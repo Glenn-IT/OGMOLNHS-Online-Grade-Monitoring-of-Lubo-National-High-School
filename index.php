@@ -101,7 +101,7 @@ if (!empty($_SESSION['user_id'])) {
               <a href="views/student/forgot-password.php" style="font-size:0.8rem;color:var(--primary)">Forgot Password?</a>
             </div>
             <button type="submit" class="btn-primary-custom" id="adminSubmitBtn"
-              style="background:linear-gradient(135deg,#7c3aed,#a78bfa)">
+              style="background:#2c3e50">
               <i class="fas fa-shield-alt me-2"></i>Login as Admin
             </button>
           </form>

@@ -127,7 +127,7 @@ $adminActivePage = 'reports';
       const stats = data.stats || {};
       document.getElementById('reportContent').innerHTML = `
         <div class="content-card mb-3">
-          <div class="card-header-custom" style="background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:12px 12px 0 0">
+          <div class="card-header-custom" style="background:var(--primary);border-radius:4px 4px 0 0">
             <span class="card-title" style="color:#fff">Class Summary Report</span>
             <span style="color:rgba(255,255,255,.8);font-size:.8rem">Generated: ${date}</span>
           </div>
@@ -185,7 +185,7 @@ $adminActivePage = 'reports';
       const genAvg  = data.general_average;
       document.getElementById('reportContent').innerHTML = `
         <div class="content-card mb-3">
-          <div class="card-header-custom" style="background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:12px 12px 0 0">
+          <div class="card-header-custom" style="background:var(--primary);border-radius:4px 4px 0 0">
             <span class="card-title" style="color:#fff">Individual Student Report</span>
             <span style="color:rgba(255,255,255,.8);font-size:.8rem">Generated: ${date}</span>
           </div>
