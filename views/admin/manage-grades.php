@@ -25,6 +25,18 @@ $adminActivePage = 'manage-grades';
     .btn-cell.del   { color:#ef4444; }
     .student-avatar { width:36px;height:36px;border-radius:50%;background:#0c1326;
       display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:#fff; }
+    .grade-accordion .accordion-button { font-weight:700; color:#0c1326; }
+    .grade-accordion .accordion-button:not(.collapsed) { background:#0c1326; color:#fff; box-shadow:none; }
+    .grade-accordion .accordion-button:not(.collapsed) .badge { background:#fff !important; color:#0c1326 !important; }
+    .grade-accordion .accordion-button:focus { box-shadow:none; }
+    .section-subheader {
+      display:flex; align-items:center; justify-content:space-between;
+      background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;
+      padding:6px 12px; font-size:.82rem; font-weight:600; color:#334155;
+      border-radius:6px 6px 0 0; margin-top:14px;
+    }
+    .section-table { margin-bottom:0; }
+    .section-block:first-child .section-subheader { margin-top:0; }
   </style>
 </head>
 <body>
@@ -48,13 +60,20 @@ $adminActivePage = 'manage-grades';
       <div class="content-card mb-3">
         <div class="card-body-custom">
           <div class="row g-2 align-items-center">
-            <div class="col-md-5">
+            <div class="col-md-4">
               <div class="search-bar">
                 <i class="fas fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Search by name or LRN…" oninput="filterStudents()"/>
               </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+              <select id="filterGrade" class="form-select form-select-sm" onchange="filterStudents()">
+                <option value="">All Grade Levels</option>
+                <option>7</option><option>8</option><option>9</option>
+                <option>10</option><option>11</option><option>12</option>
+              </select>
+            </div>
+            <div class="col-md-2">
               <select id="filterSection" class="form-select form-select-sm" onchange="filterStudents()">
                 <option value="">All Sections</option>
               </select>
@@ -74,26 +93,12 @@ $adminActivePage = 'manage-grades';
       <!-- Student roster -->
       <div class="content-card">
         <div class="card-header-custom">
-          <span class="card-title"><i class="fas fa-users me-2 text-primary"></i>Students — click a row to manage grades</span>
+          <span class="card-title"><i class="fas fa-users me-2 text-primary"></i>Students by Grade &amp; Section — click a row to manage grades</span>
         </div>
-        <div class="table-wrapper">
-          <table class="table">
-            <thead>
-              <tr>
-                <th style="width:44px"></th>
-                <th>Student</th>
-                <th>LRN</th>
-                <th>Section</th>
-                <th class="text-center">Overall Avg</th>
-                <th class="text-center">Passed</th>
-                <th class="text-center">Grades</th>
-                <th class="text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody id="studentTableBody">
-              <tr><td colspan="8" class="text-center py-4 text-muted">Loading students…</td></tr>
-            </tbody>
-          </table>
+        <div class="p-3">
+          <div class="accordion grade-accordion" id="gradeAccordion">
+            <div class="text-center py-4 text-muted">Loading students…</div>
+          </div>
         </div>
       </div>
     </main>
@@ -248,53 +253,125 @@ $adminActivePage = 'manage-grades';
   }
 
   // ── Student Table ─────────────────────────────────────────────────────────
+  function studentRowHtml(s) {
+    const grades   = studentGradesCache[s.id] || [];
+    const vals     = grades.map(g => parseFloat(g.final_grade)).filter(v => !isNaN(v));
+    const avg      = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : null;
+    const passed   = vals.filter(v => v >= 75).length;
+    const initials = s.full_name.split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
+
+    return `<tr class="student-row" data-sid="${s.id}" onclick="openGradeMatrix(${s.id})">
+      <td style="width:44px"><div class="student-avatar">${initials}</div></td>
+      <td><strong>${s.full_name}</strong></td>
+      <td><code style="font-size:.78rem">${s.lrn||'—'}</code></td>
+      <td class="text-center avg-cell">${avg !== null ? gradeCell(parseFloat(avg)) : '<span class="text-muted">—</span>'}</td>
+      <td class="text-center pass-cell">
+        ${vals.length
+          ? `<span class="badge ${passed===vals.length?'bg-success':'bg-warning text-dark'}">${passed}/${vals.length}</span>`
+          : '<span class="text-muted" style="font-size:.8rem">No grades</span>'}
+      </td>
+      <td class="text-center rec-cell"><span class="badge bg-secondary">${grades.length} records</span></td>
+      <td class="text-center">
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openGradeMatrix(${s.id})">
+          <i class="fas fa-table me-1"></i>Manage
+        </button>
+      </td>
+    </tr>`;
+  }
+
+  function sectionBlockHtml(sectionName, students) {
+    return `<div class="section-block">
+      <div class="section-subheader">
+        <span><i class="fas fa-chalkboard me-1 text-primary"></i>${sectionName}</span>
+        <span class="badge bg-secondary">${students.length} student${students.length===1?'':'s'}</span>
+      </div>
+      <div class="table-wrapper">
+        <table class="table section-table">
+          <thead>
+            <tr>
+              <th style="width:44px"></th>
+              <th>Student</th>
+              <th>LRN</th>
+              <th class="text-center">Overall Avg</th>
+              <th class="text-center">Passed</th>
+              <th class="text-center">Grades</th>
+              <th class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>${students.map(studentRowHtml).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
   function renderStudentTable() {
     document.getElementById('studentCount').textContent = filteredStudents.length + ' students';
-    const tbody = document.getElementById('studentTableBody');
+    const container = document.getElementById('gradeAccordion');
+
     if (!filteredStudents.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No students found.</td></tr>';
+      container.innerHTML = '<div class="text-center text-muted py-4">No students found.</div>';
       return;
     }
-    tbody.innerHTML = filteredStudents.map(s => {
-      const grades  = studentGradesCache[s.id] || [];
-      const vals    = grades.map(g => parseFloat(g.final_grade)).filter(v => !isNaN(v));
-      const avg     = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : null;
-      const passed  = vals.filter(v => v >= 75).length;
-      const initials = s.full_name.split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
 
-      return `<tr class="student-row" data-sid="${s.id}" onclick="openGradeMatrix(${s.id})">
-        <td><div class="student-avatar">${initials}</div></td>
-        <td><strong>${s.full_name}</strong></td>
-        <td><code style="font-size:.78rem">${s.lrn||'—'}</code></td>
-        <td>${s.section_name||'—'}</td>
-        <td class="text-center avg-cell">${avg !== null ? gradeCell(parseFloat(avg)) : '<span class="text-muted">—</span>'}</td>
-        <td class="text-center pass-cell">
-          ${vals.length
-            ? `<span class="badge ${passed===vals.length?'bg-success':'bg-warning text-dark'}">${passed}/${vals.length}</span>`
-            : '<span class="text-muted" style="font-size:.8rem">No grades</span>'}
-        </td>
-        <td class="text-center rec-cell"><span class="badge bg-secondary">${grades.length} records</span></td>
-        <td class="text-center">
-          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openGradeMatrix(${s.id})">
-            <i class="fas fa-table me-1"></i>Manage
+    // Group by grade level, then by section
+    const grouped = {};
+    filteredStudents.forEach(s => {
+      const gradeKey = s.grade_level || 'Unassigned';
+      const secKey   = s.section_name || 'Unassigned';
+      if (!grouped[gradeKey]) grouped[gradeKey] = {};
+      if (!grouped[gradeKey][secKey]) grouped[gradeKey][secKey] = [];
+      grouped[gradeKey][secKey].push(s);
+    });
+
+    const gradeKeys = Object.keys(grouped).sort((a, b) => {
+      if (a === 'Unassigned') return 1;
+      if (b === 'Unassigned') return -1;
+      return Number(a) - Number(b);
+    });
+
+    const isFiltering = !!(document.getElementById('searchInput').value.trim()
+      || document.getElementById('filterGrade').value
+      || document.getElementById('filterSection').value);
+
+    container.innerHTML = gradeKeys.map(gradeKey => {
+      const sections    = grouped[gradeKey];
+      const sectionKeys = Object.keys(sections).sort((a, b) => a.localeCompare(b));
+      const gradeCount  = sectionKeys.reduce((n, k) => n + sections[k].length, 0);
+      const collapseId  = 'grade-collapse-' + String(gradeKey).replace(/\s+/g, '-');
+      const label       = gradeKey === 'Unassigned' ? 'Unassigned' : `Grade ${gradeKey}`;
+      const showClass   = isFiltering ? ' show' : '';
+      const collapsedCls= isFiltering ? '' : ' collapsed';
+
+      return `<div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button${collapsedCls}" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+            ${label} <span class="badge bg-primary ms-2">${gradeCount} student${gradeCount===1?'':'s'}</span>
           </button>
-        </td>
-      </tr>`;
+        </h2>
+        <div id="${collapseId}" class="accordion-collapse collapse${showClass}">
+          <div class="accordion-body">
+            ${sectionKeys.map(secKey => sectionBlockHtml(secKey, sections[secKey])).join('')}
+          </div>
+        </div>
+      </div>`;
     }).join('');
   }
 
   function filterStudents() {
-    const q   = document.getElementById('searchInput').value.toLowerCase();
-    const sec = document.getElementById('filterSection').value;
+    const q     = document.getElementById('searchInput').value.toLowerCase();
+    const grade = document.getElementById('filterGrade').value;
+    const sec   = document.getElementById('filterSection').value;
     filteredStudents = allStudents.filter(s =>
-      (!q   || s.full_name.toLowerCase().includes(q) || (s.lrn||'').includes(q)) &&
-      (!sec || s.section_name === sec)
+      (!q     || s.full_name.toLowerCase().includes(q) || (s.lrn||'').includes(q)) &&
+      (!grade || String(s.grade_level) === grade) &&
+      (!sec   || s.section_name === sec)
     );
     renderStudentTable();
   }
 
   function clearFilters() {
     document.getElementById('searchInput').value   = '';
+    document.getElementById('filterGrade').value   = '';
     document.getElementById('filterSection').value = '';
     filteredStudents = [...allStudents];
     renderStudentTable();
