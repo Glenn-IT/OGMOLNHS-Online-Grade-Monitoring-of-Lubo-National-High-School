@@ -32,6 +32,7 @@ Demo snapshot tags that need a *more restrictive* view than `main` currently has
 | v2.00   | Demo snapshot: Login + Admin Dashboard/Manage Students only | index.php, signup.php, forgot-password.php, admin/dashboard.php, admin/manage-students.php | 11 pages (admin analytics/grades/sections/reports/sms/profile, student dashboard/grades/analytics/reports/profile) |
 | v3.00   | Demo snapshot: v2.00 + Admin Manage Sections | index.php, signup.php, forgot-password.php, admin/dashboard.php, admin/manage-students.php, admin/manage-sections.php | 10 pages (admin analytics/grades/reports/sms/profile, student dashboard/grades/analytics/reports/profile) |
 | v4.00   | Demo snapshot: v3.00 + Admin Manage Grades (Grade/Section accordion)/Profile, Student Dashboard/Profile | index.php, signup.php, forgot-password.php, admin/dashboard.php, admin/manage-students.php, admin/manage-sections.php, admin/manage-grades.php, admin/profile.php, student/dashboard.php, student/profile.php | 6 pages (admin analytics/reports/sms, student grades/analytics/reports) |
+| v4.01   | Demo snapshot: v4.00 + the four `docs/Issues.md` recommendations — duplicate-section rejection, Manage Sections drill-down accordion, Grade/Section on Manage Students, and the new **School Years (S.Y.)** page | v4.00 pages + admin/school-years.php | Same 6 pages as v4.00 (admin analytics/reports/sms, student grades/analytics/reports) |
 
 ---
 
@@ -99,6 +100,7 @@ To browse an old snapshot: `git checkout v1.02` (detached HEAD — read-only). R
 | v2.00   | v2.00    | 1315522a535074774e51873d919305ec7b5b8600 |
 | v3.00   | v3.00    | e95e041f5568dbadc965f196b84805ed0dcbb3c9 |
 | v4.00   | v4.00    | c2842a63fdb59abc37c3891a455bf658d0f16908 |
+| v4.01   | v4.01    | 50d6bf9b2f7cd279fc5859824132a2b4d4fbe5e2 |
 
 ---
 
