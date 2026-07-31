@@ -2,17 +2,12 @@
 // api/reports.php
 require_once '../config/db.php';
 require_once '../config/session.php';
+require_once '../config/school-year.php';
 requireLogin();
 
 $action  = $_GET['action']  ?? '';
 $quarter = (int)($_GET['quarter'] ?? 0);   // 0 = all quarters
 $pdo     = getDB();
-
-// Helper: resolve active school year ID
-function activeSchoolYear(PDO $pdo): int {
-    $row = $pdo->query("SELECT id FROM school_years WHERE is_active = 1 LIMIT 1")->fetch();
-    return $row ? (int)$row['id'] : 1;
-}
 
 // ─── CLASS SUMMARY REPORT (admin only) ───────────────────────────────────────
 if ($action === 'class') {
@@ -36,14 +31,13 @@ if ($action === 'class') {
                 s.name AS section_name,
                 agg.avg
          FROM users u
-         LEFT JOIN enrollments e  ON e.student_id = u.id
+         LEFT JOIN enrollments e  ON e.student_id = u.id AND e.school_year_id = ?
          LEFT JOIN sections    s  ON s.id = e.section_id
-         LEFT JOIN school_years sy ON sy.id = e.school_year_id AND sy.is_active = 1
          LEFT JOIN ($gradeSubquery) agg ON agg.student_id = u.id
          WHERE " . implode(' AND ', $where) . "
          ORDER BY agg.avg DESC, u.full_name"
     );
-    $stmt->execute(array_merge($gradeParams, $params));
+    $stmt->execute(array_merge([activeSchoolYear($pdo)], $gradeParams, $params));
     $students = $stmt->fetchAll();
 
     $avgs     = array_filter(array_column($students, 'avg'), fn($v) => $v !== null);
@@ -105,14 +99,15 @@ if ($action === 'student') {
     // Fetch student info
     $stmt = $pdo->prepare(
         "SELECT u.id, u.full_name, u.lrn, u.email,
-                s.name AS section_name, s.grade_level
+                s.name AS section_name, s.grade_level,
+                sy.label AS school_year
          FROM users u
-         LEFT JOIN enrollments e  ON e.student_id = u.id
-         LEFT JOIN sections    s  ON s.id = e.section_id
-         LEFT JOIN school_years sy ON sy.id = e.school_year_id AND sy.is_active = 1
+         LEFT JOIN enrollments  e  ON e.student_id = u.id AND e.school_year_id = ?
+         LEFT JOIN sections     s  ON s.id = e.section_id
+         LEFT JOIN school_years sy ON sy.id = e.school_year_id
          WHERE u.id = ?"
     );
-    $stmt->execute([$studentId]);
+    $stmt->execute([activeSchoolYear($pdo), $studentId]);
     $student = $stmt->fetch();
 
     if (!$student) {
@@ -172,6 +167,7 @@ if ($action === 'student') {
             'student'         => $student,
             'subjects'        => $subjectReport,
             'general_average' => $generalAverage,
+            'school_year'     => activeSchoolYearLabel($pdo),
         ],
     ]);
 }

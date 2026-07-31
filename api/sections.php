@@ -2,23 +2,27 @@
 // api/sections.php
 require_once '../config/db.php';
 require_once '../config/session.php';
+require_once '../config/school-year.php';
 requireAdmin();
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $pdo    = getDB();
 
-// ─── LIST SECTIONS ────────────────────────────────────────────────────────────
+// ─── LIST SECTIONS (active school year) ──────────────────────────────────────
 if ($action === 'list') {
-    $stmt = $pdo->query(
+    $syId = activeSchoolYear($pdo);
+    $stmt = $pdo->prepare(
         "SELECT s.id, s.name, s.grade_level, s.school_year_id,
                 sy.label AS school_year,
                 COUNT(e.id) AS student_count
          FROM sections s
          LEFT JOIN school_years sy ON sy.id = s.school_year_id
-         LEFT JOIN enrollments  e  ON e.section_id = s.id
+         LEFT JOIN enrollments  e  ON e.section_id = s.id AND e.school_year_id = s.school_year_id
+         WHERE s.school_year_id = ?
          GROUP BY s.id
          ORDER BY s.grade_level, s.name"
     );
+    $stmt->execute([$syId]);
     jsonResponse(['success' => true, 'data' => $stmt->fetchAll()]);
 }
 
@@ -27,15 +31,16 @@ if ($action === 'students') {
     $sectionId = (int)($_GET['section_id'] ?? 0);
     if (!$sectionId) jsonResponse(['success' => false, 'message' => 'section_id required.'], 400);
 
+    $syId = activeSchoolYear($pdo);
     $stmt = $pdo->prepare(
         "SELECT u.id, u.full_name, u.lrn, u.email, u.phone, u.is_active,
                 e.id AS enrollment_id, e.enrolled_at
          FROM enrollments e
          JOIN users u ON u.id = e.student_id
-         WHERE e.section_id = ?
+         WHERE e.section_id = ? AND e.school_year_id = ?
          ORDER BY u.full_name"
     );
-    $stmt->execute([$sectionId]);
+    $stmt->execute([$sectionId, $syId]);
     jsonResponse(['success' => true, 'data' => $stmt->fetchAll()]);
 }
 
@@ -51,9 +56,22 @@ if ($action === 'save') {
     }
 
     // Resolve active SY if not provided
-    if (!$syId) {
-        $sy   = $pdo->query("SELECT id FROM school_years WHERE is_active = 1 LIMIT 1")->fetch();
-        $syId = $sy ? (int)$sy['id'] : 1;
+    if (!$syId) $syId = activeSchoolYear($pdo);
+
+    // Reject duplicates: same name + grade level within the same school year.
+    // Case- and whitespace-insensitive; excludes the row being edited.
+    $dup = $pdo->prepare(
+        "SELECT id FROM sections
+         WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND grade_level = ? AND school_year_id = ?
+           AND id <> ?
+         LIMIT 1"
+    );
+    $dup->execute([$name, $gradeLevel, $syId, $id]);
+    if ($dup->fetch()) {
+        jsonResponse([
+            'success' => false,
+            'message' => "Section \"$name\" already exists for Grade $gradeLevel this school year.",
+        ], 409);
     }
 
     if ($id) {
@@ -90,8 +108,7 @@ if ($action === 'enroll') {
         jsonResponse(['success' => false, 'message' => 'student_id and section_id required.'], 400);
     }
 
-    $sy   = $pdo->query("SELECT id FROM school_years WHERE is_active = 1 LIMIT 1")->fetch();
-    $syId = $sy ? (int)$sy['id'] : 1;
+    $syId = activeSchoolYear($pdo);
 
     // Update existing enrollment or insert new one (UNIQUE: student + school year)
     $stmt = $pdo->prepare(
@@ -106,9 +123,19 @@ if ($action === 'enroll') {
 // ─── REMOVE STUDENT FROM SECTION ─────────────────────────────────────────────
 if ($action === 'unenroll') {
     $enrollmentId = (int)($_POST['enrollment_id'] ?? 0);
-    if (!$enrollmentId) jsonResponse(['success' => false, 'message' => 'enrollment_id required.'], 400);
+    $studentId    = (int)($_POST['student_id']    ?? 0);
 
-    $pdo->prepare("DELETE FROM enrollments WHERE id = ?")->execute([$enrollmentId]);
+    if ($enrollmentId) {
+        $pdo->prepare("DELETE FROM enrollments WHERE id = ?")->execute([$enrollmentId]);
+    } elseif ($studentId) {
+        // Fallback: drop the student's enrollment for the active school year
+        $syId = activeSchoolYear($pdo);
+        $pdo->prepare("DELETE FROM enrollments WHERE student_id = ? AND school_year_id = ?")
+            ->execute([$studentId, $syId]);
+    } else {
+        jsonResponse(['success' => false, 'message' => 'enrollment_id or student_id required.'], 400);
+    }
+
     jsonResponse(['success' => true, 'message' => 'Student removed from section.']);
 }
 

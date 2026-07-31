@@ -10,10 +10,9 @@ $adminActivePage = 'manage-grades';
   <title>Manage Grades – OGMS Admin</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-  <link rel="stylesheet" href="../../assets/css/style.css"/>
+  <link rel="stylesheet" href="../../assets/css/style.css?v=<?= filemtime(__DIR__ . "/../../assets/css/style.css") ?>"/>
   <style>
-    .student-row { cursor:pointer; transition:background .15s; }
-    .student-row:hover { background:#f0f7ff !important; }
+    /* Grade-matrix modal only — shared roster/accordion styles live in style.css */
     .grade-matrix th { font-size:.78rem; text-align:center; font-weight:600; white-space:nowrap; }
     .grade-matrix td { text-align:center; vertical-align:middle; font-size:.85rem; }
     .grade-matrix td.subject-col { text-align:left; font-weight:600; min-width:130px; }
@@ -23,20 +22,6 @@ $adminActivePage = 'manage-grades';
     .btn-cell:hover { background:#e2e8f0; }
     .btn-cell.edit  { color:#1d4ed8; }
     .btn-cell.del   { color:#ef4444; }
-    .student-avatar { width:36px;height:36px;border-radius:50%;background:#0c1326;
-      display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:#fff; }
-    .grade-accordion .accordion-button { font-weight:700; color:#0c1326; }
-    .grade-accordion .accordion-button:not(.collapsed) { background:#0c1326; color:#fff; box-shadow:none; }
-    .grade-accordion .accordion-button:not(.collapsed) .badge { background:#fff !important; color:#0c1326 !important; }
-    .grade-accordion .accordion-button:focus { box-shadow:none; }
-    .section-subheader {
-      display:flex; align-items:center; justify-content:space-between;
-      background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;
-      padding:6px 12px; font-size:.82rem; font-weight:600; color:#334155;
-      border-radius:6px 6px 0 0; margin-top:14px;
-    }
-    .section-table { margin-bottom:0; }
-    .section-block:first-child .section-subheader { margin-top:0; }
   </style>
 </head>
 <body>

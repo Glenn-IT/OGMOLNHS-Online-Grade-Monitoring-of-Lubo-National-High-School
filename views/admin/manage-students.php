@@ -10,7 +10,7 @@ $adminActivePage = 'manage-students';
   <title>Manage Students – OGMS Admin</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-  <link rel="stylesheet" href="../../assets/css/style.css"/>
+  <link rel="stylesheet" href="../../assets/css/style.css?v=<?= filemtime(__DIR__ . "/../../assets/css/style.css") ?>"/>
 </head>
 <body>
 <div class="app-wrapper">
@@ -73,10 +73,10 @@ $adminActivePage = 'manage-students';
         <div class="table-wrapper">
           <table class="table">
             <thead>
-              <tr><th>#</th><th>Student</th><th>LRN</th><th>Section</th><th>Contact</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>#</th><th>Student</th><th>LRN</th><th>Grade Level</th><th>Section</th><th>Contact</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody id="studentsTableBody">
-              <tr><td colspan="7" class="text-center py-4">Loading…</td></tr>
+              <tr><td colspan="8" class="text-center py-4">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -106,6 +106,16 @@ $adminActivePage = 'manage-students';
           </div>
           <div class="col-md-6"><label class="form-label">Birthdate</label><input type="date" id="sBirthdate" class="form-control"/></div>
           <div class="col-12"><label class="form-label">Address</label><input type="text" id="sAddress" class="form-control"/></div>
+          <div class="col-12"><hr/><h6 class="text-muted">Enrollment</h6></div>
+          <div class="col-md-6"><label class="form-label">Grade Level</label>
+            <select id="sGrade" class="form-select" onchange="onStudentGradeChange()">
+              <option value="">Not enrolled</option>
+              <?php for($g=7;$g<=12;$g++) echo "<option value='$g'>Grade $g</option>"; ?>
+            </select>
+          </div>
+          <div class="col-md-6"><label class="form-label">Section</label>
+            <select id="sSection" class="form-select"><option value="">Select a grade level first</option></select>
+          </div>
           <div class="col-12"><hr/><h6 class="text-muted">Account Credentials</h6></div>
           <div class="col-md-6">
             <label class="form-label">Password <small id="pwdHint" class="text-muted">(required for new)</small></label>
@@ -140,25 +150,58 @@ $adminActivePage = 'manage-students';
 <script src="../../assets/js/app.js"></script>
 <script>
   let allStudentsData = [];
+  let allSections     = [];   // sections of the active school year
 
   async function loadStudents() {
     try {
-      const res  = await fetch('../../api/students.php?action=list');
-      const data = await res.json();
-      allStudentsData = data.data || [];
+      const [stuRes, secRes] = await Promise.all([
+        fetch('../../api/students.php?action=list'),
+        fetch('../../api/sections.php?action=list'),
+      ]);
+      const data    = await stuRes.json();
+      const secData = await secRes.json();
+      allStudentsData = data.data    || [];
+      allSections     = secData.data || [];
       populateSectionFilter();
       renderStudents(allStudentsData);
     } catch(e) {
       document.getElementById('studentsTableBody').innerHTML =
-        '<tr><td colspan="7" class="text-center text-danger">Failed to load students.</td></tr>';
+        '<tr><td colspan="8" class="text-center text-danger">Failed to load students.</td></tr>';
     }
   }
 
+  function esc(str) {
+    return String(str ?? '').replace(/[&<>"']/g,
+      c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // Sourced from the sections list (not from loaded students), so sections with
+  // no students yet still appear in the filter.
   function populateSectionFilter() {
-    const sections = [...new Set(allStudentsData.map(s => s.section_name).filter(Boolean))];
     const sel = document.getElementById('filterSection');
     sel.innerHTML = '<option value="">All Sections</option>';
-    sections.forEach(sec => sel.innerHTML += `<option value="${sec}">${sec}</option>`);
+    allSections.forEach(sec =>
+      sel.innerHTML += `<option value="${esc(sec.name)}">${esc(sec.name)} (Gr.${sec.grade_level})</option>`);
+  }
+
+  /** Repopulate the modal's Section dropdown for the chosen grade level. */
+  function onStudentGradeChange(selectedSectionId = null) {
+    const grade = document.getElementById('sGrade').value;
+    const sel   = document.getElementById('sSection');
+
+    if (!grade) {
+      sel.innerHTML = '<option value="">Not enrolled</option>';
+      sel.value = '';
+      return;
+    }
+
+    const matches = allSections.filter(x => String(x.grade_level) === String(grade));
+    sel.innerHTML = matches.length
+      ? '<option value="">— Select a section —</option>'
+        + matches.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')
+      : '<option value="">No sections exist for this grade level</option>';
+
+    if (selectedSectionId) sel.value = String(selectedSectionId);
   }
 
   function filterStudents() {
@@ -185,7 +228,7 @@ $adminActivePage = 'manage-students';
     document.getElementById('studentCount').textContent = data.length + ' students';
     const tbody = document.getElementById('studentsTableBody');
     if (!data.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-inbox me-2"></i>No students found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-inbox me-2"></i>No students found.</td></tr>';
       return;
     }
     tbody.innerHTML = data.map((s, i) => {
@@ -203,7 +246,8 @@ $adminActivePage = 'manage-students';
           </div>
         </td>
         <td><code style="font-size:.8rem">${s.lrn||'—'}</code></td>
-        <td>${s.section_name||'—'} ${s.grade_level?`(Gr.${s.grade_level})`:''}</td>
+        <td>${s.grade_level ? `Grade ${s.grade_level}` : '<span class="text-muted">—</span>'}</td>
+        <td>${s.section_name ? esc(s.section_name) : '<span class="text-muted">Unassigned</span>'}</td>
         <td style="font-size:.8rem">${s.phone||'—'}</td>
         <td><span class="badge bg-success">Active</span></td>
         <td>
@@ -218,9 +262,10 @@ $adminActivePage = 'manage-students';
     document.getElementById('studentIdField').value = '';
     document.getElementById('studentModalTitle').innerHTML = '<i class="fas fa-user-plus me-2"></i>Add Student';
     document.getElementById('pwdHint').textContent = '(required for new)';
-    ['sFirst','sLast','sEmail','sLrn','sContact','sGender','sBirthdate','sAddress','sPwd'].forEach(id => {
+    ['sFirst','sLast','sEmail','sLrn','sContact','sGender','sBirthdate','sAddress','sPwd','sGrade'].forEach(id => {
       document.getElementById(id).value = '';
     });
+    onStudentGradeChange();
     new bootstrap.Modal(document.getElementById('studentModal')).show();
   }
 
@@ -239,6 +284,11 @@ $adminActivePage = 'manage-students';
     document.getElementById('sBirthdate').value = s.birthdate || '';
     document.getElementById('sAddress').value= s.address || '';
     document.getElementById('sPwd').value    = '';
+
+    // Prefill current enrollment (section_id comes from api/students.php?action=list)
+    document.getElementById('sGrade').value = s.grade_level || '';
+    onStudentGradeChange(s.section_id || null);
+
     new bootstrap.Modal(document.getElementById('studentModal')).show();
   }
 
@@ -255,6 +305,13 @@ $adminActivePage = 'manage-students';
     if (!id && !pwd) { showToast('Password is required for new students.', 'error'); return; }
     if (lrn && !/^\d{12}$/.test(lrn)) { showToast('LRN must be exactly 12 digits.', 'error'); return; }
     if (contact && !/^\d{11}$/.test(contact)) { showToast('Contact number must be exactly 11 digits.', 'error'); return; }
+
+    const grade     = document.getElementById('sGrade').value;
+    const sectionId = document.getElementById('sSection').value;
+    if (grade && !sectionId) {
+      showToast('Please choose a section for the selected grade level.', 'error');
+      return;
+    }
 
     const body = new FormData();
     if (id) {
@@ -274,19 +331,60 @@ $adminActivePage = 'manage-students';
       body.append('password',   pwd);
       body.append('lrn',        lrn);
       body.append('phone',      contact);
+      body.append('gender',     document.getElementById('sGender').value);
+      body.append('birthdate',  document.getElementById('sBirthdate').value);
+      body.append('address',    document.getElementById('sAddress').value.trim());
     }
 
     try {
       const res  = await fetch('../../api/students.php', {method:'POST', body});
       const data = await res.json();
-      if (data.success) {
-        showToast(id ? 'Student updated!' : 'Student added!', 'success');
-        bootstrap.Modal.getInstance(document.getElementById('studentModal')).hide();
-        loadStudents();
-      } else {
+      if (!data.success) {
         showToast(data.message || 'Error saving student.', 'error');
+        return;
       }
+
+      const studentId = id || data.id;
+      const enrollMsg = await syncEnrollment(studentId, sectionId, id ? allStudentsData.find(st => st.id === Number(id)) : null);
+
+      showToast((id ? 'Student updated!' : 'Student added!') + (enrollMsg ? ' ' + enrollMsg : ''), 'success');
+      bootstrap.Modal.getInstance(document.getElementById('studentModal')).hide();
+      loadStudents();
     } catch(e) { showToast('Server error.', 'error'); }
+  }
+
+  /**
+   * Bring the student's enrollment in line with the modal's Grade/Section choice.
+   * Goes through api/sections.php enroll/unenroll — the same code path Manage
+   * Sections uses — so a re-assignment moves the student rather than duplicating
+   * them (UNIQUE student_id + school_year_id).
+   * Returns a short status suffix for the toast, or '' when nothing changed.
+   */
+  async function syncEnrollment(studentId, sectionId, existing) {
+    if (!studentId) return '';
+    const currentSectionId = existing ? (existing.section_id || null) : null;
+    const enrollmentId     = existing ? (existing.enrollment_id || null) : null;
+
+    // Unchanged
+    if (String(currentSectionId || '') === String(sectionId || '')) return '';
+
+    const body = new FormData();
+    if (sectionId) {
+      body.append('action',     'enroll');
+      body.append('section_id', sectionId);
+      body.append('student_id', studentId);
+    } else {
+      body.append('action',     'unenroll');
+      body.append('student_id', studentId);
+      if (enrollmentId) body.append('enrollment_id', enrollmentId);
+    }
+
+    try {
+      const res  = await fetch('../../api/sections.php', {method:'POST', body});
+      const data = await res.json();
+      if (!data.success) return '(enrollment not saved)';
+      return sectionId ? 'Section assigned.' : 'Removed from section.';
+    } catch(e) { return '(enrollment not saved)'; }
   }
 
   async function viewStudent(id) {
@@ -302,7 +400,8 @@ $adminActivePage = 'manage-students';
         </div>
         <h5 class="fw-bold">${s.full_name}</h5>
         <p class="text-muted mb-1" style="font-size:.85rem">${s.lrn||'No LRN'}</p>
-        <span class="badge bg-primary">${s.section_name||'—'}</span>
+        <span class="badge ${s.section_name ? 'bg-primary' : 'bg-secondary'}">${
+          s.section_name ? `${esc(s.section_name)} · Grade ${s.grade_level}` : 'Unassigned'}</span>
       </div>
       <div class="row g-2">
         <div class="col-md-6">
@@ -313,8 +412,8 @@ $adminActivePage = 'manage-students';
         </div>
         <div class="col-md-6">
           <div class="info-row"><span class="info-label">Address</span><span class="info-value">${s.address||'—'}</span></div>
-          <div class="info-row"><span class="info-label">Grade Level</span><span class="info-value">Grade ${s.grade_level||'—'}</span></div>
-          <div class="info-row"><span class="info-label">Section</span><span class="info-value">${s.section_name||'—'}</span></div>
+          <div class="info-row"><span class="info-label">Grade Level</span><span class="info-value">${s.grade_level ? `Grade ${s.grade_level}` : '—'}</span></div>
+          <div class="info-row"><span class="info-label">Section</span><span class="info-value">${s.section_name ? esc(s.section_name) : 'Unassigned'}</span></div>
           <div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="badge bg-success">Active</span></span></div>
         </div>
       </div>`;

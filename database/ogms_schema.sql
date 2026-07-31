@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     address     TEXT,
     birthdate   DATE,
     gender      ENUM('Male','Female','Other'),
+    guardian_name VARCHAR(100),
     avatar_url  VARCHAR(255),
     is_active   TINYINT(1) DEFAULT 1,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -36,7 +37,8 @@ CREATE TABLE IF NOT EXISTS sections (
     name            VARCHAR(50) NOT NULL,
     grade_level     TINYINT NOT NULL,
     school_year_id  INT,
-    FOREIGN KEY (school_year_id) REFERENCES school_years(id)
+    FOREIGN KEY (school_year_id) REFERENCES school_years(id),
+    UNIQUE KEY uq_section (name, grade_level, school_year_id)
 );
 
 -- ─── SUBJECTS ─────────────────────────────────────────────────────────────────

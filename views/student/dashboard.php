@@ -13,7 +13,7 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
   <title>Dashboard – OGMS Student</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-  <link rel="stylesheet" href="../../assets/css/style.css"/>
+  <link rel="stylesheet" href="../../assets/css/style.css?v=<?= filemtime(__DIR__ . "/../../assets/css/style.css") ?>"/>
 </head>
 <body>
 <div class="app-wrapper">
@@ -129,18 +129,21 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
 
   async function loadDashboard() {
     try {
-      const [profileRes, gradesRes] = await Promise.all([
+      const [profileRes, gradesRes, syRes] = await Promise.all([
         fetch('../../api/students.php?action=get&id=' + SESSION_USER_ID),
         fetch('../../api/grades.php?action=list&student_id=' + SESSION_USER_ID),
+        fetch('../../api/school-years.php?action=active'),
       ]);
       const pData = await profileRes.json();
       const gData = await gradesRes.json();
+      const syData = await syRes.json();
       const student  = pData.data  || {};
       const grades   = gData.data  || [];
       const subjects = gData.subjects || [];
+      const schoolYear = (syData.data && syData.data.label) || '—';
 
       document.getElementById('welcomeSub').textContent =
-        `${student.section_name||'—'} | School Year 2024–2025`;
+        `${student.section_name||'—'} | School Year ${schoolYear}`;
 
       const allVals = grades.map(g => parseFloat(g.final_grade));
       const q4      = grades.filter(g => g.quarter == 4);

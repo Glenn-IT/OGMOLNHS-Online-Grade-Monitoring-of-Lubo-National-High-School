@@ -1,6 +1,6 @@
 <?php
 // components/admin-sidebar.php
-// Set $adminActivePage before including: 'dashboard','manage-grades','manage-students','manage-sections','analytics','reports','sms','profile'
+// Set $adminActivePage before including: 'dashboard','manage-grades','manage-students','manage-sections','school-years','analytics','reports','sms','profile'
 $adminActivePage = $adminActivePage ?? '';
 function adminLink(string $page, string $current): string {
     return $page === $current ? 'sidebar-link active' : 'sidebar-link';
@@ -38,6 +38,9 @@ function adminLink(string $page, string $current): string {
     </a>
     <a href="manage-sections.php" class="<?= adminLink('manage-sections', $adminActivePage) ?>">
       <i class="fas fa-layer-group"></i> Manage Sections
+    </a>
+    <a href="school-years.php" class="<?= adminLink('school-years', $adminActivePage) ?>">
+      <i class="fas fa-calendar-alt"></i> School Years
     </a>
     <div class="nav-section-label" style="margin-top:0.5rem">Reports &amp; Analytics</div>
     <a href="analytics.php" class="<?= adminLink('analytics', $adminActivePage) ?>">

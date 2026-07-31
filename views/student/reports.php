@@ -11,7 +11,7 @@ $userId = (int)$_SESSION['user_id'];
   <title>Report Card – OGMS Student</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-  <link rel="stylesheet" href="../../assets/css/style.css"/>
+  <link rel="stylesheet" href="../../assets/css/style.css?v=<?= filemtime(__DIR__ . "/../../assets/css/style.css") ?>"/>
   <link rel="stylesheet" href="../../assets/css/print.css"/>
 </head>
 <body>
@@ -132,7 +132,7 @@ $userId = (int)$_SESSION['user_id'];
             </div>
             <div class="col-md-4">
               <div class="info-row"><span class="info-label">School Year</span>
-                <span class="info-value">2024–2025</span></div>
+                <span class="info-value">${data.school_year||'—'}</span></div>
             </div>
             <div class="col-md-4">
               <div class="info-row"><span class="info-label">Period</span>

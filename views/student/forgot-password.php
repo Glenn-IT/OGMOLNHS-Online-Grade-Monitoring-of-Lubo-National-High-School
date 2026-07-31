@@ -18,7 +18,7 @@ if (!empty($_SESSION['user_id'])) {
   <title>Forgot Password – OGMS</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-  <link rel="stylesheet" href="../../assets/css/style.css"/>
+  <link rel="stylesheet" href="../../assets/css/style.css?v=<?= filemtime(__DIR__ . "/../../assets/css/style.css") ?>"/>
   <style>
     body { background: #2c3e50; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
     .auth-card { background: #fff; border-radius: 4px; padding: 2.5rem; width: 100%; max-width: 420px; border: 1px solid #ddd; box-shadow: 0 1px 1px rgba(0,0,0,.05); }

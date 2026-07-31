@@ -2,6 +2,7 @@
 // api/students.php
 require_once '../config/db.php';
 require_once '../config/session.php';
+require_once '../config/school-year.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
@@ -9,17 +10,21 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 if ($action === 'list') {
     requireAdmin();
     $pdo  = getDB();
-    $stmt = $pdo->query(
+    $syId = activeSchoolYear($pdo);
+    // Scope the enrollment join to the active school year, otherwise a student
+    // enrolled across two school years is returned twice.
+    $stmt = $pdo->prepare(
         "SELECT u.id, u.lrn, u.full_name, u.email, u.phone, u.address,
                 u.birthdate, u.gender, u.avatar_url, u.is_active, u.created_at,
-                s.name AS section_name, s.grade_level
+                s.id   AS section_id, s.name AS section_name, s.grade_level,
+                e.id   AS enrollment_id
          FROM users u
-         LEFT JOIN enrollments e ON e.student_id = u.id
+         LEFT JOIN enrollments e ON e.student_id = u.id AND e.school_year_id = ?
          LEFT JOIN sections s    ON s.id = e.section_id
-         LEFT JOIN school_years sy ON sy.id = e.school_year_id AND sy.is_active = 1
          WHERE u.role = 'student'
          ORDER BY u.full_name"
     );
+    $stmt->execute([$syId]);
     jsonResponse(['success' => true, 'data' => $stmt->fetchAll()]);
 }
 
@@ -34,17 +39,20 @@ if ($action === 'get') {
     }
 
     $pdo  = getDB();
+    $syId = activeSchoolYear($pdo);
     $stmt = $pdo->prepare(
         "SELECT u.id, u.lrn, u.full_name, u.email, u.phone, u.address,
-                u.birthdate, u.gender, u.avatar_url,
-                s.name AS section_name, s.grade_level
+                u.birthdate, u.gender, u.guardian_name, u.avatar_url,
+                s.id AS section_id, s.name AS section_name, s.grade_level,
+                e.id AS enrollment_id,
+                sy.label AS school_year
          FROM users u
-         LEFT JOIN enrollments e ON e.student_id = u.id
-         LEFT JOIN sections s    ON s.id = e.section_id
-         LEFT JOIN school_years sy ON sy.id = e.school_year_id AND sy.is_active = 1
+         LEFT JOIN enrollments  e  ON e.student_id = u.id AND e.school_year_id = ?
+         LEFT JOIN sections     s  ON s.id = e.section_id
+         LEFT JOIN school_years sy ON sy.id = e.school_year_id
          WHERE u.id = ?"
     );
-    $stmt->execute([$id]);
+    $stmt->execute([$syId, $id]);
     $student = $stmt->fetch();
 
     if (!$student) {
@@ -61,6 +69,9 @@ if ($action === 'register') {
     $password  = $_POST['password']        ?? '';
     $lrn       = trim($_POST['lrn']        ?? '');
     $phone     = trim($_POST['phone']      ?? '');
+    $gender    = trim($_POST['gender']     ?? '');
+    $birthdate = trim($_POST['birthdate']  ?? '');
+    $address   = trim($_POST['address']    ?? '');
 
     if (!$firstName || !$lastName || !$email || !$password) {
         jsonResponse(['success' => false, 'message' => 'All fields are required.'], 400);
@@ -98,10 +109,19 @@ if ($action === 'register') {
 
     $hash = password_hash($password, PASSWORD_BCRYPT);
     $pdo->prepare(
-        'INSERT INTO users (lrn, full_name, email, phone, password, role) VALUES (?, ?, ?, ?, ?, ?)'
-    )->execute([$lrn ?: null, "$firstName $lastName", $email, $phone ?: null, $hash, 'student']);
+        'INSERT INTO users (lrn, full_name, email, phone, gender, birthdate, address, password, role)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    )->execute([
+        $lrn ?: null, "$firstName $lastName", $email, $phone ?: null,
+        $gender ?: null, $birthdate ?: null, $address ?: null,
+        $hash, 'student',
+    ]);
 
-    jsonResponse(['success' => true, 'message' => 'Account created. You can now log in.']);
+    jsonResponse([
+        'success' => true,
+        'message' => 'Account created. You can now log in.',
+        'id'      => (int)$pdo->lastInsertId(),
+    ]);
 }
 
 // ─── UPDATE PROFILE ─────────────────────────────────────────────────────────

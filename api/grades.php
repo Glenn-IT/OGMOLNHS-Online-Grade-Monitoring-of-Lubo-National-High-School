@@ -2,6 +2,7 @@
 // api/grades.php
 require_once '../config/db.php';
 require_once '../config/session.php';
+require_once '../config/school-year.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
@@ -83,10 +84,7 @@ if ($action === 'save') {
     }
 
     // Resolve active school year if not provided
-    if (!$syId) {
-        $sy = $pdo->query("SELECT id FROM school_years WHERE is_active = 1 LIMIT 1")->fetch();
-        $syId = $sy ? (int)$sy['id'] : 1;
-    }
+    if (!$syId) $syId = activeSchoolYear($pdo);
 
     // Upsert using UNIQUE KEY (student_id, subject_id, quarter, school_year_id)
     $stmt = $pdo->prepare(
