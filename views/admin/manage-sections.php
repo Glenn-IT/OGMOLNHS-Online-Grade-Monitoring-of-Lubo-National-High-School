@@ -65,16 +65,29 @@ $adminActivePage = 'manage-sections';
       <!-- Summary strip -->
       <div class="row g-3 mb-3" id="summaryStrip"></div>
 
-      <!-- Grade → Section → Students drill-down -->
-      <div class="content-card">
+      <!-- Grade / Section grid -->
+      <div class="content-card mb-3">
         <div class="card-header-custom">
-          <span class="card-title"><i class="fas fa-layer-group me-2 text-primary"></i>Sections by Grade Level — open a grade, then a section to see its students</span>
+          <span class="card-title"><i class="fas fa-layer-group me-2 text-primary"></i>Sections</span>
         </div>
-        <div class="p-3">
-          <div class="accordion grade-accordion" id="sectionAccordion">
-            <div class="text-center py-4 text-muted">Loading sections…</div>
-          </div>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr><th>Grade Level</th><th>Section</th><th>Students</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="sectionsTableBody">
+              <tr><td colspan="4" class="text-center py-4">Loading…</td></tr>
+            </tbody>
+          </table>
         </div>
+      </div>
+
+      <!-- Unassigned students -->
+      <div class="content-card" id="unassignedCard" style="display:none">
+        <div class="card-header-custom">
+          <span class="card-title"><i class="fas fa-user-slash me-2 text-danger"></i>Unassigned Students</span>
+        </div>
+        <div class="p-3" id="unassignedList"></div>
       </div>
 
     </main>
@@ -109,6 +122,24 @@ $adminActivePage = 'manage-sections';
       <div class="modal-footer">
         <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button class="btn btn-primary" onclick="saveSection()"><i class="fas fa-save me-1"></i>Save Section</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── View Section (student roster) Modal ────────────────────────────────── -->
+<div class="modal fade" id="viewSectionModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#0c1326;color:#fff">
+        <h5 class="modal-title" id="viewSectionTitle"><i class="fas fa-users me-2"></i>Section Students</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="viewSectionBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-primary btn-sm" onclick="openAssignModalFromView()">
+          <i class="fas fa-user-plus me-1"></i>Assign Existing Student
+        </button>
       </div>
     </div>
   </div>
@@ -155,12 +186,14 @@ $adminActivePage = 'manage-sections';
 <script>
   let sectionsData = [], allStudents = [], sectionStudentsCache = {};
   let assignSelectedIds = new Set(), assignCurrentSectionId = null;
+  let currentViewSectionId = null;
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   async function init() {
     await loadData();
     renderSummary();
-    renderSections();
+    renderGrid();
+    renderUnassigned();
   }
 
   async function loadData() {
@@ -221,26 +254,16 @@ $adminActivePage = 'manage-sections';
         || String(s.lrn||'').toLowerCase().includes(q);
   }
 
-  /**
-   * Returns [{ sec, students }] for sections passing the current filters.
-   * A section is kept when its own name matches, or when any of its students
-   * match — in which case only the matching students are listed.
-   */
+  /** Sections passing the current filters — matched by section name, grade, or a student inside it. */
   function visibleSections() {
     const { q, grade } = currentFilters();
 
-    return sectionsData.reduce((out, sec) => {
-      if (grade && String(sec.grade_level) !== grade) return out;
-
-      const roster     = sectionStudentsCache[sec.id] || [];
-      const nameHit    = !q || String(sec.name||'').toLowerCase().includes(q);
-      const studentHit = roster.filter(s => studentMatches(s, q));
-
-      if (!q || nameHit) out.push({ sec, students: roster });
-      else if (studentHit.length) out.push({ sec, students: studentHit });
-
-      return out;
-    }, []);
+    return sectionsData.filter(sec => {
+      if (grade && String(sec.grade_level) !== grade) return false;
+      if (!q) return true;
+      if (String(sec.name||'').toLowerCase().includes(q)) return true;
+      return (sectionStudentsCache[sec.id] || []).some(s => studentMatches(s, q));
+    });
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -262,145 +285,96 @@ $adminActivePage = 'manage-sections';
         <div class="stat-label">Unassigned</div></div></div>`;
   }
 
-  /** Level 3 — one row per student inside a section. */
-  function studentItemHtml(s, sectionId) {
-    return `<div class="student-item">
-      <div class="s-avatar">${esc(initials(s.full_name))}</div>
-      <div class="flex-grow-1">
-        <div style="font-size:.85rem;font-weight:600">${esc(s.full_name)}</div>
-        <div style="font-size:.72rem;color:#94a3b8">${esc(s.lrn || 'No LRN')}</div>
-      </div>
-      <button class="btn btn-outline-danger btn-sm" style="font-size:.7rem;padding:2px 8px"
-        onclick="removeStudent(${s.enrollment_id}, ${sectionId}, '${escAttr(s.full_name)}')">
-        <i class="fas fa-times"></i> Remove
-      </button>
-    </div>`;
-  }
+  /** Grid — one row per section, sorted by grade then name. */
+  function renderGrid() {
+    const tbody = document.getElementById('sectionsTableBody');
+    const visible = visibleSections()
+      .slice()
+      .sort((a, b) => a.grade_level - b.grade_level || a.name.localeCompare(b.name));
 
-  /** Level 2 — one collapsible panel per section, with its action buttons. */
-  function sectionItemHtml(sec, students, expanded) {
-    const collapseId = 'sec-collapse-' + sec.id;
-    const rows = students.length
-      ? students.map(s => studentItemHtml(s, sec.id)).join('')
-      : `<div class="empty-section"><i class="fas fa-user-slash me-1"></i>No students assigned yet.</div>`;
+    document.getElementById('sectionCount').textContent = plural(visible.length, 'section');
 
-    return `<div class="accordion-item">
-      <h2 class="accordion-header d-flex align-items-center flex-nowrap">
-        <button class="accordion-button${expanded ? '' : ' collapsed'}" type="button"
-                data-bs-toggle="collapse" data-bs-target="#${collapseId}">
-          <i class="fas fa-chalkboard me-2"></i>${esc(sec.name)}
-          <span class="badge bg-secondary ms-2">${plural(students.length, 'student')}</span>
-        </button>
-        <span class="section-actions">
-          <button class="btn btn-primary btn-sm"
-            onclick="openAssignModal(${sec.id},'${escAttr(sec.name)}')" title="Assign students">
-            <i class="fas fa-user-plus"></i><span class="d-none d-md-inline ms-1">Assign</span>
-          </button>
-          <button class="btn btn-outline-secondary btn-sm"
-            onclick="openSectionModal(${sec.id})" title="Edit section"><i class="fas fa-edit"></i></button>
-          <button class="btn btn-outline-danger btn-sm"
-            onclick="deleteSection(${sec.id})" title="Delete section"><i class="fas fa-trash"></i></button>
-        </span>
-      </h2>
-      <div id="${collapseId}" class="accordion-collapse collapse${expanded ? ' show' : ''}">
-        <div class="accordion-body">${rows}</div>
-      </div>
-    </div>`;
-  }
-
-  /** Level 1 — one collapsible panel per grade level. */
-  function renderSections() {
-    const container = document.getElementById('sectionAccordion');
-    const { q, grade } = currentFilters();
-    const isFiltering  = !!(q || grade);
-
-    const visible   = visibleSections();
-    const unmatched = q
-      ? unassignedStudents().filter(s => studentMatches(s, q))
-      : unassignedStudents();
-
-    document.getElementById('sectionCount').textContent =
-      plural(visible.length, 'section');
-
-    if (!visible.length && !unmatched.length) {
-      container.innerHTML = sectionsData.length
-        ? '<div class="text-center text-muted py-4">No sections or students match your filters.</div>'
-        : `<div class="empty-state"><i class="fas fa-layer-group"></i>
-           <p>No sections yet. Click <strong>New Section</strong> to create one.</p></div>`;
+    if (!visible.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">
+        <i class="fas fa-inbox me-2"></i>${sectionsData.length ? 'No sections match your filters.' : 'No sections yet. Click New Section to create one.'}
+      </td></tr>`;
       return;
     }
 
-    // Group the visible sections by grade level
-    const grouped = {};
-    visible.forEach(({ sec, students }) => {
-      const key = sec.grade_level || 'Unassigned';
-      (grouped[key] = grouped[key] || []).push({ sec, students });
-    });
-
-    const gradeKeys = Object.keys(grouped).sort((a, b) => {
-      if (a === 'Unassigned') return 1;
-      if (b === 'Unassigned') return -1;
-      return Number(a) - Number(b);
-    });
-
-    let html = gradeKeys.map(gradeKey => {
-      const entries    = grouped[gradeKey];
-      const studentSum = entries.reduce((n, e) => n + e.students.length, 0);
-      const collapseId = 'grade-collapse-' + String(gradeKey).replace(/\s+/g, '-');
-      const label      = gradeKey === 'Unassigned' ? 'Unassigned' : `Grade ${gradeKey}`;
-
-      return `<div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button${isFiltering ? '' : ' collapsed'}" type="button"
-                  data-bs-toggle="collapse" data-bs-target="#${collapseId}">
-            ${label}
-            <span class="badge bg-primary ms-2">${plural(entries.length, 'section')} · ${plural(studentSum, 'student')}</span>
-          </button>
-        </h2>
-        <div id="${collapseId}" class="accordion-collapse collapse${isFiltering ? ' show' : ''}">
-          <div class="accordion-body">
-            <div class="accordion section-accordion">
-              ${entries.map(e => sectionItemHtml(e.sec, e.students, isFiltering)).join('')}
-            </div>
-          </div>
-        </div>
-      </div>`;
+    tbody.innerHTML = visible.map(sec => {
+      const count = (sectionStudentsCache[sec.id] || []).length;
+      return `<tr>
+        <td>Grade ${sec.grade_level}</td>
+        <td>${esc(sec.name)}</td>
+        <td><span class="badge bg-primary">${count}</span></td>
+        <td>
+          <button class="btn-sm-custom btn-view me-1" onclick="viewSection(${sec.id})" title="View students"><i class="fas fa-eye"></i></button>
+          <button class="btn-sm-custom btn-edit me-1" onclick="openSectionModal(${sec.id})" title="Edit section"><i class="fas fa-edit"></i></button>
+          <button class="btn-sm-custom btn-delete" onclick="deleteSection(${sec.id})" title="Delete section"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`;
     }).join('');
-
-    // Trailing panel: students with no section in the active school year
-    if (unmatched.length) {
-      html += `<div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button${isFiltering ? '' : ' collapsed'}" type="button"
-                  data-bs-toggle="collapse" data-bs-target="#grade-collapse-none">
-            <i class="fas fa-user-slash me-2"></i>Unassigned Students
-            <span class="badge bg-danger ms-2">${plural(unmatched.length, 'student')}</span>
-          </button>
-        </h2>
-        <div id="grade-collapse-none" class="accordion-collapse collapse${isFiltering ? ' show' : ''}">
-          <div class="accordion-body p-0">
-            ${unmatched.map(s => `<div class="student-item">
-              <div class="s-avatar" style="background:#94a3b8">${esc(initials(s.full_name))}</div>
-              <div class="flex-grow-1">
-                <div style="font-size:.85rem;font-weight:600">${esc(s.full_name)}</div>
-                <div style="font-size:.72rem;color:#94a3b8">${esc(s.lrn || 'No LRN')}</div>
-              </div>
-              <span class="badge bg-light text-muted">Not in a section</span>
-            </div>`).join('')}
-          </div>
-        </div>
-      </div>`;
-    }
-
-    container.innerHTML = html;
   }
 
-  function filterSections() { renderSections(); }
+  /** Read-only card listing students with no enrollment this school year. */
+  function renderUnassigned() {
+    const list = unassignedStudents();
+    const card = document.getElementById('unassignedCard');
+    if (!list.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    document.getElementById('unassignedList').innerHTML = list.map(s => `
+      <div class="student-item">
+        <div class="s-avatar" style="background:#94a3b8">${esc(initials(s.full_name))}</div>
+        <div class="flex-grow-1">
+          <div style="font-size:.85rem;font-weight:600">${esc(s.full_name)}</div>
+          <div style="font-size:.72rem;color:#94a3b8">${esc(s.lrn || 'No LRN')}</div>
+        </div>
+        <span class="badge bg-light text-muted">Not in a section</span>
+      </div>`).join('');
+  }
+
+  function filterSections() { renderGrid(); }
 
   function clearFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('filterGrade').value = '';
-    renderSections();
+    renderGrid();
+  }
+
+  // ── View Section (student roster) ────────────────────────────────────────
+  function viewSection(id) {
+    currentViewSectionId = id;
+    renderViewModal();
+    new bootstrap.Modal(document.getElementById('viewSectionModal')).show();
+  }
+
+  function renderViewModal() {
+    const sec = sectionsData.find(s => s.id === currentViewSectionId);
+    if (!sec) return;
+    const students = sectionStudentsCache[sec.id] || [];
+
+    document.getElementById('viewSectionTitle').innerHTML =
+      `<i class="fas fa-users me-2"></i>Grade ${sec.grade_level} – ${esc(sec.name)}`;
+
+    document.getElementById('viewSectionBody').innerHTML = students.length
+      ? students.map(s => `<div class="student-item">
+          <div class="s-avatar">${esc(initials(s.full_name))}</div>
+          <div class="flex-grow-1">
+            <div style="font-size:.85rem;font-weight:600">${esc(s.full_name)}</div>
+            <div style="font-size:.72rem;color:#94a3b8">${esc(s.lrn || 'No LRN')} · ${esc(s.email||'')}</div>
+          </div>
+          <button class="btn btn-outline-danger btn-sm" style="font-size:.7rem;padding:2px 8px"
+            onclick="removeStudent(${s.enrollment_id}, ${sec.id}, '${escAttr(s.full_name)}')">
+            <i class="fas fa-times"></i> Remove
+          </button>
+        </div>`).join('')
+      : `<div class="empty-section"><i class="fas fa-user-slash me-1"></i>No students assigned yet.</div>`;
+  }
+
+  function openAssignModalFromView() {
+    const sec = sectionsData.find(s => s.id === currentViewSectionId);
+    if (!sec) return;
+    openAssignModal(sec.id, sec.name);
   }
 
   // ── Section CRUD ──────────────────────────────────────────────────────────
@@ -540,7 +514,9 @@ $adminActivePage = 'manage-sections';
   async function refresh() {
     await loadData();
     renderSummary();
-    renderSections();
+    renderGrid();
+    renderUnassigned();
+    if (currentViewSectionId) renderViewModal();
   }
 
   document.addEventListener('DOMContentLoaded', init);
