@@ -84,8 +84,8 @@ $studentActivePage = 'grades';
                 <th>Subject</th>
                 <th>Quarter</th>
                 <th>Written Works<br><small class="text-muted" style="font-weight:400">(20%)</small></th>
-                <th>Performance Tasks<br><small class="text-muted" style="font-weight:400">(60%)</small></th>
-                <th>Quarterly Exam<br><small class="text-muted" style="font-weight:400">(20%)</small></th>
+                <th>Performance Tasks<br><small class="text-muted" style="font-weight:400">(50%)</small></th>
+                <th>Quarterly Exam<br><small class="text-muted" style="font-weight:400">(30%)</small></th>
                 <th>Final Grade</th>
                 <th>Remarks</th>
               </tr>

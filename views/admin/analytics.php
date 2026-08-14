@@ -67,12 +67,23 @@ $adminActivePage = 'analytics';
         </div>
         <div class="col-md-8">
           <div class="content-card h-100">
-            <div class="card-header-custom">
+            <div class="card-header-custom d-flex justify-content-between align-items-center">
               <span class="card-title"><i class="fas fa-users me-2 text-info"></i>Student Performance Ranking</span>
+              <div style="width: 170px;">
+                <select id="rankingGradeFilter" class="form-select form-select-sm" onchange="renderRanking()">
+                  <option value="">All Grade Levels</option>
+                  <option value="7">Grade 7</option>
+                  <option value="8">Grade 8</option>
+                  <option value="9">Grade 9</option>
+                  <option value="10">Grade 10</option>
+                  <option value="11">Grade 11</option>
+                  <option value="12">Grade 12</option>
+                </select>
+              </div>
             </div>
             <div class="table-wrapper">
               <table class="table">
-                <thead><tr><th>Rank</th><th>Student</th><th>Average</th><th>Status</th></tr></thead>
+                <thead><tr><th>Rank</th><th>Student</th><th>Grade &amp; Section</th><th>Average</th><th>Status</th></tr></thead>
                 <tbody id="rankingBody"></tbody>
               </table>
             </div>
@@ -89,6 +100,30 @@ $adminActivePage = 'analytics';
 <script src="../../assets/js/api-client.js"></script>
 <script src="../../assets/js/app.js"></script>
 <script>
+  let rawStudentRanking = [];
+
+  function renderRanking() {
+    const selectedGrade = document.getElementById('rankingGradeFilter').value;
+    let list = rawStudentRanking;
+    if (selectedGrade) {
+      list = rawStudentRanking.filter(r => String(r.grade_level) === selectedGrade);
+    }
+
+    const medals = ['🥇','🥈','🥉'];
+    document.getElementById('rankingBody').innerHTML = list.map((r,i)=>`<tr>
+      <td><strong>${medals[i]??'#'+(i+1)}</strong></td>
+      <td><strong>${esc(r.full_name)}</strong><br><small class="text-muted">${esc(r.lrn||'—')}</small></td>
+      <td>${r.grade_level ? `<span class="badge bg-light text-dark">Grade ${r.grade_level}${r.section_name ? ' - ' + esc(r.section_name) : ''}</span>` : '<span class="text-muted">—</span>'}</td>
+      <td>${r.avg>0?gradeCell(r.avg):'—'}</td>
+      <td>${r.avg>0?getGradeBadge(r.avg):'—'}</td>
+    </tr>`).join('') || '<tr><td colspan="5" class="text-muted text-center py-3">No student ranking data found.</td></tr>';
+  }
+
+  function esc(str) {
+    return String(str ?? '').replace(/[&<>"']/g,
+      c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
   async function loadAnalytics() {
     try {
       const res  = await fetch('../../api/analytics.php?action=summary');
@@ -139,14 +174,8 @@ $adminActivePage = 'analytics';
         options:{scales:{y:{min:60,max:100}},plugins:{legend:{display:false}},maintainAspectRatio:false}
       });
 
-      const ranking = d.student_ranking || [];
-      const medals  = ['🥇','🥈','🥉'];
-      document.getElementById('rankingBody').innerHTML = ranking.map((r,i)=>`<tr>
-        <td><strong>${medals[i]??'#'+(i+1)}</strong></td>
-        <td><strong>${r.full_name}</strong><br><small class="text-muted">${r.lrn||'—'}</small></td>
-        <td>${r.avg>0?gradeCell(r.avg):'—'}</td>
-        <td>${r.avg>0?getGradeBadge(r.avg):'—'}</td>
-      </tr>`).join('') || '<tr><td colspan="4" class="text-muted text-center">No data.</td></tr>';
+      rawStudentRanking = d.student_ranking || [];
+      renderRanking();
 
     } catch(e) { console.error('Analytics error:', e); }
   }

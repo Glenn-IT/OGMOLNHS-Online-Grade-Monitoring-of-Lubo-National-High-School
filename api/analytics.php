@@ -79,12 +79,14 @@ if ($action === 'summary') {
     if ($isAdmin) {
         $stmt = $pdo->query(
             "SELECT u.id, u.full_name, u.lrn,
+                    sec.grade_level, sec.name AS section_name,
                     ROUND(AVG(g.final_grade), 2) AS avg
              FROM grades g
              JOIN users u ON u.id = g.student_id
-             GROUP BY g.student_id
-             ORDER BY avg DESC
-             LIMIT 20"
+             LEFT JOIN enrollments e ON e.student_id = u.id AND e.school_year_id = g.school_year_id
+             LEFT JOIN sections sec ON sec.id = e.section_id
+             GROUP BY g.student_id, sec.grade_level, sec.name
+             ORDER BY avg DESC"
         );
         $studentRanking = $stmt->fetchAll();
     }

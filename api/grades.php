@@ -13,6 +13,7 @@ if ($action === 'list') {
 
     $studentId = (int)($_GET['student_id'] ?? 0);
     $subjectId = (int)($_GET['subject_id'] ?? 0);
+    $sectionId = (int)($_GET['section_id'] ?? 0);
     $quarter   = (int)($_GET['quarter']    ?? 0);
 
     // Students can only fetch their own grades
@@ -22,17 +23,24 @@ if ($action === 'list') {
 
     $where  = ['1=1'];
     $params = [];
+    $join   = '';
 
     if ($studentId) { $where[] = 'g.student_id = ?'; $params[] = $studentId; }
     if ($subjectId) { $where[] = 'g.subject_id = ?'; $params[] = $subjectId; }
     if ($quarter)   { $where[] = 'g.quarter = ?';    $params[] = $quarter;   }
+    if ($sectionId) {
+        $join   .= ' JOIN enrollments e ON e.student_id = g.student_id AND e.school_year_id = g.school_year_id';
+        $where[] = 'e.section_id = ?';
+        $params[] = $sectionId;
+    }
 
     $sql = "SELECT g.id, g.student_id, g.subject_id, g.quarter, g.school_year_id,
                    g.written_works, g.performance_tasks, g.quarterly_exam,
                    g.final_grade, g.remarks,
                    u.full_name AS student_name, u.lrn
             FROM grades g
-            JOIN users    u  ON u.id = g.student_id
+            JOIN users u ON u.id = g.student_id
+            $join
             WHERE " . implode(' AND ', $where) . "
             ORDER BY u.full_name, g.subject_id, g.quarter";
 
@@ -72,10 +80,10 @@ if ($action === 'save') {
         }
     }
 
-    // Compute final grade: WW(20%) + PT(60%) + QE(20%)
+    // Compute final grade: WW(20%) + PT(50%) + QE(30%)
     $finalGrade = null;
     if ($ww !== null && $pt !== null && $qe !== null) {
-        $finalGrade = round(($ww * 0.20) + ($pt * 0.60) + ($qe * 0.20), 2);
+        $finalGrade = round(($ww * 0.20) + ($pt * 0.50) + ($qe * 0.30), 2);
     }
 
     $remarks = null;
