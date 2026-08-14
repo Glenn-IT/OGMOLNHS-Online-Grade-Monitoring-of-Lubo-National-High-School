@@ -35,6 +35,7 @@ Demo snapshot tags that need a *more restrictive* view than `main` currently has
 | v4.01   | Demo snapshot: v4.00 + the four `docs/Issues.md` recommendations — duplicate-section rejection, Manage Sections drill-down accordion, Grade/Section on Manage Students, and the new **School Years (S.Y.)** page. Cherry-picked afterward: Manage Sections rebuilt as a Grade/Section datagrid (View/Edit/Delete row actions, roster modal, unassigned-students card) | v4.00 pages + admin/school-years.php | Same 6 pages as v4.00 (admin analytics/reports/sms, student grades/analytics/reports) |
 | v4.02   | Demo snapshot: v4.01 + Admin Analytics unlocked | v4.01 pages + admin/analytics.php | 5 pages (admin reports/sms, student grades/analytics/reports) |
 | v5.00   | Demo snapshot: v4.02 + Admin Reports unlocked | v4.02 pages + admin/reports.php | 4 pages (admin sms, student grades/analytics/reports) |
+| v5.10   | Hierarchical Manage Grades (Subject -> Grade Level -> Section -> Student Grid, Terms 1-3), Student Ranking by Grade Level in Analytics, updated 20%/50%/30% grading weights, and fresh seed data | v5.00 features + Manage Grades redesign & Analytics Grade Level Ranking | 4 pages (admin sms, student grades/analytics/reports) |
 
 ---
 
@@ -105,6 +106,7 @@ To browse an old snapshot: `git checkout v1.02` (detached HEAD — read-only). R
 | v4.01   | v4.01    | ed09d65a57b874fd6199da9efc7dee2e96dcc8ff |
 | v4.02   | v4.02    | abe019c40a48d4d902a0eea63ff5b5463e8e852d |
 | v5.00   | v5.00    | 124267867ea7b0752cf2d81f461728bebce1689f |
+| v5.10   | v5.10    | 112ee81b676250e5df2a0ffbbc2d32567d53669f |
 
 ---
 
