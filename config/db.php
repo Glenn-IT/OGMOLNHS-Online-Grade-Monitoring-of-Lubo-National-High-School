@@ -19,7 +19,7 @@ if (file_exists($envFile)) {
     }
 }
 
-// Fallback constants if not defined in .env
+// Fallbacksconstants if not defined in .env
 if (!defined('DB_HOST'))           define('DB_HOST', 'localhost');
 if (!defined('DB_USER'))           define('DB_USER', 'root');
 if (!defined('DB_PASS'))           define('DB_PASS', '');
