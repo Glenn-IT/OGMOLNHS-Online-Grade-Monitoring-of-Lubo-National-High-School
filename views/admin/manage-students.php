@@ -22,7 +22,7 @@ $adminActivePage = 'manage-students';
         <button class="topbar-btn hamburger"><i class="fas fa-bars"></i></button>
         <div>
           <div class="topbar-title">Manage Students</div>
-          <div class="topbar-subtitle">Add, edit and view student records</div>
+          <div class="topbar-subtitle">Add, edit and view student and parent records</div>
         </div>
       </div>
       <div class="topbar-right">
@@ -39,7 +39,7 @@ $adminActivePage = 'manage-students';
             <div class="col-md-4">
               <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Search by name, LRN…" oninput="filterStudents()"/>
+                <input type="text" id="searchInput" placeholder="Search by student, guardian, LRN…" oninput="filterStudents()"/>
               </div>
             </div>
             <div class="col-md-2">
@@ -68,15 +68,15 @@ $adminActivePage = 'manage-students';
 
       <div class="content-card">
         <div class="card-header-custom">
-          <span class="card-title"><i class="fas fa-users me-2 text-primary"></i>Student Records</span>
+          <span class="card-title"><i class="fas fa-users me-2 text-primary"></i>Student &amp; Guardian Records</span>
         </div>
         <div class="table-wrapper">
           <table class="table">
             <thead>
-              <tr><th>#</th><th>Student</th><th>LRN</th><th>Grade Level</th><th>Section</th><th>Contact</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>#</th><th>Student</th><th>LRN</th><th>Grade Level</th><th>Section</th><th>Student Phone</th><th>Parent / Guardian Phone</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody id="studentsTableBody">
-              <tr><td colspan="8" class="text-center py-4">Loading…</td></tr>
+              <tr><td colspan="9" class="text-center py-4">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -100,13 +100,18 @@ $adminActivePage = 'manage-students';
           <div class="col-md-6"><label class="form-label">Last Name *</label><input type="text" id="sLast" class="form-control" required/></div>
           <div class="col-md-6"><label class="form-label">Email *</label><input type="email" id="sEmail" class="form-control" required/></div>
           <div class="col-md-6"><label class="form-label">LRN (12 digits)</label><input type="text" id="sLrn" class="form-control" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
-          <div class="col-md-6"><label class="form-label">Contact Number (11 digits)</label><input type="text" id="sContact" class="form-control" maxlength="11" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
+          <div class="col-md-6"><label class="form-label">Student Contact Number (11 digits)</label><input type="text" id="sContact" class="form-control" maxlength="11" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
           <div class="col-md-6"><label class="form-label">Gender</label>
             <select id="sGender" class="form-select"><option value="">Select</option><option>Male</option><option>Female</option></select>
           </div>
           <div class="col-md-6"><label class="form-label">Birthdate</label><input type="date" id="sBirthdate" class="form-control"/></div>
           <div class="col-12"><label class="form-label">Address</label><input type="text" id="sAddress" class="form-control"/></div>
-          <div class="col-12"><hr/><h6 class="text-muted">Enrollment</h6></div>
+
+          <div class="col-12"><hr/><h6 class="text-muted"><i class="fas fa-user-shield me-1"></i>Parent / Guardian Information</h6></div>
+          <div class="col-md-6"><label class="form-label">Parent / Guardian Name</label><input type="text" id="sGuardianName" class="form-control" placeholder="e.g. Maria Santos"/></div>
+          <div class="col-md-6"><label class="form-label">Parent Contact Number (for Grade SMS)</label><input type="text" id="sGuardianPhone" class="form-control" maxlength="11" inputmode="numeric" placeholder="e.g. 09XXXXXXXXX" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
+
+          <div class="col-12"><hr/><h6 class="text-muted"><i class="fas fa-school me-1"></i>Enrollment</h6></div>
           <div class="col-md-6"><label class="form-label">Grade Level</label>
             <select id="sGrade" class="form-select" onchange="onStudentGradeChange()">
               <option value="">Not enrolled</option>
@@ -116,7 +121,8 @@ $adminActivePage = 'manage-students';
           <div class="col-md-6"><label class="form-label">Section</label>
             <select id="sSection" class="form-select"><option value="">Select a grade level first</option></select>
           </div>
-          <div class="col-12"><hr/><h6 class="text-muted">Account Credentials</h6></div>
+
+          <div class="col-12"><hr/><h6 class="text-muted"><i class="fas fa-key me-1"></i>Account Credentials</h6></div>
           <div class="col-md-6">
             <label class="form-label">Password <small id="pwdHint" class="text-muted">(required for new)</small></label>
             <input type="password" id="sPwd" class="form-control"/>
@@ -136,7 +142,7 @@ $adminActivePage = 'manage-students';
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="fas fa-id-card me-2"></i>Student Profile</h5>
+        <h5 class="modal-title"><i class="fas fa-id-card me-2"></i>Student &amp; Parent Profile</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="viewStudentBody"></div>
@@ -150,7 +156,7 @@ $adminActivePage = 'manage-students';
 <script src="../../assets/js/app.js"></script>
 <script>
   let allStudentsData = [];
-  let allSections     = [];   // sections of the active school year
+  let allSections     = [];
 
   async function loadStudents() {
     try {
@@ -166,7 +172,7 @@ $adminActivePage = 'manage-students';
       renderStudents(allStudentsData);
     } catch(e) {
       document.getElementById('studentsTableBody').innerHTML =
-        '<tr><td colspan="8" class="text-center text-danger">Failed to load students.</td></tr>';
+        '<tr><td colspan="9" class="text-center text-danger">Failed to load students.</td></tr>';
     }
   }
 
@@ -175,8 +181,6 @@ $adminActivePage = 'manage-students';
       c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  // Sourced from the sections list (not from loaded students), so sections with
-  // no students yet still appear in the filter.
   function populateSectionFilter() {
     const sel = document.getElementById('filterSection');
     sel.innerHTML = '<option value="">All Sections</option>';
@@ -184,7 +188,6 @@ $adminActivePage = 'manage-students';
       sel.innerHTML += `<option value="${esc(sec.name)}">${esc(sec.name)} (Gr.${sec.grade_level})</option>`);
   }
 
-  /** Repopulate the modal's Section dropdown for the chosen grade level. */
   function onStudentGradeChange(selectedSectionId = null) {
     const grade = document.getElementById('sGrade').value;
     const sel   = document.getElementById('sSection');
@@ -209,7 +212,7 @@ $adminActivePage = 'manage-students';
     const grade   = document.getElementById('filterGrade').value;
     const section = document.getElementById('filterSection').value;
     const data = allStudentsData.filter(s => {
-      const matchQ = !q || s.full_name.toLowerCase().includes(q) || (s.lrn||'').includes(q) || s.email.toLowerCase().includes(q);
+      const matchQ = !q || s.full_name.toLowerCase().includes(q) || (s.lrn||'').includes(q) || s.email.toLowerCase().includes(q) || (s.guardian_name||'').toLowerCase().includes(q);
       const matchG = !grade   || s.grade_level == grade;
       const matchS = !section || s.section_name === section;
       return matchQ && matchG && matchS;
@@ -228,7 +231,7 @@ $adminActivePage = 'manage-students';
     document.getElementById('studentCount').textContent = data.length + ' students';
     const tbody = document.getElementById('studentsTableBody');
     if (!data.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-inbox me-2"></i>No students found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4"><i class="fas fa-inbox me-2"></i>No students found.</td></tr>';
       return;
     }
     tbody.innerHTML = data.map((s, i) => {
@@ -249,6 +252,10 @@ $adminActivePage = 'manage-students';
         <td>${s.grade_level ? `Grade ${s.grade_level}` : '<span class="text-muted">—</span>'}</td>
         <td>${s.section_name ? esc(s.section_name) : '<span class="text-muted">Unassigned</span>'}</td>
         <td style="font-size:.8rem">${s.phone||'—'}</td>
+        <td style="font-size:.8rem">
+          ${s.guardian_phone ? `<span class="fw-bold text-primary">${s.guardian_phone}</span>` : '<span class="text-muted">No Parent #</span>'}
+          ${s.guardian_name ? `<br><small class="text-muted">${esc(s.guardian_name)}</small>` : ''}
+        </td>
         <td><span class="badge bg-success">Active</span></td>
         <td>
           <button class="btn-sm-custom btn-view me-1" onclick="viewStudent(${s.id})"><i class="fas fa-eye"></i></button>
@@ -262,7 +269,7 @@ $adminActivePage = 'manage-students';
     document.getElementById('studentIdField').value = '';
     document.getElementById('studentModalTitle').innerHTML = '<i class="fas fa-user-plus me-2"></i>Add Student';
     document.getElementById('pwdHint').textContent = '(required for new)';
-    ['sFirst','sLast','sEmail','sLrn','sContact','sGender','sBirthdate','sAddress','sPwd','sGrade'].forEach(id => {
+    ['sFirst','sLast','sEmail','sLrn','sContact','sGuardianName','sGuardianPhone','sGender','sBirthdate','sAddress','sPwd','sGrade'].forEach(id => {
       document.getElementById(id).value = '';
     });
     onStudentGradeChange();
@@ -275,17 +282,18 @@ $adminActivePage = 'manage-students';
     document.getElementById('studentIdField').value = s.id;
     document.getElementById('studentModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Student';
     document.getElementById('pwdHint').textContent = '(leave blank to keep)';
-    document.getElementById('sFirst').value  = s.full_name.split(' ')[0];
-    document.getElementById('sLast').value   = s.full_name.split(' ').slice(1).join(' ');
-    document.getElementById('sEmail').value  = s.email;
-    document.getElementById('sLrn').value    = s.lrn || '';
-    document.getElementById('sContact').value= s.phone || '';
-    document.getElementById('sGender').value = s.gender || '';
-    document.getElementById('sBirthdate').value = s.birthdate || '';
-    document.getElementById('sAddress').value= s.address || '';
-    document.getElementById('sPwd').value    = '';
+    document.getElementById('sFirst').value         = s.full_name.split(' ')[0];
+    document.getElementById('sLast').value          = s.full_name.split(' ').slice(1).join(' ');
+    document.getElementById('sEmail').value         = s.email;
+    document.getElementById('sLrn').value           = s.lrn || '';
+    document.getElementById('sContact').value       = s.phone || '';
+    document.getElementById('sGuardianName').value  = s.guardian_name || '';
+    document.getElementById('sGuardianPhone').value = s.guardian_phone || '';
+    document.getElementById('sGender').value        = s.gender || '';
+    document.getElementById('sBirthdate').value     = s.birthdate || '';
+    document.getElementById('sAddress').value       = s.address || '';
+    document.getElementById('sPwd').value           = '';
 
-    // Prefill current enrollment (section_id comes from api/students.php?action=list)
     document.getElementById('sGrade').value = s.grade_level || '';
     onStudentGradeChange(s.section_id || null);
 
@@ -293,18 +301,21 @@ $adminActivePage = 'manage-students';
   }
 
   async function saveStudent() {
-    const id    = document.getElementById('studentIdField').value;
-    const first = document.getElementById('sFirst').value.trim();
-    const last  = document.getElementById('sLast').value.trim();
-    const email = document.getElementById('sEmail').value.trim().toLowerCase();
-    const pwd   = document.getElementById('sPwd').value;
-    const lrn     = document.getElementById('sLrn').value.trim();
-    const contact = document.getElementById('sContact').value.trim();
+    const id            = document.getElementById('studentIdField').value;
+    const first         = document.getElementById('sFirst').value.trim();
+    const last          = document.getElementById('sLast').value.trim();
+    const email         = document.getElementById('sEmail').value.trim().toLowerCase();
+    const pwd           = document.getElementById('sPwd').value;
+    const lrn           = document.getElementById('sLrn').value.trim();
+    const contact       = document.getElementById('sContact').value.trim();
+    const guardianName  = document.getElementById('sGuardianName').value.trim();
+    const guardianPhone = document.getElementById('sGuardianPhone').value.trim();
 
     if (!first || !last || !email) { showToast('Please fill required fields.', 'error'); return; }
     if (!id && !pwd) { showToast('Password is required for new students.', 'error'); return; }
     if (lrn && !/^\d{12}$/.test(lrn)) { showToast('LRN must be exactly 12 digits.', 'error'); return; }
-    if (contact && !/^\d{11}$/.test(contact)) { showToast('Contact number must be exactly 11 digits.', 'error'); return; }
+    if (contact && !/^\d{11}$/.test(contact)) { showToast('Student contact number must be exactly 11 digits.', 'error'); return; }
+    if (guardianPhone && !/^\d{11}$/.test(guardianPhone)) { showToast('Parent contact number must be exactly 11 digits.', 'error'); return; }
 
     const grade     = document.getElementById('sGrade').value;
     const sectionId = document.getElementById('sSection').value;
@@ -315,25 +326,29 @@ $adminActivePage = 'manage-students';
 
     const body = new FormData();
     if (id) {
-      body.append('action',    'update');
-      body.append('id',        id);
-      body.append('full_name', `${first} ${last}`);
-      body.append('phone',     contact);
-      body.append('gender',    document.getElementById('sGender').value);
-      body.append('birthdate', document.getElementById('sBirthdate').value);
-      body.append('address',   document.getElementById('sAddress').value.trim());
+      body.append('action',         'update');
+      body.append('id',             id);
+      body.append('full_name',      `${first} ${last}`);
+      body.append('phone',          contact);
+      body.append('guardian_name',  guardianName);
+      body.append('guardian_phone', guardianPhone);
+      body.append('gender',         document.getElementById('sGender').value);
+      body.append('birthdate',      document.getElementById('sBirthdate').value);
+      body.append('address',        document.getElementById('sAddress').value.trim());
       if (pwd) body.append('new_password', pwd);
     } else {
-      body.append('action',     'register');
-      body.append('first_name', first);
-      body.append('last_name',  last);
-      body.append('email',      email);
-      body.append('password',   pwd);
-      body.append('lrn',        lrn);
-      body.append('phone',      contact);
-      body.append('gender',     document.getElementById('sGender').value);
-      body.append('birthdate',  document.getElementById('sBirthdate').value);
-      body.append('address',    document.getElementById('sAddress').value.trim());
+      body.append('action',         'register');
+      body.append('first_name',     first);
+      body.append('last_name',      last);
+      body.append('email',          email);
+      body.append('password',       pwd);
+      body.append('lrn',            lrn);
+      body.append('phone',          contact);
+      body.append('guardian_name',  guardianName);
+      body.append('guardian_phone', guardianPhone);
+      body.append('gender',         document.getElementById('sGender').value);
+      body.append('birthdate',      document.getElementById('sBirthdate').value);
+      body.append('address',        document.getElementById('sAddress').value.trim());
     }
 
     try {
@@ -353,19 +368,11 @@ $adminActivePage = 'manage-students';
     } catch(e) { showToast('Server error.', 'error'); }
   }
 
-  /**
-   * Bring the student's enrollment in line with the modal's Grade/Section choice.
-   * Goes through api/sections.php enroll/unenroll — the same code path Manage
-   * Sections uses — so a re-assignment moves the student rather than duplicating
-   * them (UNIQUE student_id + school_year_id).
-   * Returns a short status suffix for the toast, or '' when nothing changed.
-   */
   async function syncEnrollment(studentId, sectionId, existing) {
     if (!studentId) return '';
     const currentSectionId = existing ? (existing.section_id || null) : null;
     const enrollmentId     = existing ? (existing.enrollment_id || null) : null;
 
-    // Unchanged
     if (String(currentSectionId || '') === String(sectionId || '')) return '';
 
     const body = new FormData();
@@ -406,32 +413,18 @@ $adminActivePage = 'manage-students';
       <div class="row g-2">
         <div class="col-md-6">
           <div class="info-row"><span class="info-label">Email</span><span class="info-value">${s.email}</span></div>
-          <div class="info-row"><span class="info-label">Contact</span><span class="info-value">${s.phone||'—'}</span></div>
-          <div class="info-row"><span class="info-label">Gender</span><span class="info-value">${s.gender||'—'}</span></div>
-          <div class="info-row"><span class="info-label">Birthdate</span><span class="info-value">${s.birthdate||'—'}</span></div>
+          <div class="info-row"><span class="info-label">Student Contact</span><span class="info-value">${s.phone||'—'}</span></div>
+          <div class="info-row"><span class="info-label">Parent/Guardian</span><span class="info-value">${s.guardian_name||'—'}</span></div>
+          <div class="info-row"><span class="info-label">Parent Contact (SMS)</span><span class="info-value fw-bold text-primary">${s.guardian_phone||'—'}</span></div>
         </div>
         <div class="col-md-6">
+          <div class="info-row"><span class="info-label">Gender / Birthdate</span><span class="info-value">${s.gender||'—'} / ${s.birthdate||'—'}</span></div>
           <div class="info-row"><span class="info-label">Address</span><span class="info-value">${s.address||'—'}</span></div>
-          <div class="info-row"><span class="info-label">Grade Level</span><span class="info-value">${s.grade_level ? `Grade ${s.grade_level}` : '—'}</span></div>
-          <div class="info-row"><span class="info-label">Section</span><span class="info-value">${s.section_name ? esc(s.section_name) : 'Unassigned'}</span></div>
+          <div class="info-row"><span class="info-label">Grade &amp; Section</span><span class="info-value">${s.grade_level ? `Grade ${s.grade_level} - ${esc(s.section_name||'')}` : 'Unassigned'}</span></div>
           <div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="badge bg-success">Active</span></span></div>
         </div>
       </div>`;
     new bootstrap.Modal(document.getElementById('viewStudentModal')).show();
-  }
-
-  async function deleteStudent(id) {
-    confirmAction('Deactivate this student account?', async () => {
-      const body = new FormData();
-      body.append('action','delete');
-      body.append('id', id);
-      try {
-        const res  = await fetch('../../api/students.php', {method:'POST', body});
-        const data = await res.json();
-        if (data.success) { showToast('Student deactivated.', 'success'); loadStudents(); }
-        else showToast(data.message || 'Error.', 'error');
-      } catch(e) { showToast('Server error.', 'error'); }
-    });
   }
 
   document.addEventListener('DOMContentLoaded', loadStudents);

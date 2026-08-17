@@ -1,19 +1,38 @@
 <?php
 // config/db.php
-// PDO_ATTR_EMULATE_PREPARES = false ensures real prepared statements (prevents SQL injection)
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');          // change if you set a MySQL password
-define('DB_NAME', 'ogms_lnhs');
+// Loads environment credentials from .env (which is ignored by Git)
 
-define('SMS_API_KEY', '');      // fill in after Semaphore account is created
-define('SMS_SENDER',  'LNHS_OGMS');
+$envFile = __DIR__ . '/../.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (empty($line) || strpos($line, '#') === 0) continue;
+        if (strpos($line, '=') !== false) {
+            list($name, $value) = explode('=', $line, 2);
+            $name  = trim($name);
+            $value = trim($value, " \t\n\r\0\x0B\"'");
+            if (!defined($name)) {
+                define($name, $value);
+            }
+        }
+    }
+}
 
-define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587);
-define('SMTP_USER', 'prototypev1.03@gmail.com');        // fill in: full Gmail address, e.g. yourschool@gmail.com
-define('SMTP_PASS', 'jtnn xljx lvnx cnms');        // fill in: Gmail App Password (not your login password)
-define('SMTP_FROM_NAME', 'OGMS - Lubo National High School');
+// Fallback constants if not defined in .env
+if (!defined('DB_HOST'))           define('DB_HOST', 'localhost');
+if (!defined('DB_USER'))           define('DB_USER', 'root');
+if (!defined('DB_PASS'))           define('DB_PASS', '');
+if (!defined('DB_NAME'))           define('DB_NAME', 'ogms_lnhs');
+
+if (!defined('PHILSMS_API_TOKEN')) define('PHILSMS_API_TOKEN', '');
+if (!defined('PHILSMS_SENDER_ID'))  define('PHILSMS_SENDER_ID', 'PhilSMS');
+
+if (!defined('SMTP_HOST'))         define('SMTP_HOST', 'smtp.gmail.com');
+if (!defined('SMTP_PORT'))         define('SMTP_PORT', 587);
+if (!defined('SMTP_USER'))         define('SMTP_USER', '');
+if (!defined('SMTP_PASS'))         define('SMTP_PASS', '');
+if (!defined('SMTP_FROM_NAME'))   define('SMTP_FROM_NAME', 'OGMS - Lubo National High School');
 
 function getDB(): PDO {
     static $pdo = null;

@@ -6,7 +6,7 @@ require_once '../config/school-year.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
-// ─── LIST GRADES ─────────────────────────────────────────────────────────────
+// ─── LIST GRADES & SUBJECTS ──────────────────────────────────────────────────
 if ($action === 'list') {
     requireLogin();
     $pdo = getDB();
@@ -120,6 +120,73 @@ if ($action === 'delete') {
     }
     getDB()->prepare('DELETE FROM grades WHERE id = ?')->execute([$id]);
     jsonResponse(['success' => true, 'message' => 'Grade deleted.']);
+}
+
+// ─── ADD SUBJECT (admin only) ────────────────────────────────────────────────
+if ($action === 'add_subject') {
+    requireAdmin();
+    $name = trim($_POST['name'] ?? '');
+    $code = strtoupper(trim($_POST['code'] ?? ''));
+
+    if (!$name || !$code) {
+        jsonResponse(['success' => false, 'message' => 'Subject name and code are required.'], 400);
+    }
+
+    $pdo  = getDB();
+    $chk = $pdo->prepare("SELECT id FROM subjects WHERE code = ? OR name = ?");
+    $chk->execute([$code, $name]);
+    if ($chk->fetch()) {
+        jsonResponse(['success' => false, 'message' => 'Subject or code already exists.'], 409);
+    }
+
+    $stmt = $pdo->prepare("INSERT INTO subjects (name, code) VALUES (?, ?)");
+    $stmt->execute([$name, $code]);
+
+    jsonResponse(['success' => true, 'message' => 'Subject created successfully.', 'id' => (int)$pdo->lastInsertId()]);
+}
+
+// ─── DELETE SUBJECT (admin only) ─────────────────────────────────────────────
+if ($action === 'delete_subject') {
+    requireAdmin();
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) {
+        jsonResponse(['success' => false, 'message' => 'Subject ID required.'], 400);
+    }
+    $pdo = getDB();
+    $pdo->prepare("DELETE FROM grades WHERE subject_id = ?")->execute([$id]);
+    $pdo->prepare("DELETE FROM subjects WHERE id = ?")->execute([$id]);
+    jsonResponse(['success' => true, 'message' => 'Subject deleted successfully.']);
+}
+
+// ─── RESTORE DEFAULT SUBJECTS (admin only) ───────────────────────────────────
+if ($action === 'restore_subjects') {
+    requireAdmin();
+    $pdo = getDB();
+
+    // Wipe grade entries so there is NO data
+    $pdo->exec("DELETE FROM grades");
+
+    $defaultSubjects = [
+        ['Araling Panlipunan', 'AP'],
+        ['Mathematics',        'MATH'],
+        ['Science',            'SCI'],
+        ['English',            'ENG'],
+        ['Filipino',           'FIL'],
+        ['MAPEH',              'MAPEH'],
+        ['TLE',                'TLE'],
+        ['Values Education',   'VE']
+    ];
+
+    foreach ($defaultSubjects as [$name, $code]) {
+        $stmt = $pdo->prepare("SELECT id FROM subjects WHERE code = ? OR name = ?");
+        $stmt->execute([$code, $name]);
+        if (!$stmt->fetch()) {
+            $pdo->prepare("INSERT INTO subjects (name, code) VALUES (?, ?)")
+                ->execute([$name, $code]);
+        }
+    }
+
+    jsonResponse(['success' => true, 'message' => 'Default subjects restored with 0 grade entries.']);
 }
 
 jsonResponse(['success' => false, 'message' => 'Unknown action.'], 400);

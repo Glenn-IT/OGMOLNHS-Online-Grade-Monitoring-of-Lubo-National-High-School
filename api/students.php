@@ -14,7 +14,7 @@ if ($action === 'list') {
     // Scope the enrollment join to the active school year, otherwise a student
     // enrolled across two school years is returned twice.
     $stmt = $pdo->prepare(
-        "SELECT u.id, u.lrn, u.full_name, u.email, u.phone, u.address,
+        "SELECT u.id, u.lrn, u.full_name, u.email, u.phone, u.guardian_name, u.guardian_phone, u.address,
                 u.birthdate, u.gender, u.avatar_url, u.is_active, u.created_at,
                 s.id   AS section_id, s.name AS section_name, s.grade_level,
                 e.id   AS enrollment_id
@@ -42,7 +42,7 @@ if ($action === 'get') {
     $syId = activeSchoolYear($pdo);
     $stmt = $pdo->prepare(
         "SELECT u.id, u.lrn, u.full_name, u.email, u.phone, u.address,
-                u.birthdate, u.gender, u.guardian_name, u.avatar_url,
+                u.birthdate, u.gender, u.guardian_name, u.guardian_phone, u.avatar_url,
                 s.id AS section_id, s.name AS section_name, s.grade_level,
                 e.id AS enrollment_id,
                 sy.label AS school_year
@@ -61,17 +61,19 @@ if ($action === 'get') {
     jsonResponse(['success' => true, 'data' => $student]);
 }
 
-// ─── REGISTER NEW STUDENT (public signup) ──────────────────────────────────
+// ─── REGISTER NEW STUDENT (public signup / admin add) ────────────────────────
 if ($action === 'register') {
-    $firstName = trim($_POST['first_name'] ?? '');
-    $lastName  = trim($_POST['last_name']  ?? '');
-    $email     = trim($_POST['email']      ?? '');
-    $password  = $_POST['password']        ?? '';
-    $lrn       = trim($_POST['lrn']        ?? '');
-    $phone     = trim($_POST['phone']      ?? '');
-    $gender    = trim($_POST['gender']     ?? '');
-    $birthdate = trim($_POST['birthdate']  ?? '');
-    $address   = trim($_POST['address']    ?? '');
+    $firstName     = trim($_POST['first_name']     ?? '');
+    $lastName      = trim($_POST['last_name']      ?? '');
+    $email         = trim($_POST['email']          ?? '');
+    $password      = $_POST['password']            ?? '';
+    $lrn           = trim($_POST['lrn']            ?? '');
+    $phone         = trim($_POST['phone']          ?? '');
+    $guardianName  = trim($_POST['guardian_name']  ?? '');
+    $guardianPhone = trim($_POST['guardian_phone'] ?? '');
+    $gender        = trim($_POST['gender']         ?? '');
+    $birthdate     = trim($_POST['birthdate']      ?? '');
+    $address       = trim($_POST['address']        ?? '');
 
     if (!$firstName || !$lastName || !$email || !$password) {
         jsonResponse(['success' => false, 'message' => 'All fields are required.'], 400);
@@ -86,7 +88,10 @@ if ($action === 'register') {
         jsonResponse(['success' => false, 'message' => 'LRN must be exactly 12 digits.'], 400);
     }
     if ($phone && !preg_match('/^\d{11}$/', $phone)) {
-        jsonResponse(['success' => false, 'message' => 'Contact number must be exactly 11 digits.'], 400);
+        jsonResponse(['success' => false, 'message' => 'Student contact number must be exactly 11 digits.'], 400);
+    }
+    if ($guardianPhone && !preg_match('/^\d{11}$/', $guardianPhone)) {
+        jsonResponse(['success' => false, 'message' => 'Parent/Guardian contact number must be exactly 11 digits.'], 400);
     }
 
     $pdo = getDB();
@@ -109,10 +114,11 @@ if ($action === 'register') {
 
     $hash = password_hash($password, PASSWORD_BCRYPT);
     $pdo->prepare(
-        'INSERT INTO users (lrn, full_name, email, phone, gender, birthdate, address, password, role)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO users (lrn, full_name, email, phone, guardian_name, guardian_phone, gender, birthdate, address, password, role)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )->execute([
         $lrn ?: null, "$firstName $lastName", $email, $phone ?: null,
+        $guardianName ?: null, $guardianPhone ?: null,
         $gender ?: null, $birthdate ?: null, $address ?: null,
         $hash, 'student',
     ]);
@@ -134,10 +140,13 @@ if ($action === 'update') {
     }
 
     if (isset($_POST['phone']) && trim($_POST['phone']) !== '' && !preg_match('/^\d{11}$/', trim($_POST['phone']))) {
-        jsonResponse(['success' => false, 'message' => 'Contact number must be exactly 11 digits.'], 400);
+        jsonResponse(['success' => false, 'message' => 'Student contact number must be exactly 11 digits.'], 400);
+    }
+    if (isset($_POST['guardian_phone']) && trim($_POST['guardian_phone']) !== '' && !preg_match('/^\d{11}$/', trim($_POST['guardian_phone']))) {
+        jsonResponse(['success' => false, 'message' => 'Parent/Guardian contact number must be exactly 11 digits.'], 400);
     }
 
-    $allowed = ['full_name', 'phone', 'address', 'birthdate', 'gender', 'avatar_url', 'guardian_name'];
+    $allowed = ['full_name', 'phone', 'address', 'birthdate', 'gender', 'avatar_url', 'guardian_name', 'guardian_phone'];
     $set     = [];
     $vals    = [];
 

@@ -217,9 +217,9 @@ $adminActivePage = 'manage-grades';
               <tr>
                 <th style="min-width:180px">Learners Name</th>
                 <th style="min-width:110px">LRN</th>
-                <th class="text-center" style="min-width:110px">Term 1</th>
-                <th class="text-center" style="min-width:110px">Term 2</th>
-                <th class="text-center" style="min-width:110px">Term 3</th>
+                <th class="text-center" style="min-width:110px">1st Term</th>
+                <th class="text-center" style="min-width:110px">2nd Term</th>
+                <th class="text-center" style="min-width:110px">3rd Term</th>
                 <th class="text-center" style="min-width:100px">Final Grade</th>
                 <th class="text-center" style="min-width:100px">Remarks</th>
               </tr>
@@ -305,11 +305,10 @@ $adminActivePage = 'manage-grades';
   }
 
   async function loadData() {
-    const [secRes, subRes, stuRes, grRes] = await Promise.all([
+    const [secRes, subRes, stuRes] = await Promise.all([
       fetch('../../api/sections.php?action=list'),
       fetch('../../api/grades.php?action=list'),
       fetch('../../api/students.php?action=list'),
-      fetch('../../api/grades.php?action=list')
     ]);
 
     const secData = await secRes.json();
@@ -331,7 +330,7 @@ $adminActivePage = 'manage-grades';
   function populateFilters() {
     const subSel = document.getElementById('filterSubject');
     subSel.innerHTML = '<option value="">All Subjects</option>' +
-      allSubjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+      allSubjects.map(s => `<option value="${s.id}">${esc(s.name)} (${esc(s.code||'')})</option>`).join('');
 
     const secSel = document.getElementById('filterSection');
     secSel.innerHTML = '<option value="">All Sections</option>' +
@@ -342,8 +341,9 @@ $adminActivePage = 'manage-grades';
     return String(str ?? '').replace(/[&<>"']/g,
       c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
+
   function escAttr(str) {
-    return esc(str).replace(/\\/g, '\\\\');
+    return esc(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   }
 
   // ── Summary Cards ─────────────────────────────────────────────────────────
@@ -368,7 +368,6 @@ $adminActivePage = 'manage-grades';
     const secFilter   = document.getElementById('filterSection').value;
 
     const container = document.getElementById('subjectAccordion');
-
     const isFiltering = !!(q || subFilter || gradeFilter || secFilter);
 
     // Filter subjects
@@ -376,7 +375,6 @@ $adminActivePage = 'manage-grades';
       if (subFilter && sub.id != subFilter) return false;
       if (q && sub.name.toLowerCase().includes(q)) return true;
 
-      // Check if any matching section or student inside this subject
       return allSections.some(sec => {
         if (gradeFilter && sec.grade_level != gradeFilter) return false;
         if (secFilter && sec.id != secFilter) return false;
@@ -399,14 +397,12 @@ $adminActivePage = 'manage-grades';
       const showSubject = isFiltering ? ' show' : (sIdx === 0 ? ' show' : '');
       const collapsedSubjectCls = isFiltering ? '' : (sIdx === 0 ? '' : ' collapsed');
 
-      // Group sections by grade level (7..12) for this subject
       const gradeLevels = [7, 8, 9, 10, 11, 12].filter(g => {
         if (gradeFilter && g != gradeFilter) return false;
         return true;
       });
 
       const gradeBlocksHtml = gradeLevels.map((gLevel, gIdx) => {
-        // Sections in this grade level
         const sectionsInGrade = allSections.filter(sec => {
           if (sec.grade_level != gLevel) return false;
           if (secFilter && sec.id != secFilter) return false;
@@ -460,15 +456,12 @@ $adminActivePage = 'manage-grades';
         <div class="subject-item mb-3">
           <h2 class="accordion-header" id="heading-subject-${sub.id}">
             <button class="accordion-button subject-accordion-btn ${collapsedSubjectCls}" type="button" data-bs-toggle="collapse" data-bs-target="#${subCollapseId}">
-              <i class="fas fa-book-open me-2"></i>${esc(sub.name)}
-              ${sub.code ? `<span class="badge bg-light text-dark ms-2" style="font-size:.72rem">${esc(sub.code)}</span>` : ''}
+              <i class="fas fa-book me-2"></i>${esc(sub.name)} <span class="badge bg-primary-subtle text-primary ms-2" style="font-size:.72rem">${esc(sub.code||'')}</span>
             </button>
           </h2>
           <div id="${subCollapseId}" class="accordion-collapse collapse${showSubject}">
-            <div class="accordion-body bg-white p-3">
-              <div class="accordion" id="gradeAccordion-${sub.id}">
-                ${gradeBlocksHtml || '<div class="text-muted py-2">No grade levels found.</div>'}
-              </div>
+            <div class="p-3">
+              ${gradeBlocksHtml}
             </div>
           </div>
         </div>`;
@@ -483,121 +476,143 @@ $adminActivePage = 'manage-grades';
     renderHierarchy();
   }
 
-  // ── Open Nested Class Student Grid Modal ──────────────────────────────────
-  function openClassGradesModal(subjectId, sectionId) {
+  // ── Open Class Grades Modal Grid ──────────────────────────────────────────
+  async function openClassGradesModal(subjectId, sectionId) {
     currentClassSubject = allSubjects.find(s => s.id == subjectId);
     currentClassSection = allSections.find(s => s.id == sectionId);
-
     if (!currentClassSubject || !currentClassSection) return;
 
-    document.getElementById('classModalTitle').innerHTML =
-      `<i class="fas fa-graduation-cap me-2"></i>${esc(currentClassSubject.name)} — Grade ${currentClassSection.grade_level} (${esc(currentClassSection.name)})`;
-    document.getElementById('classModalMeta').textContent =
-      `Subject: ${currentClassSubject.name} · Section: ${currentClassSection.name} (Grade ${currentClassSection.grade_level})`;
+    const modalTitle = document.getElementById('classModalTitle');
+    const modalMeta  = document.getElementById('classModalMeta');
+    modalTitle.innerHTML = `<i class="fas fa-book-open me-2 text-warning"></i>${esc(currentClassSubject.name)} <span class="badge bg-primary-subtle text-primary" style="font-size:.75rem">${esc(currentClassSubject.code||'')}</span>`;
+    modalMeta.textContent = `Grade ${currentClassSection.grade_level} - Section ${currentClassSection.name}`;
 
-    renderNestedStudentTable();
-    new bootstrap.Modal(document.getElementById('classGradesModal')).show();
+    const modal = new bootstrap.Modal(document.getElementById('classGradesModal'));
+    modal.show();
+
+    await loadClassStudentGrid();
   }
 
-  function renderNestedStudentTable() {
-    const students = sectionStudentsMap[currentClassSection.id] || [];
+  async function loadClassStudentGrid() {
     const tbody = document.getElementById('classStudentTableBody');
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading student grades grid…</td></tr>`;
 
-    if (!students.length) {
-      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-user-slash me-2"></i>No students enrolled in this section.</td></tr>`;
-      document.getElementById('classModalStats').innerHTML = `<span><i class="fas fa-info-circle me-1"></i>No student records to compute stats.</span>`;
-      return;
-    }
+    try {
+      const url = `../../api/grades.php?action=list&subject_id=${currentClassSubject.id}&section_id=${currentClassSection.id}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const gradeRows = data.data || [];
 
-    // Filter grades for this subject & section students
-    const studentIds = new Set(students.map(s => s.id));
-    const classGrades = allGrades.filter(g => g.subject_id == currentClassSubject.id && studentIds.has(g.student_id));
+      // Students in this section
+      const students = sectionStudentsMap[currentClassSection.id] || [];
 
-    // Calculate class averages for this subject
-    const finalVals = [];
+      if (!students.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted"><i class="fas fa-user-slash me-2"></i>No students enrolled in Section ${esc(currentClassSection.name)}.</td></tr>`;
+        document.getElementById('classModalStats').innerHTML = `<span>Total Students: <strong>0</strong></span>`;
+        return;
+      }
 
-    tbody.innerHTML = students.map(stu => {
-      const stuGrades = {};
-      classGrades.filter(g => g.student_id == stu.id).forEach(g => {
-        stuGrades[g.quarter] = g;
-      });
+      // Build student -> quarter grade map
+      const studentGradesMap = {};
+      students.forEach(s => { studentGradesMap[s.id] = { 1: null, 2: null, 3: null, 4: null }; });
 
-      const termCells = [1, 2, 3].map(q => {
-        const g = stuGrades[q];
-        if (g) {
-          const fg = parseFloat(g.final_grade);
-          return `<td class="text-center">
-            <div class="term-cell-grade">
-              <div>${gradeCell(fg)}</div>
-              <div class="term-cell-actions">
-                <button class="btn-term-action edit" title="Edit" onclick="openEditTermModal(${stu.id}, '${escAttr(stu.full_name)}', ${currentClassSubject.id}, ${q}, ${g.written_works??'null'}, ${g.performance_tasks??'null'}, ${g.quarterly_exam??'null'})">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn-term-action del" title="Delete" onclick="deleteTermGrade(${g.id})">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </div>
-          </td>`;
-        } else {
-          return `<td class="text-center">
-            <button class="btn btn-outline-secondary btn-sm" style="font-size:.7rem;padding:2px 8px" onclick="openEditTermModal(${stu.id}, '${escAttr(stu.full_name)}', ${currentClassSubject.id}, ${q})">
-              <i class="fas fa-plus me-1"></i>Add
-            </button>
-          </td>`;
+      gradeRows.forEach(g => {
+        if (studentGradesMap[g.student_id]) {
+          studentGradesMap[g.student_id][g.quarter] = g;
         }
       });
 
-      const studentTermVals = Object.values(stuGrades).map(g => parseFloat(g.final_grade)).filter(v => !isNaN(v));
-      let avgDisplay = '<span class="text-muted">—</span>';
-      let remarksDisplay = '<span class="text-muted">—</span>';
+      let classFinals = [];
 
-      if (studentTermVals.length) {
-        const studentAvg = studentTermVals.reduce((a,b)=>a+b, 0) / studentTermVals.length;
-        finalVals.push(studentAvg);
-        avgDisplay = gradeCell(parseFloat(studentAvg.toFixed(2)));
-        remarksDisplay = studentAvg >= 75
-          ? '<span class="badge bg-success">Passed</span>'
-          : '<span class="badge bg-danger">Failed</span>';
-      }
+      tbody.innerHTML = students.map(stu => {
+        const qMap = studentGradesMap[stu.id];
+        
+        // Calculate average across terms for this subject
+        const termVals = [1, 2, 3].map(q => qMap[q] ? parseFloat(qMap[q].final_grade) : null).filter(v => v !== null);
+        const subAvg = termVals.length ? (termVals.reduce((a,b)=>a+b,0)/termVals.length).toFixed(2) : null;
+        if (subAvg !== null) classFinals.push(parseFloat(subAvg));
 
-      return `<tr>
-        <td>
-          <strong>${esc(stu.full_name)}</strong>
-        </td>
-        <td><code>${esc(stu.lrn||'—')}</code></td>
-        ${termCells.join('')}
-        <td class="text-center">${avgDisplay}</td>
-        <td class="text-center">${remarksDisplay}</td>
-      </tr>`;
-    }).join('');
+        const subRemarks = subAvg !== null ? (subAvg >= 75 ? '<span class="badge bg-success">Passed</span>' : '<span class="badge bg-danger">Failed</span>') : '<span class="text-muted">—</span>';
 
-    const overallClassAvg = finalVals.length ? (finalVals.reduce((a,b)=>a+b,0)/finalVals.length).toFixed(2) : '—';
-    const passedCount = finalVals.filter(v => v >= 75).length;
+        const termCellsHtml = [1, 2, 3].map(q => {
+          const g = qMap[q];
+          if (g && g.final_grade !== null) {
+            const val = parseFloat(g.final_grade).toFixed(2);
+            const badgeCls = g.final_grade >= 75 ? 'bg-success-subtle text-success fw-bold' : 'bg-danger-subtle text-danger fw-bold';
+            return `
+              <td class="text-center">
+                <div class="term-cell-grade">
+                  <span class="badge ${badgeCls}" style="font-size:.85rem">${val}</span>
+                  <div class="term-cell-actions">
+                    <button class="btn-term-action edit" onclick="openEditGradeModal(${stu.id}, ${currentClassSubject.id}, ${q}, '${escAttr(stu.full_name)}')" title="Edit Grade"><i class="fas fa-edit"></i></button>
+                    <button class="btn-term-action del" onclick="deleteGrade(${g.id})" title="Delete Grade"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+              </td>`;
+          } else {
+            return `
+              <td class="text-center">
+                <div class="term-cell-grade">
+                  <span class="text-muted" style="font-size:.8rem">—</span>
+                  <div class="term-cell-actions">
+                    <button class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:.7rem" onclick="openEditGradeModal(${stu.id}, ${currentClassSubject.id}, ${q}, '${escAttr(stu.full_name)}')"><i class="fas fa-plus me-1"></i>Add</button>
+                  </div>
+                </div>
+              </td>`;
+          }
+        }).join('');
 
-    document.getElementById('classModalStats').innerHTML = `
-      <span><i class="fas fa-users me-1 text-primary"></i><strong>Enrolled Students:</strong> ${students.length}</span>
-      <span><i class="fas fa-star me-1 text-warning"></i><strong>Subject Average:</strong> ${overallClassAvg !== '—' ? gradeCell(parseFloat(overallClassAvg)) : '—'}</span>
-      <span><i class="fas fa-check-circle me-1 text-success"></i><strong>Passed:</strong> ${finalVals.length ? `${passedCount}/${finalVals.length}` : '—'}</span>`;
+        return `
+          <tr>
+            <td>
+              <div class="fw-semibold text-dark">${esc(stu.full_name)}</div>
+            </td>
+            <td><code>${stu.lrn||'—'}</code></td>
+            ${termCellsHtml}
+            <td class="text-center"><strong class="${subAvg >= 75 ? 'text-success':'text-danger'}">${subAvg || '—'}</strong></td>
+            <td class="text-center">${subRemarks}</td>
+          </tr>`;
+      }).join('');
+
+      const classAvg = classFinals.length ? (classFinals.reduce((a,b)=>a+b,0)/classFinals.length).toFixed(2) : '—';
+      document.getElementById('classModalStats').innerHTML = `
+        <span>Enrolled Students: <strong>${students.length}</strong></span>
+        <span class="border-start ps-3">Graded Students: <strong>${classFinals.length}</strong></span>
+        <span class="border-start ps-3">Subject Class Average: <strong class="text-primary">${classAvg}</strong></span>
+      `;
+
+    } catch(e) {
+      console.error('Load grid error:', e);
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4"><i class="fas fa-exclamation-triangle me-2"></i>Error loading class student grid.</td></tr>`;
+    }
   }
 
-  // ── Add/Edit Term Grade Modal ──────────────────────────────────────────────
-  function openEditTermModal(studentId, studentName, subjectId, quarter, ww = null, pt = null, qe = null) {
+  function openEditGradeModal(studentId, subjectId, quarter, studentName) {
     document.getElementById('editGradeStudentId').value = studentId;
     document.getElementById('editGradeSubjectId').value = subjectId;
     document.getElementById('editGradeQuarter').value   = quarter;
 
-    const qLabels = {1:'1st Quarter', 2:'2nd Quarter', 3:'3rd Quarter', 4:'4th Quarter'};
-    document.getElementById('editGradeTitle').innerHTML = `<i class="fas fa-edit me-2"></i>Edit ${qLabels[quarter]} Grade`;
+    const termName = quarter == 1 ? '1st Term' : (quarter == 2 ? '2nd Term' : '3rd Term');
+    document.getElementById('editGradeTitle').innerHTML = `<i class="fas fa-edit me-2"></i>Grade Entry (${termName})`;
+    document.getElementById('editGradeStudentInfo').innerHTML = `<strong>Student:</strong> ${studentName} &nbsp;|&nbsp; <strong>Subject:</strong> ${esc(currentClassSubject.name)} &nbsp;|&nbsp; <strong>Term:</strong> ${termName}`;
 
-    document.getElementById('editGradeStudentInfo').innerHTML =
-      `<strong>Student:</strong> ${esc(studentName)} <br><strong>Subject:</strong> ${esc(currentClassSubject.name)} · <strong>Term:</strong> ${qLabels[quarter]}`;
+    document.getElementById('editWW').value = '';
+    document.getElementById('editPT').value = '';
+    document.getElementById('editQE').value = '';
+    document.getElementById('editPreviewBox').style.display = 'none';
 
-    document.getElementById('editWW').value = ww !== null ? ww : '';
-    document.getElementById('editPT').value = pt !== null ? pt : '';
-    document.getElementById('editQE').value = qe !== null ? qe : '';
+    // Prefill existing grade if any
+    const url = `../../api/grades.php?action=list&student_id=${studentId}&subject_id=${subjectId}&quarter=${quarter}`;
+    fetch(url).then(r=>r.json()).then(data=>{
+      const g = (data.data||[])[0];
+      if (g) {
+        document.getElementById('editWW').value = g.written_works !== null ? g.written_works : '';
+        document.getElementById('editPT').value = g.performance_tasks !== null ? g.performance_tasks : '';
+        document.getElementById('editQE').value = g.quarterly_exam !== null ? g.quarterly_exam : '';
+        updateEditPreview();
+      }
+    });
 
-    updateEditPreview();
     new bootstrap.Modal(document.getElementById('editGradeModal')).show();
   }
 
@@ -605,16 +620,16 @@ $adminActivePage = 'manage-grades';
     const ww = parseFloat(document.getElementById('editWW').value);
     const pt = parseFloat(document.getElementById('editPT').value);
     const qe = parseFloat(document.getElementById('editQE').value);
-    const box = document.getElementById('editPreviewBox');
 
     if (!isNaN(ww) && !isNaN(pt) && !isNaN(qe)) {
-      const fg = Math.round((ww*0.20 + pt*0.50 + qe*0.30)*100)/100;
-      box.style.display = 'block';
-      document.getElementById('editPreviewContent').innerHTML =
-        gradeCell(fg) + ' &nbsp; ' + getGradeBadge(fg) +
-        `&nbsp;<span style="font-size:.78rem;color:#64748b">${getGradeDesc(fg)}</span>`;
+      const finalGrade = (ww * 0.20 + pt * 0.50 + qe * 0.30).toFixed(2);
+      const remarks = finalGrade >= 75 ? 'Passed' : 'Failed';
+      const badgeCls = finalGrade >= 75 ? 'bg-success' : 'bg-danger';
+
+      document.getElementById('editPreviewContent').innerHTML = `<span class="badge ${badgeCls} fs-6">${finalGrade} (${remarks})</span>`;
+      document.getElementById('editPreviewBox').style.display = 'block';
     } else {
-      box.style.display = 'none';
+      document.getElementById('editPreviewBox').style.display = 'none';
     }
   }
 
@@ -626,59 +641,53 @@ $adminActivePage = 'manage-grades';
     const pt        = document.getElementById('editPT').value;
     const qe        = document.getElementById('editQE').value;
 
-    if (ww === '' || pt === '' || qe === '') {
-      showToast('Please fill in all 3 component grades (WW, PT, QE).', 'error');
+    if (!ww || !pt || !qe) {
+      showToast('Please fill in Written Works (20%), Performance Tasks (50%), and Quarterly Exam (30%).', 'error');
       return;
     }
 
     const body = new FormData();
-    body.append('action',            'save');
-    body.append('student_id',        studentId);
-    body.append('subject_id',        subjectId);
-    body.append('quarter',           quarter);
-    body.append('written_works',     ww);
+    body.append('action', 'save');
+    body.append('student_id', studentId);
+    body.append('subject_id', subjectId);
+    body.append('quarter', quarter);
+    body.append('written_works', ww);
     body.append('performance_tasks', pt);
-    body.append('quarterly_exam',    qe);
+    body.append('quarterly_exam', qe);
 
     try {
-      const res  = await fetch('../../api/grades.php', {method:'POST', body});
+      const res = await fetch('../../api/grades.php', { method: 'POST', body });
       const data = await res.json();
       if (data.success) {
+        showToast('Grade saved!', 'success');
         bootstrap.Modal.getInstance(document.getElementById('editGradeModal')).hide();
-        showToast('Grade saved successfully!', 'success');
-
-        // Reload data and refresh table
-        const refreshRes = await fetch('../../api/grades.php?action=list');
-        const refreshData = await refreshRes.json();
-        allGrades = refreshData.data || [];
-
-        renderNestedStudentTable();
+        await loadClassStudentGrid();
+        await loadData();
         renderSummary();
       } else {
         showToast(data.message || 'Failed to save grade.', 'error');
       }
-    } catch(e) { showToast('Server error.', 'error'); }
+    } catch(e) {
+      showToast('Server error.', 'error');
+    }
   }
 
-  async function deleteTermGrade(gradeId) {
-    if (!confirm('Are you sure you want to delete this term grade?')) return;
+  async function deleteGrade(id) {
+    if (!confirm('Are you sure you want to delete this grade entry?')) return;
     const body = new FormData();
     body.append('action', 'delete');
-    body.append('id', gradeId);
+    body.append('id', id);
 
     try {
-      const res  = await fetch('../../api/grades.php', {method:'POST', body});
+      const res = await fetch('../../api/grades.php', { method: 'POST', body });
       const data = await res.json();
       if (data.success) {
-        showToast('Term grade deleted.', 'success');
-        const refreshRes = await fetch('../../api/grades.php?action=list');
-        const refreshData = await refreshRes.json();
-        allGrades = refreshData.data || [];
-
-        renderNestedStudentTable();
+        showToast('Grade entry deleted.', 'info');
+        await loadClassStudentGrid();
+        await loadData();
         renderSummary();
       } else {
-        showToast(data.message || 'Could not delete grade.', 'error');
+        showToast(data.message || 'Failed to delete grade.', 'error');
       }
     } catch(e) { showToast('Server error.', 'error'); }
   }
