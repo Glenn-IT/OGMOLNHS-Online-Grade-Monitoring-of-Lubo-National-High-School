@@ -306,7 +306,7 @@ $adminActivePage = 'sms';
         badgeEl.textContent = data.phone_source || '';
         badgeEl.className = data.phone_source === 'Parent Phone' ? 'badge bg-success ms-1' : 'badge bg-warning text-dark ms-1';
         
-        document.getElementById('previewGradeSection').textContent = data.remarks ? `${data.remarks}` : '—';
+        document.getElementById('previewGradeSection').textContent = data.grade_section || data.section_name || 'Unassigned';
         
         document.getElementById('autoSmsBox').innerHTML = `
           <div class="fw-semibold text-dark">"${data.message}"</div>
