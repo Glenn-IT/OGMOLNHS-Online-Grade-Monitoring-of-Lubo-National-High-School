@@ -61,7 +61,7 @@ $studentActivePage = 'analytics';
         <div class="col-12">
           <div class="content-card">
             <div class="card-header-custom">
-              <span class="card-title"><i class="fas fa-chart-line me-2 text-success"></i>Quarterly Trend (Average)</span>
+              <span class="card-title"><i class="fas fa-chart-line me-2 text-success"></i>Term-by-Term Trend (Average)</span>
             </div>
             <div class="chart-container"><canvas id="trendChart"></canvas></div>
           </div>
@@ -132,15 +132,15 @@ $studentActivePage = 'analytics';
         options:{cutout:'72%',plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}}}
       });
 
-      // Quarterly trend
-      const qAvg = [1,2,3,4].map(q => {
-        const qVals = grades.filter(g=>g.quarter==q).map(g=>parseFloat(g.final_grade));
-        return qVals.length ? +(qVals.reduce((a,b)=>a+b,0)/qVals.length).toFixed(2) : null;
+      // Term trend (Terms 1 to 3)
+      const termAvg = [1,2,3].map(t => {
+        const tVals = grades.filter(g=>g.quarter==t).map(g=>parseFloat(g.final_grade));
+        return tVals.length ? +(tVals.reduce((a,b)=>a+b,0)/tVals.length).toFixed(2) : null;
       });
       new Chart(document.getElementById('trendChart'),{
         type:'line',
-        data:{labels:['1st Quarter','2nd Quarter','3rd Quarter','4th Quarter'],
-          datasets:[{label:'My Average',data:qAvg,
+        data:{labels:['1st Term','2nd Term','3rd Term'],
+          datasets:[{label:'My Term Average',data:termAvg,
             borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,.1)',
             borderWidth:3,pointRadius:6,pointBackgroundColor:'#7c3aed',
             fill:true,tension:0.4,spanGaps:true}]},

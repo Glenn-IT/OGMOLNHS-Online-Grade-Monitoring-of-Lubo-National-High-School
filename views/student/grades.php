@@ -22,7 +22,7 @@ $studentActivePage = 'grades';
         <button class="topbar-btn hamburger"><i class="fas fa-bars"></i></button>
         <div>
           <div class="topbar-title">My Grades</div>
-          <div class="topbar-subtitle">View your academic performance by subject and quarter</div>
+          <div class="topbar-subtitle">View your academic performance by subject and term</div>
         </div>
       </div>
       <div class="topbar-right">
@@ -37,13 +37,12 @@ $studentActivePage = 'grades';
         <div class="card-body-custom">
           <div class="row g-2 align-items-end">
             <div class="col-md-4">
-              <label class="form-label mb-1" style="font-size:0.8rem;font-weight:600">Filter by Quarter</label>
+              <label class="form-label mb-1" style="font-size:0.8rem;font-weight:600">Filter by Term</label>
               <select id="filterQuarter" class="form-select form-select-sm" onchange="renderGrades()">
-                <option value="all">All Quarters</option>
-                <option value="1">1st Quarter</option>
-                <option value="2">2nd Quarter</option>
-                <option value="3">3rd Quarter</option>
-                <option value="4">4th Quarter</option>
+                <option value="all">All Terms</option>
+                <option value="1">1st Term</option>
+                <option value="2">2nd Term</option>
+                <option value="3">3rd Term</option>
               </select>
             </div>
             <div class="col-md-4">
@@ -82,7 +81,7 @@ $studentActivePage = 'grades';
             <thead>
               <tr>
                 <th>Subject</th>
-                <th>Quarter</th>
+                <th>Term</th>
                 <th>Written Works<br><small class="text-muted" style="font-weight:400">(20%)</small></th>
                 <th>Performance Tasks<br><small class="text-muted" style="font-weight:400">(50%)</small></th>
                 <th>Quarterly Exam<br><small class="text-muted" style="font-weight:400">(30%)</small></th>
@@ -133,7 +132,7 @@ $studentActivePage = 'grades';
     if (q   !== 'all') rows = rows.filter(g => String(g.quarter) === q);
     if (sub !== 'all') rows = rows.filter(g => String(g.subject_id) === sub);
 
-    const qLabels = {1:'1st',2:'2nd',3:'3rd',4:'4th'};
+    const termLabels = {1:'1st Term', 2:'2nd Term', 3:'3rd Term', 4:'4th Term'};
     document.getElementById('recordCount').textContent = `${rows.length} record${rows.length!==1?'s':''}`;
 
     if (!rows.length) {
@@ -145,7 +144,7 @@ $studentActivePage = 'grades';
         const fg  = parseFloat(g.final_grade);
         return `<tr>
           <td><strong>${sub.name||'—'}</strong></td>
-          <td><span class="badge bg-secondary">${qLabels[g.quarter]||g.quarter} Quarter</span></td>
+          <td><span class="badge bg-primary" style="font-size:0.78rem">${termLabels[g.quarter]||('Term '+g.quarter)}</span></td>
           <td class="text-center">${g.written_works ?? '—'}</td>
           <td class="text-center">${g.performance_tasks ?? '—'}</td>
           <td class="text-center">${g.quarterly_exam ?? '—'}</td>

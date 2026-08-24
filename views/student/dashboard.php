@@ -63,9 +63,9 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
         <div class="col-sm-6 col-xl-3">
           <div class="stat-card">
             <div class="stat-icon" style="background:#fefce8"><i class="fas fa-trophy" style="color:#d97706"></i></div>
-            <div class="stat-label">Highest Q4 Grade</div>
+            <div class="stat-label">Highest Term Grade</div>
             <div class="stat-value" id="statLatest">—</div>
-            <div class="stat-change">4th Quarter</div>
+            <div class="stat-change" id="statLatestSub">3rd Term</div>
           </div>
         </div>
         <div class="col-sm-6 col-xl-3">
@@ -73,7 +73,7 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
             <div class="stat-icon" style="background:#fdf4ff"><i class="fas fa-check-circle" style="color:#9333ea"></i></div>
             <div class="stat-label">Passed Subjects</div>
             <div class="stat-value" id="statPassed">—</div>
-            <div class="stat-change up">This quarter</div>
+            <div class="stat-change up" id="statPassedSub">Current term</div>
           </div>
         </div>
       </div>
@@ -82,7 +82,7 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
         <div class="col-lg-8">
           <div class="content-card">
             <div class="card-header-custom">
-              <span class="card-title"><i class="fas fa-clipboard-list me-2 text-primary"></i>Recent Grades – 4th Quarter</span>
+              <span class="card-title"><i class="fas fa-clipboard-list me-2 text-primary"></i><span id="recentGradesTitle">Recent Grades – 3rd Term</span></span>
               <a href="grades.php" class="btn btn-sm btn-outline-primary" style="font-size:0.75rem">View All</a>
             </div>
             <div class="table-wrapper">
@@ -229,16 +229,24 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
         }
       }
 
-      const allVals = grades.map(g => parseFloat(g.final_grade));
-      const q4      = grades.filter(g => g.quarter == 4);
-      const avgAll  = allVals.length ? +(allVals.reduce((a,b)=>a+b,0)/allVals.length).toFixed(2) : 0;
-      const passed  = q4.filter(g => parseFloat(g.final_grade) >= 75).length;
-      const latest  = q4.length ? Math.max(...q4.map(g=>parseFloat(g.final_grade))) : 0;
+      const termNames = {1:'1st Term', 2:'2nd Term', 3:'3rd Term', 4:'4th Term'};
+      const quarterNums = grades.map(g => parseInt(g.quarter)).filter(q => q > 0);
+      const latestTerm = quarterNums.length ? Math.max(...quarterNums) : 3;
+      const termLabel = termNames[latestTerm] || `Term ${latestTerm}`;
 
-      document.getElementById('statAvg').textContent      = avgAll || '—';
-      document.getElementById('statSubjects').textContent = subjects.length || '—';
-      document.getElementById('statLatest').textContent   = latest  || '—';
-      document.getElementById('statPassed').textContent   = `${passed}/${q4.length}`;
+      const latestGrades = grades.filter(g => g.quarter == latestTerm);
+      const allVals = grades.map(g => parseFloat(g.final_grade));
+      const avgAll  = allVals.length ? +(allVals.reduce((a,b)=>a+b,0)/allVals.length).toFixed(2) : 0;
+      const passed  = latestGrades.filter(g => parseFloat(g.final_grade) >= 75).length;
+      const latestMax = latestGrades.length ? Math.max(...latestGrades.map(g=>parseFloat(g.final_grade))) : (allVals.length ? Math.max(...allVals) : 0);
+
+      document.getElementById('statAvg').textContent       = avgAll || '—';
+      document.getElementById('statSubjects').textContent  = subjects.length || '—';
+      document.getElementById('statLatest').textContent    = latestMax || '—';
+      document.getElementById('statLatestSub').textContent = termLabel;
+      document.getElementById('statPassed').textContent    = latestGrades.length ? `${passed}/${latestGrades.length}` : '—';
+      document.getElementById('statPassedSub').textContent  = termLabel;
+      document.getElementById('recentGradesTitle').textContent = `Recent Grades – ${termLabel}`;
 
       const avgRemark = document.getElementById('statAvgRemark');
       if (avgAll >= 75) {
@@ -249,11 +257,11 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
         avgRemark.innerHTML   = '<i class="fas fa-arrow-down me-1"></i>Below Passing';
       }
 
-      // Q4 table
+      // Recent term table
       const subMap = {};
       subjects.forEach(s => subMap[s.id] = s);
-      document.getElementById('recentGradesBody').innerHTML = q4.length
-        ? q4.map(g => {
+      document.getElementById('recentGradesBody').innerHTML = latestGrades.length
+        ? latestGrades.map(g => {
             const sub = subMap[g.subject_id] || {};
             return `<tr>
               <td><strong>${sub.name||'—'}</strong></td>
@@ -261,7 +269,7 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
               <td>${getGradeBadge(parseFloat(g.final_grade))}</td>
             </tr>`;
           }).join('')
-        : '<tr><td colspan="3" class="text-center text-muted py-3">No grades recorded yet.</td></tr>';
+        : '<tr><td colspan="3" class="text-center text-muted py-3">No grades recorded for this term yet.</td></tr>';
 
       // Doughnut
       const passCount = allVals.filter(g=>g>=75).length;

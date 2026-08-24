@@ -42,13 +42,12 @@ $userId = (int)$_SESSION['user_id'];
         <div class="card-body-custom">
           <div class="row g-2 align-items-end">
             <div class="col-md-4">
-              <label class="form-label mb-1" style="font-size:0.8rem;font-weight:600">Grading Period</label>
+              <label class="form-label mb-1" style="font-size:0.8rem;font-weight:600">Grading Term</label>
               <select id="reportPeriod" class="form-select form-select-sm" onchange="generateReport()">
-                <option value="0">All Periods</option>
-                <option value="1">1st Quarter</option>
-                <option value="2">2nd Quarter</option>
-                <option value="3">3rd Quarter</option>
-                <option value="4">4th Quarter</option>
+                <option value="0">All Terms</option>
+                <option value="1">1st Term</option>
+                <option value="2">2nd Term</option>
+                <option value="3">3rd Term</option>
               </select>
             </div>
             <div class="col-md-4">
@@ -64,8 +63,8 @@ $userId = (int)$_SESSION['user_id'];
         <div class="print-logo"><i class="fas fa-graduation-cap"></i></div>
         <div class="print-school-info">
           <h3>Lubo National High School</h3>
-          <p>Brgy. Lubo, Cavite City &nbsp;|&nbsp; Online Grade Monitoring System</p>
-          <p id="printReportTitle">Official Report Card – All Periods</p>
+          <p>Lubo, Sto. Niño, Cagayan &nbsp;|&nbsp; Online Grade Monitoring System</p>
+          <p id="printReportTitle">Official Report Card – All Terms</p>
         </div>
       </div>
 
@@ -80,7 +79,7 @@ $userId = (int)$_SESSION['user_id'];
 <script src="../../assets/js/app.js"></script>
 <script>
   const SESSION_USER_ID = <?= $userId ?>;
-  const qLabels = ['All Periods','1st Quarter','2nd Quarter','3rd Quarter','4th Quarter'];
+  const qLabels = ['All Terms','1st Term','2nd Term','3rd Term'];
 
   async function generateReport() {
     const period = document.getElementById('reportPeriod').value;
@@ -135,7 +134,7 @@ $userId = (int)$_SESSION['user_id'];
                 <span class="info-value">${data.school_year||'—'}</span></div>
             </div>
             <div class="col-md-4">
-              <div class="info-row"><span class="info-label">Period</span>
+              <div class="info-row"><span class="info-label">Period / Term</span>
                 <span class="info-value">${qLabels[period]}</span></div>
             </div>
             <div class="col-md-4">
@@ -151,18 +150,17 @@ $userId = (int)$_SESSION['user_id'];
             <thead>
               <tr>
                 <th>Subject</th>
-                <th class="text-center">Q1</th>
-                <th class="text-center">Q2</th>
-                <th class="text-center">Q3</th>
-                <th class="text-center">Q4</th>
-                <th class="text-center">Average</th>
+                <th class="text-center">1st Term</th>
+                <th class="text-center">2nd Term</th>
+                <th class="text-center">3rd Term</th>
+                <th class="text-center">Final Grade</th>
                 <th class="text-center">Remarks</th>
               </tr>
             </thead>
             <tbody>
               ${subjects.map(r=>`<tr>
                 <td><strong>${r.name}</strong></td>
-                ${[1,2,3,4].map(q=>`<td class="text-center">
+                ${[1,2,3].map(q=>`<td class="text-center">
                   ${r['q'+q]!=null?`<span style="font-weight:700;color:${gradeBgColor(r['q'+q])}">${r['q'+q]}</span>`:'—'}
                 </td>`).join('')}
                 <td class="text-center">${r.avg!=null?gradeCell(r.avg):'—'}</td>
@@ -171,7 +169,7 @@ $userId = (int)$_SESSION['user_id'];
             </tbody>
             <tfoot>
               <tr style="background:#f8fafc;font-weight:700">
-                <td colspan="5">General Average</td>
+                <td colspan="4">General Average</td>
                 <td class="text-center">${genAvg?gradeCell(genAvg):'—'}</td>
                 <td class="text-center">${genAvg?getGradeBadge(genAvg):'—'}</td>
               </tr>
@@ -182,9 +180,9 @@ $userId = (int)$_SESSION['user_id'];
           <div class="row">
             <div class="col-md-8">
               <strong>Grade Description:</strong>
-              Outstanding (95-100) &nbsp;|&nbsp; Very Satisfactory (90-94) &nbsp;|&nbsp;
-              Satisfactory (85-89) &nbsp;|&nbsp; Fairly Satisfactory (80-84) &nbsp;|&nbsp;
-              Did Not Meet Expectations (75-79) &nbsp;|&nbsp; Failed (Below 75)
+              Outstanding (90-100) &nbsp;|&nbsp; Very Satisfactory (85-89) &nbsp;|&nbsp;
+              Satisfactory (80-84) &nbsp;|&nbsp; Fairly Satisfactory (75-79) &nbsp;|&nbsp;
+              Did Not Meet Expectations (Below 75)
             </div>
             <div class="col-md-4 text-end">
               <strong>Passing Grade:</strong> 75

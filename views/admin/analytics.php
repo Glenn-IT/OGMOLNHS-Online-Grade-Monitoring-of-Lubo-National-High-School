@@ -47,7 +47,7 @@ $adminActivePage = 'analytics';
         <div class="col-md-6">
           <div class="content-card h-100">
             <div class="card-header-custom">
-              <span class="card-title"><i class="fas fa-chart-line me-2 text-success"></i>Class Average per Quarter</span>
+              <span class="card-title"><i class="fas fa-chart-line me-2 text-success"></i>Class Average per Term</span>
             </div>
             <div class="chart-container"><canvas id="classTrendChart"></canvas></div>
           </div>
@@ -68,10 +68,10 @@ $adminActivePage = 'analytics';
         <div class="col-md-8">
           <div class="content-card h-100">
             <div class="card-header-custom d-flex justify-content-between align-items-center">
-              <span class="card-title"><i class="fas fa-users me-2 text-info"></i>Student Performance Ranking</span>
-              <div style="width: 170px;">
-                <select id="rankingGradeFilter" class="form-select form-select-sm" onchange="renderRanking()">
-                  <option value="">All Grade Levels</option>
+              <span class="card-title"><i class="fas fa-trophy me-2 text-warning"></i>Student Ranking</span>
+              <div class="d-flex gap-2">
+                <select id="rankGradeFilter" class="form-select form-select-sm" style="width:auto;min-width:140px;" onchange="renderRanking()">
+                  <option value="all">All Grade Levels</option>
                   <option value="7">Grade 7</option>
                   <option value="8">Grade 8</option>
                   <option value="9">Grade 9</option>
@@ -79,14 +79,26 @@ $adminActivePage = 'analytics';
                   <option value="11">Grade 11</option>
                   <option value="12">Grade 12</option>
                 </select>
+                <span class="badge bg-warning text-dark align-self-center" id="rankCount">Top 10</span>
               </div>
             </div>
-            <div class="table-wrapper">
-              <table class="table">
-                <thead><tr><th>Rank</th><th>Student</th><th>Grade &amp; Section</th><th>Average</th><th>Status</th></tr></thead>
-                <tbody id="rankingBody"></tbody>
+            <div class="table-wrapper" style="max-height:260px;overflow-y:auto">
+              <table class="table table-sm">
+                <thead><tr><th>#</th><th>Student</th><th>LRN</th><th>Grade &amp; Section</th><th>Average</th><th>Rank</th></tr></thead>
+                <tbody id="studentRankBody"><tr><td colspan="6" class="text-center py-3 text-muted">Loading…</td></tr></tbody>
               </table>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-12">
+          <div class="content-card">
+            <div class="card-header-custom">
+              <span class="card-title"><i class="fas fa-layer-group me-2 text-info"></i>Grade Distribution (DepEd Standards)</span>
+            </div>
+            <div class="chart-container"><canvas id="distChart" height="120"></canvas></div>
           </div>
         </div>
       </div>
@@ -103,20 +115,26 @@ $adminActivePage = 'analytics';
   let rawStudentRanking = [];
 
   function renderRanking() {
-    const selectedGrade = document.getElementById('rankingGradeFilter').value;
+    const filter = document.getElementById('rankGradeFilter').value;
     let list = rawStudentRanking;
-    if (selectedGrade) {
-      list = rawStudentRanking.filter(r => String(r.grade_level) === selectedGrade);
+    if (filter !== 'all') {
+      list = list.filter(s => String(s.grade_level) === filter);
     }
+    const top10 = list.slice(0, 10);
+    document.getElementById('rankCount').textContent = filter === 'all'
+      ? `Top ${Math.min(10, list.length)} (All)`
+      : `Top ${Math.min(10, list.length)} (Grade ${filter})`;
 
-    const medals = ['🥇','🥈','🥉'];
-    document.getElementById('rankingBody').innerHTML = list.map((r,i)=>`<tr>
-      <td><strong>${medals[i]??'#'+(i+1)}</strong></td>
-      <td><strong>${esc(r.full_name)}</strong><br><small class="text-muted">${esc(r.lrn||'—')}</small></td>
-      <td>${r.grade_level ? `<span class="badge bg-light text-dark">Grade ${r.grade_level}${r.section_name ? ' - ' + esc(r.section_name) : ''}</span>` : '<span class="text-muted">—</span>'}</td>
-      <td>${r.avg>0?gradeCell(r.avg):'—'}</td>
-      <td>${r.avg>0?getGradeBadge(r.avg):'—'}</td>
-    </tr>`).join('') || '<tr><td colspan="5" class="text-muted text-center py-3">No student ranking data found.</td></tr>';
+    document.getElementById('studentRankBody').innerHTML = top10.length
+      ? top10.map((s, i) => `<tr>
+          <td><strong>${i + 1}</strong></td>
+          <td><strong>${esc(s.full_name)}</strong></td>
+          <td><code>${esc(s.lrn || '—')}</code></td>
+          <td>${s.grade_level ? 'Grade ' + esc(s.grade_level) : ''}${s.section_name ? ' - ' + esc(s.section_name) : '<em>Unassigned</em>'}</td>
+          <td>${gradeCell(parseFloat(s.avg))}</td>
+          <td><span class="badge ${i === 0 ? 'bg-warning text-dark' : i < 3 ? 'bg-success' : 'bg-secondary'}">${i === 0 ? '🥇 1st' : i === 1 ? '🥈 2nd' : i === 2 ? '🥉 3rd' : (i + 1) + 'th'}</span></td>
+        </tr>`).join('')
+      : '<tr><td colspan="6" class="text-center text-muted py-3">No students found for this grade level.</td></tr>';
   }
 
   function esc(str) {
@@ -164,11 +182,11 @@ $adminActivePage = 'analytics';
         });
       }
 
-      const quarterAvgs = d.quarter_averages || [];
+      const quarterAvgs = (d.quarter_averages || []).slice(0, 3);
       new Chart(document.getElementById('classTrendChart'),{
         type:'line',
-        data:{labels:['1st Quarter','2nd Quarter','3rd Quarter','4th Quarter'],
-          datasets:[{label:'Class Average',data:quarterAvgs,
+        data:{labels:['1st Term','2nd Term','3rd Term'],
+          datasets:[{label:'Class Term Average',data:quarterAvgs,
             borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,.1)',
             borderWidth:3,pointRadius:6,pointBackgroundColor:'#7c3aed',fill:true,tension:0.4}]},
         options:{scales:{y:{min:60,max:100}},plugins:{legend:{display:false}},maintainAspectRatio:false}

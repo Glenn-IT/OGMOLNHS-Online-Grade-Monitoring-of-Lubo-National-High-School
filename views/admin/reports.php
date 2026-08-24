@@ -55,11 +55,11 @@ $adminActivePage = 'reports';
               <select id="reportStudent" class="form-select form-select-sm" onchange="generateReport()"></select>
             </div>
             <div class="col-md-2">
-              <label class="form-label mb-1" style="font-size:0.8rem;font-weight:600">Grading Period</label>
+              <label class="form-label mb-1" style="font-size:0.8rem;font-weight:600">Grading Term</label>
               <select id="reportPeriod" class="form-select form-select-sm" onchange="generateReport()">
-                <option value="0">All Periods</option>
-                <option value="1">1st Quarter</option><option value="2">2nd Quarter</option>
-                <option value="3">3rd Quarter</option><option value="4">4th Quarter</option>
+                <option value="0">All Terms</option>
+                <option value="1">1st Term</option><option value="2">2nd Term</option>
+                <option value="3">3rd Term</option>
               </select>
             </div>
             <div class="col-md-2">
@@ -75,8 +75,8 @@ $adminActivePage = 'reports';
         <div class="print-logo"><i class="fas fa-graduation-cap"></i></div>
         <div class="print-school-info">
           <h3>Lubo National High School</h3>
-          <p>Brgy. Lubo, Cavite City &nbsp;|&nbsp; Online Grade Monitoring System</p>
-          <p id="printReportTitle">Class Summary Report – All Periods</p>
+          <p>Lubo, Sto. Niño, Cagayan &nbsp;|&nbsp; Online Grade Monitoring System</p>
+          <p id="printReportTitle">Class Summary Report – All Terms</p>
         </div>
       </div>
 
@@ -102,7 +102,7 @@ $adminActivePage = 'reports';
     const type    = document.getElementById('reportType').value;
     const period  = document.getElementById('reportPeriod').value;
     const stuId   = document.getElementById('reportStudent').value;
-    const qLabels = ['All Periods','1st Quarter','2nd Quarter','3rd Quarter','4th Quarter'];
+    const qLabels = ['All Terms','1st Term','2nd Term','3rd Term'];
     document.getElementById('printReportTitle').textContent =
       `${type==='class'?'Class Summary':type==='subject'?'Subject Performance':'Individual Student'} Report – ${qLabels[period]}`;
 
@@ -118,7 +118,6 @@ $adminActivePage = 'reports';
   }
 
   function renderReport(type, data, period) {
-    const qLabels = ['','1st','2nd','3rd','4th'];
     const date = new Date().toLocaleDateString('en-PH',{dateStyle:'long'});
 
     if (type === 'class') {
@@ -200,17 +199,17 @@ $adminActivePage = 'reports';
         <div class="content-card">
           <div class="table-wrapper">
             <table class="table">
-              <thead><tr><th>Subject</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Average</th><th>Remarks</th></tr></thead>
+              <thead><tr><th>Subject</th><th class="text-center">1st Term</th><th class="text-center">2nd Term</th><th class="text-center">3rd Term</th><th class="text-center">Final Grade</th><th class="text-center">Remarks</th></tr></thead>
               <tbody>${subjects.map(r=>`<tr>
                 <td><strong>${r.name}</strong></td>
-                ${[1,2,3,4].map(q=>`<td class="text-center">${r['q'+q]!=null?`<span style="font-weight:700;color:${gradeBgColor(r['q'+q])}">${r['q'+q]}</span>`:'—'}</td>`).join('')}
-                <td>${r.avg!=null?gradeCell(r.avg):'—'}</td>
-                <td>${r.avg!=null?getGradeBadge(r.avg):'—'}</td>
+                ${[1,2,3].map(q=>`<td class="text-center">${r['q'+q]!=null?`<span style="font-weight:700;color:${gradeBgColor(r['q'+q])}">${r['q'+q]}</span>`:'—'}</td>`).join('')}
+                <td class="text-center">${r.avg!=null?gradeCell(r.avg):'—'}</td>
+                <td class="text-center">${r.avg!=null?getGradeBadge(r.avg):'—'}</td>
               </tr>`).join('')}</tbody>
               <tfoot><tr style="background:#f8fafc">
-                <td colspan="5"><strong>General Average</strong></td>
-                <td>${genAvg?gradeCell(genAvg):'—'}</td>
-                <td>${genAvg?getGradeBadge(genAvg):'—'}</td>
+                <td colspan="4"><strong>General Average</strong></td>
+                <td class="text-center">${genAvg?gradeCell(genAvg):'—'}</td>
+                <td class="text-center">${genAvg?getGradeBadge(genAvg):'—'}</td>
               </tr></tfoot>
             </table>
           </div>
