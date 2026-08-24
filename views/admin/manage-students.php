@@ -100,16 +100,16 @@ $adminActivePage = 'manage-students';
           <div class="col-md-6"><label class="form-label">Last Name *</label><input type="text" id="sLast" class="form-control" required/></div>
           <div class="col-md-6"><label class="form-label">Email *</label><input type="email" id="sEmail" class="form-control" required/></div>
           <div class="col-md-6"><label class="form-label">LRN (12 digits)</label><input type="text" id="sLrn" class="form-control" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
-          <div class="col-md-6"><label class="form-label">Student Contact Number (11 digits)</label><input type="text" id="sContact" class="form-control" maxlength="11" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
+          <div class="col-md-6"><label class="form-label">Student Contact Number (11 digits)</label><input type="text" id="sContact" class="form-control" maxlength="11" inputmode="numeric" placeholder="e.g. 09123456789" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
           <div class="col-md-6"><label class="form-label">Gender</label>
             <select id="sGender" class="form-select"><option value="">Select</option><option>Male</option><option>Female</option></select>
           </div>
           <div class="col-md-6"><label class="form-label">Birthdate</label><input type="date" id="sBirthdate" class="form-control"/></div>
-          <div class="col-12"><label class="form-label">Address</label><input type="text" id="sAddress" class="form-control"/></div>
+          <div class="col-12"><label class="form-label">Address</label><input type="text" id="sAddress" class="form-control" placeholder="e.g. Lubo, Sto. Niño, Cagayan"/></div>
 
           <div class="col-12"><hr/><h6 class="text-muted"><i class="fas fa-user-shield me-1"></i>Parent / Guardian Information</h6></div>
           <div class="col-md-6"><label class="form-label">Parent / Guardian Name</label><input type="text" id="sGuardianName" class="form-control" placeholder="e.g. Maria Santos"/></div>
-          <div class="col-md-6"><label class="form-label">Parent Contact Number (for Grade SMS)</label><input type="text" id="sGuardianPhone" class="form-control" maxlength="11" inputmode="numeric" placeholder="e.g. 09XXXXXXXXX" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
+          <div class="col-md-6"><label class="form-label">Parent Contact Number (for Grade SMS)</label><input type="text" id="sGuardianPhone" class="form-control" maxlength="11" inputmode="numeric" placeholder="e.g. 09987654321" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
 
           <div class="col-12"><hr/><h6 class="text-muted"><i class="fas fa-school me-1"></i>Enrollment</h6></div>
           <div class="col-md-6"><label class="form-label">Grade Level</label>
@@ -314,8 +314,8 @@ $adminActivePage = 'manage-students';
     if (!first || !last || !email) { showToast('Please fill required fields.', 'error'); return; }
     if (!id && !pwd) { showToast('Password is required for new students.', 'error'); return; }
     if (lrn && !/^\d{12}$/.test(lrn)) { showToast('LRN must be exactly 12 digits.', 'error'); return; }
-    if (contact && !/^\d{11}$/.test(contact)) { showToast('Student contact number must be exactly 11 digits.', 'error'); return; }
-    if (guardianPhone && !/^\d{11}$/.test(guardianPhone)) { showToast('Parent contact number must be exactly 11 digits.', 'error'); return; }
+    if (contact && !/^09\d{9}$/.test(contact)) { showToast('Student contact number must be an 11-digit PH mobile number starting with 09 (e.g. 09123456789).', 'error'); return; }
+    if (guardianPhone && !/^09\d{9}$/.test(guardianPhone)) { showToast('Parent contact number must be an 11-digit PH mobile number starting with 09 (e.g. 09987654321).', 'error'); return; }
 
     const grade     = document.getElementById('sGrade').value;
     const sectionId = document.getElementById('sSection').value;
@@ -329,6 +329,7 @@ $adminActivePage = 'manage-students';
       body.append('action',         'update');
       body.append('id',             id);
       body.append('full_name',      `${first} ${last}`);
+      body.append('lrn',            lrn);
       body.append('phone',          contact);
       body.append('guardian_name',  guardianName);
       body.append('guardian_phone', guardianPhone);

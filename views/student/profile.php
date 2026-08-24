@@ -95,15 +95,15 @@ $studentActivePage = 'profile';
           </div>
           <div class="col-md-4">
             <label class="form-label fw-semibold">LRN (12-digit)</label>
-            <input type="text" id="editLrn" class="form-control" maxlength="12" placeholder="123456789012"/>
+            <input type="text" id="editLrn" class="form-control" maxlength="12" inputmode="numeric" placeholder="e.g. 123456789012" oninput="this.value=this.value.replace(/\D/g,'')"/>
           </div>
           <div class="col-md-6">
-            <label class="form-label fw-semibold">Student Contact Number</label>
-            <input type="text" id="editPhone" class="form-control" maxlength="11" placeholder="e.g. 09123456789"/>
+            <label class="form-label fw-semibold">Student Contact Number (11 digits)</label>
+            <input type="text" id="editPhone" class="form-control" maxlength="11" inputmode="numeric" placeholder="e.g. 09123456789" oninput="this.value=this.value.replace(/\D/g,'')"/>
           </div>
           <div class="col-md-6">
             <label class="form-label fw-semibold">Home Address</label>
-            <input type="text" id="editAddress" class="form-control" placeholder="e.g. Lubo, Kibungan, Benguet"/>
+            <input type="text" id="editAddress" class="form-control" placeholder="e.g. Lubo, Sto. Niño, Cagayan"/>
           </div>
           <div class="col-md-6">
             <label class="form-label fw-semibold">Parent / Guardian Name</label>
@@ -111,7 +111,7 @@ $studentActivePage = 'profile';
           </div>
           <div class="col-md-6">
             <label class="form-label fw-semibold">Parent Contact Number <span class="text-primary" style="font-size:0.8rem">(for SMS Grade Alerts)</span></label>
-            <input type="text" id="editGuardianPhone" class="form-control" maxlength="11" placeholder="e.g. 09987654321"/>
+            <input type="text" id="editGuardianPhone" class="form-control" maxlength="11" inputmode="numeric" placeholder="e.g. 09987654321" oninput="this.value=this.value.replace(/\D/g,'')"/>
           </div>
           <div class="col-md-6">
             <label class="form-label fw-semibold">Gender</label>
@@ -247,8 +247,8 @@ $studentActivePage = 'profile';
 
     if (!name) { showToast('Full Name is required.', 'error'); return; }
     if (lrn && !/^\d{12}$/.test(lrn)) { showToast('LRN must be exactly 12 digits.', 'error'); return; }
-    if (phone && !/^\d{11}$/.test(phone)) { showToast('Student contact number must be exactly 11 digits.', 'error'); return; }
-    if (gPhone && !/^\d{11}$/.test(gPhone)) { showToast('Parent contact number must be exactly 11 digits.', 'error'); return; }
+    if (phone && !/^09\d{9}$/.test(phone)) { showToast('Student contact number must be an 11-digit PH mobile number starting with 09 (e.g. 09123456789).', 'error'); return; }
+    if (gPhone && !/^09\d{9}$/.test(gPhone)) { showToast('Parent contact number must be an 11-digit PH mobile number starting with 09 (e.g. 09987654321).', 'error'); return; }
     if (newPwd && newPwd.length < 8) { showToast('New password must be at least 8 characters.', 'error'); return; }
     if (newPwd && newPwd !== confPwd) { showToast('Passwords do not match.', 'error'); return; }
 

@@ -108,11 +108,11 @@ if ($action === 'register') {
     if ($lrn && !preg_match('/^\d{12}$/', $lrn)) {
         jsonResponse(['success' => false, 'message' => 'LRN must be exactly 12 digits.'], 400);
     }
-    if ($phone && !preg_match('/^\d{11}$/', $phone)) {
-        jsonResponse(['success' => false, 'message' => 'Student contact number must be exactly 11 digits.'], 400);
+    if ($phone && !preg_match('/^09\d{9}$/', $phone)) {
+        jsonResponse(['success' => false, 'message' => 'Student contact number must be an 11-digit PH mobile number starting with 09 (e.g. 09XXXXXXXXX).'], 400);
     }
-    if ($guardianPhone && !preg_match('/^\d{11}$/', $guardianPhone)) {
-        jsonResponse(['success' => false, 'message' => 'Parent/Guardian contact number must be exactly 11 digits.'], 400);
+    if ($guardianPhone && !preg_match('/^09\d{9}$/', $guardianPhone)) {
+        jsonResponse(['success' => false, 'message' => 'Parent/Guardian contact number must be an 11-digit PH mobile number starting with 09 (e.g. 09XXXXXXXXX).'], 400);
     }
 
     $pdo = getDB();
@@ -174,11 +174,11 @@ if ($action === 'update') {
         }
     }
 
-    if (isset($_POST['phone']) && trim($_POST['phone']) !== '' && !preg_match('/^\d{11}$/', trim($_POST['phone']))) {
-        jsonResponse(['success' => false, 'message' => 'Student contact number must be exactly 11 digits.'], 400);
+    if (isset($_POST['phone']) && trim($_POST['phone']) !== '' && !preg_match('/^09\d{9}$/', trim($_POST['phone']))) {
+        jsonResponse(['success' => false, 'message' => 'Student contact number must be an 11-digit PH mobile number starting with 09 (e.g. 09XXXXXXXXX).'], 400);
     }
-    if (isset($_POST['guardian_phone']) && trim($_POST['guardian_phone']) !== '' && !preg_match('/^\d{11}$/', trim($_POST['guardian_phone']))) {
-        jsonResponse(['success' => false, 'message' => 'Parent/Guardian contact number must be exactly 11 digits.'], 400);
+    if (isset($_POST['guardian_phone']) && trim($_POST['guardian_phone']) !== '' && !preg_match('/^09\d{9}$/', trim($_POST['guardian_phone']))) {
+        jsonResponse(['success' => false, 'message' => 'Parent/Guardian contact number must be an 11-digit PH mobile number starting with 09 (e.g. 09XXXXXXXXX).'], 400);
     }
 
     $allowed = ['full_name', 'lrn', 'phone', 'address', 'birthdate', 'gender', 'avatar_url', 'guardian_name', 'guardian_phone'];

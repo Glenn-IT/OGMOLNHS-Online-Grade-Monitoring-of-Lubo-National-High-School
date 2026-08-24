@@ -112,7 +112,7 @@ $adminActivePage = 'profile';
       <div class="modal-body">
         <div class="row g-3">
           <div class="col-12"><label class="form-label">Full Name</label><input type="text" id="adminEditName" class="form-control"/></div>
-          <div class="col-12"><label class="form-label">Contact</label><input type="text" id="adminEditContact" class="form-control"/></div>
+          <div class="col-12"><label class="form-label">Contact (11 digits)</label><input type="text" id="adminEditContact" class="form-control" maxlength="11" inputmode="numeric" placeholder="e.g. 09123456789" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
           <div class="col-12"><hr/><h6 class="text-muted">Change Password (optional)</h6></div>
           <div class="col-md-6"><label class="form-label">New Password</label><input type="password" id="adminNewPwd" class="form-control"/></div>
           <div class="col-md-6"><label class="form-label">Confirm Password</label><input type="password" id="adminConfirmPwd" class="form-control"/></div>
@@ -169,15 +169,28 @@ $adminActivePage = 'profile';
   }
 
   async function saveAdminProfile() {
+    const contact = document.getElementById('adminEditContact').value.trim();
     const newPwd  = document.getElementById('adminNewPwd').value;
     const confPwd = document.getElementById('adminConfirmPwd').value;
-    if (newPwd && newPwd !== confPwd) { showToast('Passwords do not match.', 'error'); return; }
+
+    if (contact && !/^09\d{9}$/.test(contact)) {
+      showToast('Contact number must be an 11-digit PH mobile number starting with 09 (e.g. 09123456789).', 'error');
+      return;
+    }
+    if (newPwd && newPwd.length < 8) {
+      showToast('New password must be at least 8 characters.', 'error');
+      return;
+    }
+    if (newPwd && newPwd !== confPwd) {
+      showToast('Passwords do not match.', 'error');
+      return;
+    }
 
     const body = new FormData();
     body.append('action',    'update');
     body.append('id',        ADMIN_ID);
     body.append('full_name', document.getElementById('adminEditName').value.trim());
-    body.append('phone',     document.getElementById('adminEditContact').value.trim());
+    body.append('phone',     contact);
     if (newPwd) body.append('new_password', newPwd);
 
     try {
