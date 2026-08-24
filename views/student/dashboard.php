@@ -35,6 +35,8 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
     </header>
 
     <main class="page-content fade-in">
+      <div id="profileAlertBanner"></div>
+
       <div class="welcome-banner">
         <div class="school-badge"><i class="fas fa-school me-1"></i>Lubo National High School</div>
         <h2>Welcome back, <?= htmlspecialchars($nameParts[0]) ?>! 👋</h2>
@@ -118,6 +120,44 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
   </div>
 </div>
 
+<!-- Incomplete Profile Warning Modal -->
+<div class="modal fade" id="profileIncompleteModal" tabindex="-1" aria-labelledby="profileIncompleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0">
+      <div class="modal-header bg-warning bg-opacity-25 border-bottom border-warning">
+        <h5 class="modal-title fw-bold text-dark" id="profileIncompleteModalLabel">
+          <i class="fas fa-exclamation-triangle text-warning me-2"></i>Action Required: Update Personal Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:48px;height:48px;border-radius:50%;background:#fef3c7;display:flex;align-items:center;justify-content:center;color:#d97706;font-size:1.4rem;flex-shrink:0;">
+            <i class="fas fa-user-pen"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1" id="modalStudentGreeting">Welcome to OGMS LNHS!</h6>
+            <p class="text-muted small mb-0">Your student profile is missing some essential personal details.</p>
+          </div>
+        </div>
+        <p class="text-secondary" style="font-size:0.9rem;line-height:1.5;">
+          To ensure you receive official academic notifications and automated <strong>SMS Grade Alerts</strong> for your parent/guardian, please complete your personal information.
+        </p>
+        <div class="p-3 bg-light rounded border mb-2">
+          <div class="fw-semibold text-dark small mb-2"><i class="fas fa-list-check me-1 text-primary"></i>Missing Information:</div>
+          <ul id="missingFieldsList" class="mb-0 text-danger small ps-3"></ul>
+        </div>
+      </div>
+      <div class="modal-footer bg-light border-0">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal" onclick="dismissProfileModal()">Remind Me Later</button>
+        <a href="profile.php?edit=1" class="btn btn-primary btn-sm px-3">
+          <i class="fas fa-user-edit me-1"></i>Update Personal Information
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -126,6 +166,10 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
 <script>
   const SESSION_USER_ID = <?= (int)$_SESSION['user_id'] ?>;
   document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  function dismissProfileModal() {
+    sessionStorage.setItem('ogms_profile_modal_dismissed', '1');
+  }
 
   async function loadDashboard() {
     try {
@@ -144,6 +188,46 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
 
       document.getElementById('welcomeSub').textContent =
         `${student.section_name||'—'} | School Year ${schoolYear}`;
+
+      // Check missing profile details
+      const missing = student.missing_fields || [];
+      if (missing.length > 0) {
+        // Render banner
+        const bannerContainer = document.getElementById('profileAlertBanner');
+        if (bannerContainer) {
+          bannerContainer.innerHTML = `
+            <div class="alert alert-warning d-flex align-items-center justify-content-between p-3 mb-4 rounded-3 border-warning" role="alert">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle text-warning fs-4 me-3"></i>
+                <div>
+                  <strong class="d-block text-dark">Personal Information Incomplete</strong>
+                  <span class="text-secondary small">You have ${missing.length} missing detail(s) on your profile. Please update your details to enable parent SMS grade alerts.</span>
+                </div>
+              </div>
+              <a href="profile.php?edit=1" class="btn btn-warning btn-sm fw-bold text-nowrap ms-3">
+                <i class="fas fa-edit me-1"></i>Complete Profile
+              </a>
+            </div>
+          `;
+        }
+
+        // Show popup modal once per session
+        if (!sessionStorage.getItem('ogms_profile_modal_dismissed')) {
+          const listEl = document.getElementById('missingFieldsList');
+          if (listEl) {
+            listEl.innerHTML = missing.map(f => `<li><strong>${f}</strong></li>`).join('');
+          }
+          const greetingEl = document.getElementById('modalStudentGreeting');
+          if (greetingEl && student.full_name) {
+            greetingEl.textContent = `Welcome, ${student.full_name.split(' ')[0]}!`;
+          }
+          const modalEl = document.getElementById('profileIncompleteModal');
+          if (modalEl && typeof bootstrap !== 'undefined') {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+          }
+        }
+      }
 
       const allVals = grades.map(g => parseFloat(g.final_grade));
       const q4      = grades.filter(g => g.quarter == 4);

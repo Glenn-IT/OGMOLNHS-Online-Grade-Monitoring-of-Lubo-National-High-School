@@ -58,6 +58,27 @@ if ($action === 'get') {
     if (!$student) {
         jsonResponse(['success' => false, 'message' => 'Student not found.'], 404);
     }
+
+    $missing = [];
+    if (empty(trim((string)($student['lrn'] ?? '')))) {
+        $missing[] = 'LRN (12-digit Learner Reference Number)';
+    }
+    if (empty(trim((string)($student['phone'] ?? '')))) {
+        $missing[] = 'Student Contact Number';
+    }
+    if (empty(trim((string)($student['address'] ?? '')))) {
+        $missing[] = 'Home Address';
+    }
+    if (empty(trim((string)($student['guardian_name'] ?? '')))) {
+        $missing[] = 'Parent / Guardian Name';
+    }
+    if (empty(trim((string)($student['guardian_phone'] ?? '')))) {
+        $missing[] = 'Parent Contact Number (for SMS Grade Alerts)';
+    }
+
+    $student['is_complete']    = count($missing) === 0;
+    $student['missing_fields'] = $missing;
+
     jsonResponse(['success' => true, 'data' => $student]);
 }
 
@@ -139,6 +160,20 @@ if ($action === 'update') {
         jsonResponse(['success' => false, 'message' => 'Access denied.'], 403);
     }
 
+    $pdo = getDB();
+
+    if (isset($_POST['lrn']) && trim($_POST['lrn']) !== '') {
+        $lrn = trim($_POST['lrn']);
+        if (!preg_match('/^\d{12}$/', $lrn)) {
+            jsonResponse(['success' => false, 'message' => 'LRN must be exactly 12 digits.'], 400);
+        }
+        $stmt = $pdo->prepare('SELECT id FROM users WHERE lrn = ? AND id != ?');
+        $stmt->execute([$lrn, $id]);
+        if ($stmt->fetch()) {
+            jsonResponse(['success' => false, 'message' => 'LRN is already registered to another account.'], 409);
+        }
+    }
+
     if (isset($_POST['phone']) && trim($_POST['phone']) !== '' && !preg_match('/^\d{11}$/', trim($_POST['phone']))) {
         jsonResponse(['success' => false, 'message' => 'Student contact number must be exactly 11 digits.'], 400);
     }
@@ -146,14 +181,15 @@ if ($action === 'update') {
         jsonResponse(['success' => false, 'message' => 'Parent/Guardian contact number must be exactly 11 digits.'], 400);
     }
 
-    $allowed = ['full_name', 'phone', 'address', 'birthdate', 'gender', 'avatar_url', 'guardian_name', 'guardian_phone'];
+    $allowed = ['full_name', 'lrn', 'phone', 'address', 'birthdate', 'gender', 'avatar_url', 'guardian_name', 'guardian_phone'];
     $set     = [];
     $vals    = [];
 
     foreach ($allowed as $field) {
         if (isset($_POST[$field])) {
+            $val = trim((string)$_POST[$field]);
             $set[]  = "$field = ?";
-            $vals[] = $_POST[$field];
+            $vals[] = ($val === '') ? null : $val;
         }
     }
 
@@ -171,9 +207,18 @@ if ($action === 'update') {
     }
 
     $vals[] = $id;
-    $pdo    = getDB();
     $pdo->prepare('UPDATE users SET ' . implode(', ', $set) . ' WHERE id = ?')
         ->execute($vals);
+
+    // Keep active session user data updated
+    if ($id === (int)($_SESSION['user_id'] ?? 0)) {
+        if (!empty($_POST['full_name'])) {
+            $_SESSION['full_name'] = trim($_POST['full_name']);
+        }
+        if (isset($_POST['lrn'])) {
+            $_SESSION['lrn'] = trim($_POST['lrn']) ?: null;
+        }
+    }
 
     jsonResponse(['success' => true, 'message' => 'Profile updated.']);
 }

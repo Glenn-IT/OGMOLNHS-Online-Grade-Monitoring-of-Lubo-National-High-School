@@ -54,7 +54,7 @@ if (!empty($_SESSION['user_id'])) {
             <div class="col-12">
               <label class="form-label">Password</label>
               <div class="input-group">
-                <input type="password" id="signupPwd" class="form-control" placeholder="Min. 6 characters" required />
+                <input type="password" id="signupPwd" class="form-control" placeholder="Min. 8 characters" required />
                 <button type="button" class="btn btn-outline-secondary"
                   onclick="togglePwd('signupPwd',this)" style="border-radius:0 8px 8px 0">
                   <i class="fas fa-eye"></i>
@@ -145,8 +145,8 @@ if (!empty($_SESSION['user_id'])) {
         if (pwd !== pwd2) {
           showToast('Passwords do not match!', 'error'); return;
         }
-        if (pwd.length < 6) {
-          showToast('Password must be at least 6 characters.', 'error'); return;
+        if (pwd.length < 8) {
+          showToast('Password must be at least 8 characters.', 'error'); return;
         }
 
         const lrn = document.getElementById('signupLrn').value.trim();
