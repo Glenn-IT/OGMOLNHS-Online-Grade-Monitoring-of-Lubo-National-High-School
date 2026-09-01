@@ -232,6 +232,7 @@ $adminActivePage = 'manage-grades';
       </div>
 
       <div class="modal-footer bg-light">
+        <button class="btn btn-success btn-sm" onclick="printSectionGrades()"><i class="fas fa-print me-1"></i>Print Grade Sheet</button>
         <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
       </div>
 
@@ -690,6 +691,122 @@ $adminActivePage = 'manage-grades';
         showToast(data.message || 'Failed to delete grade.', 'error');
       }
     } catch(e) { showToast('Server error.', 'error'); }
+  }
+
+  function printSectionGrades() {
+    if (!currentClassSubject || !currentClassSection) {
+      showToast('No section or subject selected to print.', 'warning');
+      return;
+    }
+    const printTitle = `${currentClassSubject.name} – ${currentClassSection.name} (Grade ${currentClassSection.grade_level})`;
+    const students = sectionStudentsMap[currentClassSection.id] || [];
+    const dateStr = new Date().toLocaleDateString('en-PH', { dateStyle: 'long' });
+    
+    let tableRows = '';
+    students.forEach((stu, i) => {
+      const q1 = getGrade(stu.id, currentClassSubject.id, 1);
+      const q2 = getGrade(stu.id, currentClassSubject.id, 2);
+      const q3 = getGrade(stu.id, currentClassSubject.id, 3);
+      const valid = [q1, q2, q3].filter(v => v !== null && !isNaN(v));
+      const avg = valid.length ? (valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(2) : '—';
+      const isPassed = avg !== '—' && parseFloat(avg) >= 75;
+      const remarks = avg === '—' ? '—' : (isPassed ? 'Passed' : 'Failed');
+      
+      tableRows += `
+        <tr>
+          <td style="text-align:center">${i + 1}</td>
+          <td><strong>${esc(stu.full_name)}</strong></td>
+          <td><code>${esc(stu.lrn || '—')}</code></td>
+          <td style="text-align:center">${q1 !== null ? q1.toFixed(2) : '—'}</td>
+          <td style="text-align:center">${q2 !== null ? q2.toFixed(2) : '—'}</td>
+          <td style="text-align:center">${q3 !== null ? q3.toFixed(2) : '—'}</td>
+          <td style="text-align:center;font-weight:bold">${avg}</td>
+          <td style="text-align:center;font-weight:bold;color:${isPassed ? '#16a34a' : '#dc2626'}">${remarks}</td>
+        </tr>`;
+    });
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Grade Sheet - ${printTitle}</title>
+  <style>
+    @page { size: portrait; margin: 12mm 12mm 15mm 12mm; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; margin: 0; padding: 10px; font-size: 10pt; }
+    .header { display: flex; align-items: center; gap: 15px; border-bottom: 2.5px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px; }
+    .logo { width: 52px; height: 52px; min-width: 52px; border: 2.5px solid #1e3a8a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #1e3a8a; font-weight: bold; background: #eff6ff; }
+    .dept { font-size: 8pt; text-transform: uppercase; color: #64748b; margin: 0; letter-spacing: 0.05em; }
+    h2 { margin: 2px 0; font-size: 14pt; color: #0f172a; font-weight: 700; }
+    p { margin: 0; font-size: 9pt; color: #475569; }
+    .meta-box { display: flex; justify-content: space-between; background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px; margin-bottom: 15px; font-size: 9pt; }
+    table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 15px; }
+    th, td { border: 1px solid #cbd5e1; padding: 5px 8px; vertical-align: middle; }
+    th { background: #f1f5f9; text-transform: uppercase; font-size: 8pt; font-weight: bold; color: #1e293b; }
+    .signatures { display: flex; justify-content: space-between; margin-top: 35px; page-break-inside: avoid; }
+    .sig-box { width: 28%; text-align: center; font-size: 9pt; }
+    .sig-line { border-bottom: 1px solid #0f172a; height: 35px; margin-bottom: 4px; }
+    .sig-title { font-weight: bold; }
+    .sig-role { font-size: 8pt; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">&#127891;</div>
+    <div>
+      <p class="dept">Republic of the Philippines &bull; Department of Education &bull; Region II</p>
+      <h2>LUBO NATIONAL HIGH SCHOOL</h2>
+      <p>Lubo, Sto. Niño, Cagayan &nbsp;|&nbsp; Online Grade Monitoring System</p>
+    </div>
+  </div>
+  <div class="meta-box">
+    <div><strong>Subject:</strong> ${esc(currentClassSubject.name)} (${esc(currentClassSubject.code||'—')})</div>
+    <div><strong>Section:</strong> ${esc(currentClassSection.name)} (Grade ${esc(currentClassSection.grade_level)})</div>
+    <div><strong>Date Generated:</strong> ${dateStr}</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:35px;text-align:center">#</th>
+        <th>Learner Name</th>
+        <th style="width:110px">LRN</th>
+        <th style="width:70px;text-align:center">1st Term</th>
+        <th style="width:70px;text-align:center">2nd Term</th>
+        <th style="width:70px;text-align:center">3rd Term</th>
+        <th style="width:80px;text-align:center">Final Grade</th>
+        <th style="width:75px;text-align:center">Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${tableRows || '<tr><td colspan="8" style="text-align:center;padding:20px">No students enrolled in this section.</td></tr>'}
+    </tbody>
+  </table>
+  <div class="signatures">
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-title">Subject Teacher</div>
+      <div class="sig-role">Prepared By</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-title">Class Adviser</div>
+      <div class="sig-role">Verified By</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-title">School Principal</div>
+      <div class="sig-role">Approved By</div>
+    </div>
+  </div>
+  <script>
+    window.onload = function() {
+      window.print();
+    };
+  <\/script>
+</body>
+</html>`);
+    printWindow.document.close();
   }
 
   document.addEventListener('DOMContentLoaded', init);

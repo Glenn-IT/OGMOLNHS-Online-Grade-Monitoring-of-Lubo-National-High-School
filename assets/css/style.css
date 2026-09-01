@@ -849,32 +849,32 @@ a {
 }
 
 /* ── Report / Print ── */
-@media print {
-  .sidebar,
-  .topbar,
-  .no-print {
-    display: none !important;
-  }
-  .main-content {
-    margin-left: 0 !important;
-  }
-  .print-section {
-    display: block !important;
-  }
-  body {
-    background: #fff;
-  }
-  .content-card {
-    box-shadow: none;
-    border: 1px solid #ccc;
-  }
-}
 .print-header {
   display: none;
 }
 @media print {
+  .sidebar,
+  .topbar,
+  .no-print,
+  .btn,
+  button {
+    display: none !important;
+  }
+  .app-wrapper,
+  .main-content,
+  .page-content {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    height: auto !important;
+  }
+  body {
+    background: #fff !important;
+    overflow: visible !important;
+  }
   .print-header {
-    display: block;
+    display: flex !important;
   }
 }
 

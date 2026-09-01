@@ -12,7 +12,7 @@ $userId = (int)$_SESSION['user_id'];
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link rel="stylesheet" href="../../assets/css/style.css?v=<?= filemtime(__DIR__ . "/../../assets/css/style.css") ?>"/>
-  <link rel="stylesheet" href="../../assets/css/print.css"/>
+  <link rel="stylesheet" href="../../assets/css/print.css?v=<?= filemtime(__DIR__ . "/../../assets/css/print.css") ?>"/>
 </head>
 <body>
 <div class="app-wrapper">
@@ -55,6 +55,11 @@ $userId = (int)$_SESSION['user_id'];
                 <i class="fas fa-sync me-1"></i>Refresh
               </button>
             </div>
+            <div class="col-md-4">
+              <button class="btn btn-success btn-sm w-100" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>Print Report
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -62,7 +67,8 @@ $userId = (int)$_SESSION['user_id'];
       <div class="print-header">
         <div class="print-logo"><i class="fas fa-graduation-cap"></i></div>
         <div class="print-school-info">
-          <h3>Lubo National High School</h3>
+          <p class="print-dept">Republic of the Philippines &bull; Department of Education &bull; Region II</p>
+          <h3>LUBO NATIONAL HIGH SCHOOL</h3>
           <p>Lubo, Sto. Niño, Cagayan &nbsp;|&nbsp; Online Grade Monitoring System</p>
           <p id="printReportTitle">Official Report Card – All Terms</p>
         </div>
@@ -111,33 +117,33 @@ $userId = (int)$_SESSION['user_id'];
     document.getElementById('reportContent').innerHTML = `
       <div class="content-card mb-3">
         <div class="card-header-custom"
-          style="background:var(--primary);border-radius:4px 4px 0 0">
+          style="background:#0f172a;border-radius:4px 4px 0 0">
           <span class="card-title" style="color:#fff">Student Report Card</span>
           <span style="color:rgba(255,255,255,.8);font-size:.8rem">Generated: ${date}</span>
         </div>
         <div class="card-body-custom">
           <div class="row g-2">
-            <div class="col-md-4">
+            <div class="col-md-4 col-4">
               <div class="info-row"><span class="info-label">Full Name</span>
                 <span class="info-value fw-bold">${student.full_name||'—'}</span></div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 col-4">
               <div class="info-row"><span class="info-label">LRN</span>
                 <span class="info-value"><code>${student.lrn||'—'}</code></span></div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 col-4">
               <div class="info-row"><span class="info-label">Section</span>
                 <span class="info-value">${student.section_name||'—'}</span></div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 col-4">
               <div class="info-row"><span class="info-label">School Year</span>
                 <span class="info-value">${data.school_year||'—'}</span></div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 col-4">
               <div class="info-row"><span class="info-label">Period / Term</span>
                 <span class="info-value">${qLabels[period]}</span></div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 col-4">
               <div class="info-row"><span class="info-label">Status</span>
                 <span class="info-value"><span class="badge bg-success">Enrolled</span></span></div>
             </div>
@@ -176,18 +182,36 @@ $userId = (int)$_SESSION['user_id'];
             </tfoot>
           </table>
         </div>
-        <div class="card-body-custom" style="border-top:1px solid #e2e8f0;font-size:.78rem;color:#64748b">
+        <div class="card-body-custom print-legend" style="border-top:1px solid #e2e8f0;font-size:.78rem;color:#64748b">
           <div class="row">
-            <div class="col-md-8">
+            <div class="col-8">
               <strong>Grade Description:</strong>
-              Outstanding (90-100) &nbsp;|&nbsp; Very Satisfactory (85-89) &nbsp;|&nbsp;
-              Satisfactory (80-84) &nbsp;|&nbsp; Fairly Satisfactory (75-79) &nbsp;|&nbsp;
+              Outstanding (90-100) &bull; Very Satisfactory (85-89) &bull;
+              Satisfactory (80-84) &bull; Fairly Satisfactory (75-79) &bull;
               Did Not Meet Expectations (Below 75)
             </div>
-            <div class="col-md-4 text-end">
-              <strong>Passing Grade:</strong> 75
+            <div class="col-4 text-end">
+              <strong>Passing Grade:</strong> 75.00
             </div>
           </div>
+        </div>
+      </div>
+      
+      <div class="print-signatures no-screen">
+        <div class="print-sig-box">
+          <div class="print-sig-line"></div>
+          <div class="print-sig-name">Class Adviser</div>
+          <div class="print-sig-role">Teacher Signature</div>
+        </div>
+        <div class="print-sig-box">
+          <div class="print-sig-line"></div>
+          <div class="print-sig-name">Parent / Guardian</div>
+          <div class="print-sig-role">Signature over Printed Name</div>
+        </div>
+        <div class="print-sig-box">
+          <div class="print-sig-line"></div>
+          <div class="print-sig-name">School Principal</div>
+          <div class="print-sig-role">Lubo National High School</div>
         </div>
       </div>`;
   }
