@@ -12,6 +12,7 @@ $userId = (int)$_SESSION['user_id'];
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link rel="stylesheet" href="../../assets/css/style.css?v=<?= filemtime(__DIR__ . "/../../assets/css/style.css") ?>"/>
+  <link rel="stylesheet" href="../../assets/css/sf9.css?v=<?= filemtime(__DIR__ . "/../../assets/css/sf9.css") ?>"/>
   <link rel="stylesheet" href="../../assets/css/print.css?v=<?= filemtime(__DIR__ . "/../../assets/css/print.css") ?>"/>
 </head>
 <body>
@@ -31,7 +32,7 @@ $userId = (int)$_SESSION['user_id'];
         </div>
       </div>
       <div class="topbar-right">
-        <button class="btn btn-success btn-sm" onclick="window.print()">
+        <button class="btn btn-success btn-sm" onclick="printSf9Official()">
           <i class="fas fa-print me-1"></i>Print Report Card
         </button>
       </div>
@@ -56,8 +57,8 @@ $userId = (int)$_SESSION['user_id'];
               </button>
             </div>
             <div class="col-md-4">
-              <button class="btn btn-success btn-sm w-100" onclick="window.print()">
-                <i class="fas fa-print me-1"></i>Print Report
+              <button class="btn btn-success btn-sm w-100" onclick="printSf9Official()">
+                <i class="fas fa-print me-1"></i>Print SF9 Report Card
               </button>
             </div>
           </div>
@@ -83,6 +84,7 @@ $userId = (int)$_SESSION['user_id'];
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../../assets/js/api-client.js"></script>
 <script src="../../assets/js/app.js"></script>
+<script src="../../assets/js/sf9-renderer.js?v=<?= filemtime(__DIR__ . "/../../assets/js/sf9-renderer.js") ?>"></script>
 <script>
   const SESSION_USER_ID = <?= $userId ?>;
   const qLabels = ['All Terms','1st Term','2nd Term','3rd Term'];
@@ -92,7 +94,7 @@ $userId = (int)$_SESSION['user_id'];
     document.getElementById('printReportTitle').textContent =
       `Official Report Card – ${qLabels[period]}`;
 
-    const params = new URLSearchParams({action:'student', quarter:period, student_id:SESSION_USER_ID});
+    const params = new URLSearchParams({action:'student', quarter:period, term:period, student_id:SESSION_USER_ID});
     try {
       const res  = await fetch('../../api/reports.php?' + params);
       const data = await res.json();
@@ -109,111 +111,9 @@ $userId = (int)$_SESSION['user_id'];
   }
 
   function renderReport(data, period) {
-    const student  = data.student  || {};
-    const subjects = data.subjects || [];
-    const genAvg   = data.general_average;
-    const date     = new Date().toLocaleDateString('en-PH',{dateStyle:'long'});
-
-    document.getElementById('reportContent').innerHTML = `
-      <div class="content-card mb-3">
-        <div class="card-header-custom"
-          style="background:#0f172a;border-radius:4px 4px 0 0">
-          <span class="card-title" style="color:#fff">Student Report Card</span>
-          <span style="color:rgba(255,255,255,.8);font-size:.8rem">Generated: ${date}</span>
-        </div>
-        <div class="card-body-custom">
-          <div class="row g-2">
-            <div class="col-md-4 col-4">
-              <div class="info-row"><span class="info-label">Full Name</span>
-                <span class="info-value fw-bold">${student.full_name||'—'}</span></div>
-            </div>
-            <div class="col-md-4 col-4">
-              <div class="info-row"><span class="info-label">LRN</span>
-                <span class="info-value"><code>${student.lrn||'—'}</code></span></div>
-            </div>
-            <div class="col-md-4 col-4">
-              <div class="info-row"><span class="info-label">Section</span>
-                <span class="info-value">${student.section_name||'—'}</span></div>
-            </div>
-            <div class="col-md-4 col-4">
-              <div class="info-row"><span class="info-label">School Year</span>
-                <span class="info-value">${data.school_year||'—'}</span></div>
-            </div>
-            <div class="col-md-4 col-4">
-              <div class="info-row"><span class="info-label">Period / Term</span>
-                <span class="info-value">${qLabels[period]}</span></div>
-            </div>
-            <div class="col-md-4 col-4">
-              <div class="info-row"><span class="info-label">Status</span>
-                <span class="info-value"><span class="badge bg-success">Enrolled</span></span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="content-card">
-        <div class="table-wrapper">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Subject</th>
-                <th class="text-center">1st Term</th>
-                <th class="text-center">2nd Term</th>
-                <th class="text-center">3rd Term</th>
-                <th class="text-center">Final Grade</th>
-                <th class="text-center">Remarks</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${subjects.map(r=>`<tr>
-                <td><strong>${r.name}</strong></td>
-                ${[1,2,3].map(q=>`<td class="text-center">
-                  ${r['q'+q]!=null?`<span style="font-weight:700;color:${gradeBgColor(r['q'+q])}">${r['q'+q]}</span>`:'—'}
-                </td>`).join('')}
-                <td class="text-center">${r.avg!=null?gradeCell(r.avg):'—'}</td>
-                <td class="text-center">${r.avg!=null?getGradeBadge(r.avg):'—'}</td>
-              </tr>`).join('')}
-            </tbody>
-            <tfoot>
-              <tr style="background:#f8fafc;font-weight:700">
-                <td colspan="4">General Average</td>
-                <td class="text-center">${genAvg?gradeCell(genAvg):'—'}</td>
-                <td class="text-center">${genAvg?getGradeBadge(genAvg):'—'}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-        <div class="card-body-custom print-legend" style="border-top:1px solid #e2e8f0;font-size:.78rem;color:#64748b">
-          <div class="row">
-            <div class="col-8">
-              <strong>Grade Description:</strong>
-              Outstanding (90-100) &bull; Very Satisfactory (85-89) &bull;
-              Satisfactory (80-84) &bull; Fairly Satisfactory (75-79) &bull;
-              Did Not Meet Expectations (Below 75)
-            </div>
-            <div class="col-4 text-end">
-              <strong>Passing Grade:</strong> 75.00
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="print-signatures no-screen">
-        <div class="print-sig-box">
-          <div class="print-sig-line"></div>
-          <div class="print-sig-name">Class Adviser</div>
-          <div class="print-sig-role">Teacher Signature</div>
-        </div>
-        <div class="print-sig-box">
-          <div class="print-sig-line"></div>
-          <div class="print-sig-name">Parent / Guardian</div>
-          <div class="print-sig-role">Signature over Printed Name</div>
-        </div>
-        <div class="print-sig-box">
-          <div class="print-sig-line"></div>
-          <div class="print-sig-name">School Principal</div>
-          <div class="print-sig-role">Lubo National High School</div>
-        </div>
-      </div>`;
+    document.getElementById('reportContent').innerHTML = renderSf9ReportCard(data, {
+      assetPrefix: '../../assets/images/'
+    });
   }
 
   document.addEventListener('DOMContentLoaded', generateReport);

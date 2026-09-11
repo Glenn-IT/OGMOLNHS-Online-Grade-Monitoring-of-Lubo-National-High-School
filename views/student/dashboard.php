@@ -229,7 +229,7 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
         }
       }
 
-      const termNames = {1:'1st Term', 2:'2nd Term', 3:'3rd Term', 4:'4th Term'};
+      const termNames = {1:'1st Term', 2:'2nd Term', 3:'3rd Term'};
       const quarterNums = grades.map(g => parseInt(g.quarter)).filter(q => q > 0);
       const latestTerm = quarterNums.length ? Math.max(...quarterNums) : 3;
       const termLabel = termNames[latestTerm] || `Term ${latestTerm}`;

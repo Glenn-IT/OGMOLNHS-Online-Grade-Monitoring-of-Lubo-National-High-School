@@ -215,13 +215,13 @@ $adminActivePage = 'manage-grades';
           <table class="table table-hover align-middle student-grid-table" id="classStudentTable">
             <thead>
               <tr>
-                <th style="min-width:180px">Learners Name</th>
+                <th style="min-width:180px">Learner's Name</th>
                 <th style="min-width:110px">LRN</th>
-                <th class="text-center" style="min-width:110px">1st Term</th>
-                <th class="text-center" style="min-width:110px">2nd Term</th>
-                <th class="text-center" style="min-width:110px">3rd Term</th>
-                <th class="text-center" style="min-width:100px">Final Grade</th>
-                <th class="text-center" style="min-width:100px">Remarks</th>
+                <th class="text-center" style="min-width:95px">1st Term</th>
+                <th class="text-center" style="min-width:95px">2nd Term</th>
+                <th class="text-center" style="min-width:95px">3rd Term</th>
+                <th class="text-center" style="min-width:95px">Final Grade</th>
+                <th class="text-center" style="min-width:95px">Remarks</th>
               </tr>
             </thead>
             <tbody id="classStudentTableBody">
@@ -496,7 +496,7 @@ $adminActivePage = 'manage-grades';
 
   async function loadClassStudentGrid() {
     const tbody = document.getElementById('classStudentTableBody');
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading student grades grid…</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading student grades grid…</td></tr>`;
 
     try {
       const url = `../../api/grades.php?action=list&subject_id=${currentClassSubject.id}&section_id=${currentClassSection.id}`;
@@ -513,9 +513,9 @@ $adminActivePage = 'manage-grades';
         return;
       }
 
-      // Build student -> quarter grade map
+      // Build student -> term grade map (3 Terms)
       const studentGradesMap = {};
-      students.forEach(s => { studentGradesMap[s.id] = { 1: null, 2: null, 3: null, 4: null }; });
+      students.forEach(s => { studentGradesMap[s.id] = { 1: null, 2: null, 3: null }; });
 
       gradeRows.forEach(g => {
         if (studentGradesMap[g.student_id]) {
@@ -528,7 +528,7 @@ $adminActivePage = 'manage-grades';
       tbody.innerHTML = students.map(stu => {
         const qMap = studentGradesMap[stu.id];
         
-        // Calculate average across terms for this subject
+        // Calculate average across 3 terms for this subject
         const termVals = [1, 2, 3].map(q => qMap[q] ? parseFloat(qMap[q].final_grade) : null).filter(v => v !== null);
         const subAvg = termVals.length ? (termVals.reduce((a,b)=>a+b,0)/termVals.length).toFixed(2) : null;
         if (subAvg !== null) classFinals.push(parseFloat(subAvg));
@@ -584,7 +584,7 @@ $adminActivePage = 'manage-grades';
 
     } catch(e) {
       console.error('Load grid error:', e);
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4"><i class="fas fa-exclamation-triangle me-2"></i>Error loading class student grid.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4"><i class="fas fa-exclamation-triangle me-2"></i>Error loading class student grid.</td></tr>`;
     }
   }
 
@@ -593,9 +593,10 @@ $adminActivePage = 'manage-grades';
     document.getElementById('editGradeSubjectId').value = subjectId;
     document.getElementById('editGradeQuarter').value   = quarter;
 
-    const termName = quarter == 1 ? '1st Term' : (quarter == 2 ? '2nd Term' : '3rd Term');
+    const termNames = { 1: '1st Quarter / Term', 2: '2nd Quarter / Term', 3: '3rd Quarter / Term', 4: '4th Quarter / Term' };
+    const termName = termNames[quarter] || `Quarter ${quarter}`;
     document.getElementById('editGradeTitle').innerHTML = `<i class="fas fa-edit me-2"></i>Grade Entry (${termName})`;
-    document.getElementById('editGradeStudentInfo').innerHTML = `<strong>Student:</strong> ${studentName} &nbsp;|&nbsp; <strong>Subject:</strong> ${esc(currentClassSubject.name)} &nbsp;|&nbsp; <strong>Term:</strong> ${termName}`;
+    document.getElementById('editGradeStudentInfo').innerHTML = `<strong>Student:</strong> ${studentName} &nbsp;|&nbsp; <strong>Subject:</strong> ${esc(currentClassSubject.name)} &nbsp;|&nbsp; <strong>Period:</strong> ${termName}`;
 
     document.getElementById('editWW').value = '';
     document.getElementById('editPT').value = '';
@@ -771,9 +772,9 @@ $adminActivePage = 'manage-grades';
         <th style="width:35px;text-align:center">#</th>
         <th>Learner Name</th>
         <th style="width:110px">LRN</th>
-        <th style="width:70px;text-align:center">1st Term</th>
-        <th style="width:70px;text-align:center">2nd Term</th>
-        <th style="width:70px;text-align:center">3rd Term</th>
+        <th style="width:75px;text-align:center">1st Term</th>
+        <th style="width:75px;text-align:center">2nd Term</th>
+        <th style="width:75px;text-align:center">3rd Term</th>
         <th style="width:80px;text-align:center">Final Grade</th>
         <th style="width:75px;text-align:center">Remarks</th>
       </tr>

@@ -1,0 +1,399 @@
+/* =========================================================
+   SF9 OFFICIAL DEPED REPORT CARD STYLES
+   Lubo National High School - Form 9 (JHS & SHS)
+   ========================================================= */
+
+@import url("https://fonts.googleapis.com/css2?family=Tinos:ital,wght@0,400;0,700;1,400;1,700&display=swap");
+
+:root {
+  --sf9-width: 11in;
+  --sf9-height: 8.5in;
+  --sf9-border: #000000;
+}
+
+/* Screen Wrapper */
+.sf9-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 10px auto 30px;
+  overflow-x: auto;
+  width: 100%;
+}
+
+/* The 11" x 8.5" Sheet */
+.sf9-sheet {
+  width: var(--sf9-width);
+  height: var(--sf9-height);
+  max-width: var(--sf9-width);
+  max-height: var(--sf9-height);
+  background: #ffffff;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e2e8f0;
+  padding: 0.22in 0.28in 0.18in 0.28in;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 0.38in;
+  position: relative;
+  font-family: "Tinos", "Times New Roman", Times, serif;
+  color: #000000;
+  line-height: 1.12;
+  font-size: 7.8pt;
+  page-break-after: avoid;
+  page-break-inside: avoid;
+  overflow: hidden;
+  text-align: left;
+}
+
+/* Folding center line */
+.sf9-sheet::before {
+  content: "";
+  position: absolute;
+  top: 0.2in;
+  bottom: 0.2in;
+  left: 50%;
+  width: 1px;
+  border-left: 1px dashed #cbd5e1;
+  pointer-events: none;
+}
+
+/* Left & Right Panels */
+.sf9-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: flex-start;
+  gap: 2px;
+}
+
+/* Header with Seals */
+.sf9-header-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2px;
+}
+.sf9-header-table td {
+  vertical-align: middle;
+  padding: 0;
+}
+.sf9-logo {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+.sf9-header-center {
+  text-align: center;
+  font-size: 7.6pt;
+  line-height: 1.15;
+}
+.sf9-dept {
+  font-size: 7.5pt;
+}
+.sf9-division {
+  font-weight: bold;
+  font-size: 7.8pt;
+  text-transform: uppercase;
+}
+.sf9-school {
+  font-weight: bold;
+  font-size: 9.2pt;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-top: 1px;
+}
+.sf9-sy {
+  text-align: center;
+  font-size: 8.2pt;
+  font-weight: bold;
+  margin: 2px 0 1px;
+}
+
+.sf9-title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 8.6pt;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+/* Learner Info Grid */
+.sf9-info-grid {
+  display: grid;
+  grid-template-columns: 2fr 0.8fr 0.8fr;
+  row-gap: 2px;
+  column-gap: 6px;
+  font-size: 7.8pt;
+  margin-bottom: 3px;
+}
+.sf9-info-item {
+  display: flex;
+  align-items: baseline;
+}
+.sf9-info-label {
+  font-weight: bold;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+.sf9-info-line {
+  border-bottom: 1px solid #000;
+  flex-grow: 1;
+  padding-left: 3px;
+  font-size: 7.8pt;
+  min-height: 11pt;
+  line-height: 11pt;
+}
+
+/* Dear Parents Message */
+.sf9-parents-msg {
+  font-size: 7.0pt;
+  line-height: 1.2;
+  text-align: justify;
+  margin-bottom: 3px;
+  padding: 0 1px;
+}
+.sf9-parents-msg strong {
+  display: inline;
+  margin-right: 2px;
+}
+
+/* Section Titles */
+.sf9-section-title {
+  font-weight: bold;
+  font-size: 7.8pt;
+  text-align: center;
+  text-transform: uppercase;
+  margin: 2px 0 2px;
+  letter-spacing: 0.2px;
+  background: #f8fafc;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+  padding: 1.5px 2px;
+}
+
+/* Learning Progress Table */
+.sf9-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--sf9-border);
+  font-size: 7.3pt;
+  margin-bottom: 4px;
+}
+.sf9-table th, 
+.sf9-table td {
+  border: 1px solid var(--sf9-border);
+  padding: 1.8px 3px;
+  vertical-align: middle;
+  height: 14.5px;
+}
+.sf9-table th {
+  font-weight: bold;
+  text-align: center;
+  background: #f8fafc;
+  font-size: 7.3pt;
+  padding: 2.5px 2px;
+}
+.sf9-table .group-row {
+  font-weight: bold;
+  background-color: #f1f5f9;
+  font-size: 7.3pt;
+  height: 15px;
+}
+.sf9-table .sub-row td.subj-name {
+  padding-left: 14px;
+  font-style: italic;
+}
+.sf9-table td.text-center {
+  text-align: center;
+}
+.sf9-table td.text-right {
+  text-align: right;
+}
+.sf9-table td.subj-name {
+  padding-left: 5px;
+  font-size: 7.1pt;
+  line-height: 1.12;
+}
+.sf9-table .gen-avg-row {
+  font-weight: bold;
+  background-color: #f8fafc;
+  font-size: 7.6pt;
+  height: 16px;
+}
+
+/* Performance Descriptors Table */
+.sf9-desc-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--sf9-border);
+  font-size: 7.0pt;
+  margin-top: 1px;
+}
+.sf9-desc-table th, 
+.sf9-desc-table td {
+  border: 1px solid var(--sf9-border);
+  padding: 1.5px 3px;
+  vertical-align: middle;
+  height: 13.5px;
+}
+.sf9-desc-table th {
+  font-weight: bold;
+  text-align: center;
+  background: #f8fafc;
+  font-size: 7.0pt;
+  padding: 2px 2px;
+}
+
+/* Attendance Table */
+.sf9-attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--sf9-border);
+  font-size: 7.1pt;
+  margin-bottom: 6px;
+}
+.sf9-attendance-table th, 
+.sf9-attendance-table td {
+  border: 1px solid var(--sf9-border);
+  padding: 2.2px 1.5px;
+  text-align: center;
+  vertical-align: middle;
+  height: 15.5px;
+}
+.sf9-attendance-table th {
+  font-weight: bold;
+  background: #f8fafc;
+  font-size: 7.1pt;
+}
+.sf9-attendance-table td.row-label {
+  text-align: left;
+  padding-left: 4px;
+  font-weight: bold;
+  font-size: 7.1pt;
+  white-space: nowrap;
+}
+
+/* Signatures Block */
+.sf9-signatures-block {
+  border: 1px solid var(--sf9-border);
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  font-size: 7.5pt;
+}
+.sf9-sig-row {
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 4.5px;
+}
+.sf9-sig-row:last-child {
+  margin-bottom: 0;
+}
+.sf9-sig-label {
+  width: 65px;
+  font-weight: bold;
+  font-size: 7.5pt;
+}
+.sf9-sig-line {
+  flex-grow: 1;
+  border-bottom: 1px solid #000;
+  height: 13px;
+}
+
+/* Certificate of Transfer */
+.sf9-transfer-cert {
+  border: 1px solid var(--sf9-border);
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  font-size: 7.4pt;
+  line-height: 1.3;
+}
+.sf9-transfer-cert p {
+  margin: 0 0 4px 0;
+  text-indent: 14px;
+  text-align: justify;
+}
+.sf9-transfer-field {
+  display: flex;
+  margin-bottom: 4px;
+}
+.sf9-transfer-field .t-line {
+  border-bottom: 1px solid #000;
+  flex-grow: 1;
+  padding-left: 4px;
+  font-weight: bold;
+  font-size: 7.4pt;
+}
+.sf9-transfer-signers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 15px;
+  margin-top: 14px;
+  text-align: center;
+}
+.sf9-signer-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sf9-signer-name {
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 8.0pt;
+  border-bottom: 1px solid #000;
+  width: 90%;
+  padding-bottom: 1px;
+}
+.sf9-signer-role {
+  font-size: 7.2pt;
+  margin-top: 1px;
+}
+
+/* Cancellation Block */
+.sf9-cancellation-cert {
+  border: 1px solid var(--sf9-border);
+  padding: 6px 10px;
+  font-size: 7.4pt;
+  margin-top: 2px;
+}
+.sf9-cancel-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  column-gap: 12px;
+  margin-bottom: 10px;
+}
+
+/* Print Rules */
+@media print {
+  body.printing-sf9 {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body.printing-sf9 .app-wrapper,
+  body.printing-sf9 .main-content,
+  body.printing-sf9 .page-content,
+  body.printing-sf9 .sf9-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+  body.printing-sf9 .sf9-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0.22in 0.28in 0.18in 0.28in !important;
+    transform: none !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  body.printing-sf9 .sf9-sheet::before {
+    display: none !important;
+  }
+}

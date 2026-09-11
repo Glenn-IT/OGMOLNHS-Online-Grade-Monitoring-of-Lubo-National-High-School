@@ -84,7 +84,7 @@ $studentActivePage = 'grades';
                 <th>Term</th>
                 <th>Written Works<br><small class="text-muted" style="font-weight:400">(20%)</small></th>
                 <th>Performance Tasks<br><small class="text-muted" style="font-weight:400">(50%)</small></th>
-                <th>Quarterly Exam<br><small class="text-muted" style="font-weight:400">(30%)</small></th>
+                <th>Term Exam<br><small class="text-muted" style="font-weight:400">(30%)</small></th>
                 <th>Final Grade</th>
                 <th>Remarks</th>
               </tr>
@@ -132,7 +132,7 @@ $studentActivePage = 'grades';
     if (q   !== 'all') rows = rows.filter(g => String(g.quarter) === q);
     if (sub !== 'all') rows = rows.filter(g => String(g.subject_id) === sub);
 
-    const termLabels = {1:'1st Term', 2:'2nd Term', 3:'3rd Term', 4:'4th Term'};
+    const termLabels = {1:'1st Term', 2:'2nd Term', 3:'3rd Term'};
     document.getElementById('recordCount').textContent = `${rows.length} record${rows.length!==1?'s':''}`;
 
     if (!rows.length) {

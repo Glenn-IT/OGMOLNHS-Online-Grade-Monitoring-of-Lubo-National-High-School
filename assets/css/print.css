@@ -349,4 +349,37 @@
     font-size: 7.5pt !important;
     color: #64748b !important;
   }
+
+  /* ── SF9 DepEd Official Report Card Print Styles ── */
+  body.printing-sf9 .app-wrapper,
+  body.printing-sf9 .main-content,
+  body.printing-sf9 .page-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+  }
+  
+  body.printing-sf9 .print-header {
+    display: none !important;
+  }
+  
+  body.printing-sf9 .sf9-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0.22in 0.28in 0.18in 0.28in !important;
+    transform: none !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  
+  body.printing-sf9 .sf9-sheet::before {
+    display: none !important;
+  }
 }
+
