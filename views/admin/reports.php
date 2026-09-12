@@ -396,7 +396,57 @@ $adminActivePage = 'reports';
     } catch(e) {
       console.error('Error fetching students:', e);
     }
-    generateReport();
+
+    // Read URL query parameters (e.g. from manage-grades.php or bookmarks)
+    const params = new URLSearchParams(window.location.search);
+    const typeParam = params.get('type') || params.get('reportType');
+    const studentParam = params.get('student_id') || params.get('id');
+    const termParam = params.get('quarter') ?? params.get('term') ?? params.get('period');
+    const autoPrint = params.get('print') === '1' || params.get('autoprint') === '1';
+
+    if (studentParam || typeParam === 'student') {
+      document.getElementById('reportType').value = 'student';
+    } else if (typeParam) {
+      document.getElementById('reportType').value = typeParam;
+    }
+
+    if (studentParam) {
+      const sel = document.getElementById('reportStudent');
+      if (sel) {
+        sel.value = studentParam;
+      }
+    }
+
+    if (termParam !== null && termParam !== undefined && termParam !== '') {
+      const termEl = document.getElementById('reportPeriod');
+      if (termEl) {
+        termEl.value = termParam;
+      }
+    }
+
+    // Update UI controls visibility and pre-fill signatories
+    const currentType = document.getElementById('reportType').value;
+    const isStudent = (currentType === 'student');
+    document.getElementById('studentSelectGroup').style.display = isStudent ? 'block' : 'none';
+    const sigGroup = document.getElementById('studentSignatoriesGroup');
+    if (sigGroup) sigGroup.style.display = isStudent ? 'flex' : 'none';
+
+    if (isStudent) {
+      const stuId = document.getElementById('reportStudent').value;
+      const stored = getStoredSignatories(stuId);
+      const advIn = document.getElementById('reportAdviser');
+      const headIn = document.getElementById('reportPrincipal');
+      if (advIn) advIn.value = stored.adviser;
+      if (headIn) headIn.value = stored.schoolHead;
+    }
+
+    await generateReport();
+
+    if (autoPrint) {
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);

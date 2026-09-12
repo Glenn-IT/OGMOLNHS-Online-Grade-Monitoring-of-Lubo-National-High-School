@@ -217,23 +217,39 @@ $adminActivePage = 'manage-grades';
               <tr>
                 <th style="min-width:180px">Learner's Name</th>
                 <th style="min-width:110px">LRN</th>
-                <th class="text-center" style="min-width:95px">1st Term</th>
-                <th class="text-center" style="min-width:95px">2nd Term</th>
-                <th class="text-center" style="min-width:95px">3rd Term</th>
-                <th class="text-center" style="min-width:95px">Final Grade</th>
-                <th class="text-center" style="min-width:95px">Remarks</th>
+                <th class="text-center" style="min-width:90px">1st Term</th>
+                <th class="text-center" style="min-width:90px">2nd Term</th>
+                <th class="text-center" style="min-width:90px">3rd Term</th>
+                <th class="text-center" style="min-width:90px">Final Grade</th>
+                <th class="text-center" style="min-width:90px">Remarks</th>
+                <th class="text-center" style="min-width:135px">Print Grade Sheet</th>
               </tr>
             </thead>
             <tbody id="classStudentTableBody">
-              <tr><td colspan="7" class="text-center py-4 text-muted">Loading students…</td></tr>
+              <tr><td colspan="8" class="text-center py-4 text-muted">Loading students…</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <div class="modal-footer bg-light">
-        <button class="btn btn-success btn-sm" onclick="printSectionGrades()"><i class="fas fa-print me-1"></i>Print Grade Sheet</button>
-        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      <div class="modal-footer bg-light justify-content-between flex-wrap gap-2">
+        <div>
+          <button class="btn btn-outline-success btn-sm" onclick="printSectionGrades()" title="Print Section Class Summary Grade Sheet">
+            <i class="fas fa-table me-1"></i>Print Section Grade Sheet
+          </button>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <div class="input-group input-group-sm" style="width: auto;">
+            <span class="input-group-text bg-white"><i class="fas fa-user-graduate text-primary"></i></span>
+            <select id="modalQuickStudentSelect" class="form-select form-select-sm" style="max-width: 230px;" onchange="onModalStudentSelected(this.value)">
+              <option value="">Select Student to Print…</option>
+            </select>
+            <button class="btn btn-primary btn-sm text-nowrap" type="button" onclick="printSelectedStudentGradeSheet()" title="Print Individual Student SF9 Report Card">
+              <i class="fas fa-print me-1"></i>Print Grade Sheet
+            </button>
+          </div>
+          <button class="btn btn-secondary btn-sm ms-2" data-bs-dismiss="modal">Close</button>
+        </div>
       </div>
 
     </div>
@@ -279,9 +295,14 @@ $adminActivePage = 'manage-grades';
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn btn-primary btn-sm" onclick="saveTermGrade()"><i class="fas fa-save me-1"></i>Save Grade</button>
+      <div class="modal-footer justify-content-between">
+        <button class="btn btn-outline-primary btn-sm" type="button" onclick="printCurrentModalStudentReport()" title="View and print this student's full SF9 report card">
+          <i class="fas fa-print me-1"></i>Print Grade Sheet
+        </button>
+        <div>
+          <button class="btn btn-secondary btn-sm me-1" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="saveTermGrade()"><i class="fas fa-save me-1"></i>Save Grade</button>
+        </div>
       </div>
     </div>
   </div>
@@ -296,6 +317,7 @@ $adminActivePage = 'manage-grades';
   let allSections = [], allSubjects = [], allStudents = [], allGrades = [];
   let currentClassSubject = null, currentClassSection = null;
   let sectionStudentsMap = {}; // { sectionId: [student, ...] }
+  let activeGridStudentId = null;
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   async function init() {
@@ -483,10 +505,19 @@ $adminActivePage = 'manage-grades';
     currentClassSection = allSections.find(s => s.id == sectionId);
     if (!currentClassSubject || !currentClassSection) return;
 
+    activeGridStudentId = null;
     const modalTitle = document.getElementById('classModalTitle');
     const modalMeta  = document.getElementById('classModalMeta');
     modalTitle.innerHTML = `<i class="fas fa-book-open me-2 text-warning"></i>${esc(currentClassSubject.name)} <span class="badge bg-primary-subtle text-primary" style="font-size:.75rem">${esc(currentClassSubject.code||'')}</span>`;
     modalMeta.textContent = `Grade ${currentClassSection.grade_level} - Section ${currentClassSection.name}`;
+
+    // Populate quick student print dropdown
+    const quickSel = document.getElementById('modalQuickStudentSelect');
+    if (quickSel) {
+      const sectionStudents = sectionStudentsMap[currentClassSection.id] || [];
+      quickSel.innerHTML = '<option value="">Select Student to Print…</option>' + 
+        sectionStudents.map(s => `<option value="${s.id}">${esc(s.full_name)}</option>`).join('');
+    }
 
     const modal = new bootstrap.Modal(document.getElementById('classGradesModal'));
     modal.show();
@@ -508,7 +539,7 @@ $adminActivePage = 'manage-grades';
       const students = sectionStudentsMap[currentClassSection.id] || [];
 
       if (!students.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted"><i class="fas fa-user-slash me-2"></i>No students enrolled in Section ${esc(currentClassSection.name)}.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted"><i class="fas fa-user-slash me-2"></i>No students enrolled in Section ${esc(currentClassSection.name)}.</td></tr>`;
         document.getElementById('classModalStats').innerHTML = `<span>Total Students: <strong>0</strong></span>`;
         return;
       }
@@ -563,8 +594,10 @@ $adminActivePage = 'manage-grades';
           }
         }).join('');
 
+        const isSelected = activeGridStudentId && activeGridStudentId == stu.id;
+
         return `
-          <tr>
+          <tr data-student-id="${stu.id}" class="${isSelected ? 'table-primary' : ''}" onclick="selectGridStudent(${stu.id}, this)" style="cursor:pointer">
             <td>
               <div class="fw-semibold text-dark">${esc(stu.full_name)}</div>
             </td>
@@ -572,6 +605,11 @@ $adminActivePage = 'manage-grades';
             ${termCellsHtml}
             <td class="text-center"><strong class="${subAvg >= 75 ? 'text-success':'text-danger'}">${subAvg || '—'}</strong></td>
             <td class="text-center">${subRemarks}</td>
+            <td class="text-center" onclick="event.stopPropagation()">
+              <button class="btn btn-sm btn-primary py-1 px-2 text-nowrap" onclick="openStudentReportCard(${stu.id})" title="Print Individual SF9 Grade Sheet for ${escAttr(stu.full_name)}">
+                <i class="fas fa-print me-1"></i>Print Grade Sheet
+              </button>
+            </td>
           </tr>`;
       }).join('');
 
@@ -694,6 +732,56 @@ $adminActivePage = 'manage-grades';
     } catch(e) { showToast('Server error.', 'error'); }
   }
 
+  // ── Student Selection & Report Navigation ────────────────────────────────
+  function selectGridStudent(stuId, rowEl) {
+    activeGridStudentId = stuId;
+    const sel = document.getElementById('modalQuickStudentSelect');
+    if (sel) sel.value = stuId;
+    const rows = document.querySelectorAll('#classStudentTableBody tr');
+    rows.forEach(r => r.classList.remove('table-primary'));
+    if (rowEl) rowEl.classList.add('table-primary');
+  }
+
+  function onModalStudentSelected(stuId) {
+    activeGridStudentId = stuId ? parseInt(stuId) : null;
+    const rows = document.querySelectorAll('#classStudentTableBody tr');
+    rows.forEach(r => {
+      r.classList.remove('table-primary');
+      if (stuId && r.getAttribute('data-student-id') == stuId) {
+        r.classList.add('table-primary');
+        r.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
+
+  function openStudentReportCard(studentId) {
+    if (!studentId) {
+      showToast('No student selected.', 'warning');
+      return;
+    }
+    window.open(`reports.php?type=student&student_id=${studentId}`, '_blank');
+  }
+
+  function printSelectedStudentGradeSheet() {
+    const sel = document.getElementById('modalQuickStudentSelect');
+    const stuId = (sel && sel.value) ? sel.value : activeGridStudentId;
+    if (!stuId) {
+      showToast('Please select a student to print their individual grade sheet.', 'info');
+      if (sel) sel.focus();
+      return;
+    }
+    openStudentReportCard(stuId);
+  }
+
+  function printCurrentModalStudentReport() {
+    const stuId = document.getElementById('editGradeStudentId')?.value;
+    if (!stuId) {
+      showToast('No student currently opened.', 'warning');
+      return;
+    }
+    openStudentReportCard(stuId);
+  }
+
   function printSectionGrades() {
     if (!currentClassSubject || !currentClassSection) {
       showToast('No section or subject selected to print.', 'warning');
@@ -736,11 +824,11 @@ $adminActivePage = 'manage-grades';
     @page { size: portrait; margin: 12mm 12mm 15mm 12mm; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; margin: 0; padding: 10px; font-size: 10pt; }
-    .header { display: flex; align-items: center; gap: 15px; border-bottom: 2.5px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px; }
-    .logo { width: 52px; height: 52px; min-width: 52px; border: 2.5px solid #1e3a8a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #1e3a8a; font-weight: bold; background: #eff6ff; }
+    .header { display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 2.5px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px; }
+    .logo { width: 62px; height: 62px; min-width: 62px; display: flex; align-items: center; justify-content: center; }
     .dept { font-size: 8pt; text-transform: uppercase; color: #64748b; margin: 0; letter-spacing: 0.05em; }
-    h2 { margin: 2px 0; font-size: 14pt; color: #0f172a; font-weight: 700; }
-    p { margin: 0; font-size: 9pt; color: #475569; }
+    h2 { margin: 2px 0; font-size: 13pt; color: #0f172a; font-weight: 700; }
+    p { margin: 0; font-size: 8.5pt; color: #475569; }
     .meta-box { display: flex; justify-content: space-between; background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px; margin-bottom: 15px; font-size: 9pt; }
     table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 15px; }
     th, td { border: 1px solid #cbd5e1; padding: 5px 8px; vertical-align: middle; }
@@ -754,12 +842,14 @@ $adminActivePage = 'manage-grades';
 </head>
 <body>
   <div class="header">
-    <div class="logo">&#127891;</div>
-    <div>
-      <p class="dept">Republic of the Philippines &bull; Department of Education &bull; Region II</p>
+    <div class="logo"><img src="../../assets/images/deped_logo.png" alt="DepEd Seal" style="width:60px;height:60px;object-fit:contain;"/></div>
+    <div style="flex:1;text-align:center;">
+      <p class="dept">Republic of the Philippines &bull; Department of Education &bull; Region II &bull; Schools Division of Cagayan</p>
       <h2>LUBO NATIONAL HIGH SCHOOL</h2>
       <p>Lubo, Sto. Niño, Cagayan &nbsp;|&nbsp; Online Grade Monitoring System</p>
+      <div style="font-weight:700;font-size:10pt;color:#1e3a8a;margin-top:2px;">SECTION GRADE SHEET SUMMARY</div>
     </div>
+    <div class="logo"><img src="../../assets/images/lubo_logo.png" alt="Lubo NHS Logo" style="width:60px;height:60px;object-fit:contain;"/></div>
   </div>
   <div class="meta-box">
     <div><strong>Subject:</strong> ${esc(currentClassSubject.name)} (${esc(currentClassSubject.code||'—')})</div>
