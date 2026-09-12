@@ -495,6 +495,7 @@ Record every modification, refactoring, and feature addition in this section.
 | **2026-09-12** | Antigravity AI | `SYSTEM-MEMORY.md`, `docs/SYSTEM-MEMORY.md` | Feature: Created master system memory and cross-system synchronization matrix | Yes: Mapped all files, functions, APIs, tables, and dependencies. |
 | **2026-09-12** | Antigravity AI | `assets/css/sf9.css`, `assets/js/sf9-renderer.js`, `api/reports.php` | Fix: Resolved SF9 individual report card table layout distortion (conflicting `.grade-cell` badge styling), added dash (`'—'`) fallback for missing grades, added live recalculation for inline editing matching `test-page/` | Yes: JHS, SHS, MAPEH breakdown, printable report cards, and API response synchronized. |
 | **2026-09-12** | Antigravity AI | `assets/js/sf9-renderer.js`, `views/admin/reports.php` | Feature: Attendance Record defaults to `'-'`, added Class Adviser & School Principal textboxes with two-way real-time live sync and student localStorage memory | Yes: SF9 attendance cells, printable signatures, and Admin Reports toolbar synchronized. |
+| **2026-09-12** | Antigravity AI | `api/reports.php`, `assets/js/sf9-renderer.js`, `views/admin/reports.php`, `views/student/reports.php`, `assets/css/sf9.css` | Fix: Enabled Grading Term filtering for individual student reports; 1st Term now only displays Term 1 grades while 2nd/3rd terms show as `'—'`, with synchronized term averages and visual active-column highlighting | Yes: API quarter param, SF9 renderer, admin & student report views, and print CSS synchronized. |
 
 ---
 

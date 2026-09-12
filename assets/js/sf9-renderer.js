@@ -35,6 +35,11 @@ function renderSf9ReportCard(data, options = {}) {
   const depedLogo = `${assetPrefix}deped_logo.png`;
   const luboLogo = `${assetPrefix}lubo_logo.png`;
 
+  const selectedPeriod = parseInt(options.period ?? data.selected_term ?? 0);
+  const periodBadge = selectedPeriod > 0 
+    ? `Term ${selectedPeriod} Progress` 
+    : 'All Terms';
+
   // Helper to safely format a grade value: returns rounded integer or '—'
   const fmtG = val => (val !== null && val !== undefined && val !== '' && !isNaN(Number(val))) ? Math.round(Number(val)) : '—';
 
@@ -45,9 +50,19 @@ function renderSf9ReportCard(data, options = {}) {
   if (isJhs) {
     // Map subjects for JHS
     subjects.forEach(sub => {
-      const q1 = fmtG(sub.q1 ?? sub.term1);
-      const q2 = fmtG(sub.q2 ?? sub.term2);
-      const q3 = fmtG(sub.q3 ?? sub.term3);
+      let rawQ1 = sub.q1 ?? sub.term1;
+      let rawQ2 = sub.q2 ?? sub.term2;
+      let rawQ3 = sub.q3 ?? sub.term3;
+
+      if (selectedPeriod > 0) {
+        if (selectedPeriod < 1) rawQ1 = null;
+        if (selectedPeriod < 2) rawQ2 = null;
+        if (selectedPeriod < 3) rawQ3 = null;
+      }
+
+      const q1 = fmtG(rawQ1);
+      const q2 = fmtG(rawQ2);
+      const q3 = fmtG(rawQ3);
 
       // Compute final grade from valid numbers
       const validTerms = [q1, q2, q3].filter(v => typeof v === 'number');
@@ -123,9 +138,19 @@ function renderSf9ReportCard(data, options = {}) {
       if (grp.list.length > 0) {
         subjectRowsHtml += `<tr class="group-row"><td colspan="6">${grp.name}</td></tr>`;
         grp.list.forEach(sub => {
-          const q1 = fmtG(sub.q1 ?? sub.term1);
-          const q2 = fmtG(sub.q2 ?? sub.term2);
-          const q3 = fmtG(sub.q3 ?? sub.term3);
+          let rawQ1 = sub.q1 ?? sub.term1;
+          let rawQ2 = sub.q2 ?? sub.term2;
+          let rawQ3 = sub.q3 ?? sub.term3;
+
+          if (selectedPeriod > 0) {
+            if (selectedPeriod < 1) rawQ1 = null;
+            if (selectedPeriod < 2) rawQ2 = null;
+            if (selectedPeriod < 3) rawQ3 = null;
+          }
+
+          const q1 = fmtG(rawQ1);
+          const q2 = fmtG(rawQ2);
+          const q3 = fmtG(rawQ3);
 
           const validTerms = [q1, q2, q3].filter(v => typeof v === 'number');
           let finalG = '—';
@@ -156,11 +181,18 @@ function renderSf9ReportCard(data, options = {}) {
 
   const trackTitle = isJhs ? 'Curriculum:' : 'Track / Strand:';
 
+  const finalGenAvg = (allFinals.length > 0)
+    ? (allFinals.reduce((a, b) => a + b, 0) / allFinals.length).toFixed(2)
+    : genAvg;
+  const finalGenRemark = (finalGenAvg !== '—')
+    ? (parseFloat(finalGenAvg) >= 75 ? 'Passed' : 'Failed')
+    : '—';
+
   return `
     <!-- SF9 Action Controls (Screen Only) -->
     <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded no-print" style="background:#0f172a;color:#fff">
       <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-primary px-2 py-1"><i class="fas fa-file-alt me-1"></i>Official DepEd SF9</span>
+        <span class="badge bg-primary px-2 py-1"><i class="fas fa-file-alt me-1"></i>Official DepEd SF9 &bull; ${periodBadge}</span>
         <span class="small text-white-50">US Letter Landscape (11" &times; 8.5")</span>
       </div>
       <div class="d-flex align-items-center gap-2">
@@ -262,17 +294,17 @@ function renderSf9ReportCard(data, options = {}) {
                 <th rowspan="2" style="width: 13%;">Remarks</th>
               </tr>
               <tr>
-                <th style="width: 8.6%;">1</th>
-                <th style="width: 8.6%;">2</th>
-                <th style="width: 8.6%;">3</th>
+                <th style="width: 8.6%;" class="${selectedPeriod === 1 ? 'selected-term-header' : ''}">1</th>
+                <th style="width: 8.6%;" class="${selectedPeriod === 2 ? 'selected-term-header' : ''}">2</th>
+                <th style="width: 8.6%;" class="${selectedPeriod === 3 ? 'selected-term-header' : ''}">3</th>
               </tr>
             </thead>
             <tbody>
               ${subjectRowsHtml}
               <tr class="gen-avg-row">
                 <td colspan="4" class="text-right fw-bold" style="padding-right: 8px;">General Average</td>
-                <td class="text-center fw-bold">${genAvg}</td>
-                <td class="text-center fw-bold" style="color:${genRemark==='Failed'?'#dc2626':'#000000'}">${genRemark}</td>
+                <td class="text-center fw-bold" id="sf9GenAvgVal">${finalGenAvg}</td>
+                <td class="text-center fw-bold" id="sf9GenAvgRemark" style="color:${finalGenRemark==='Failed'?'#dc2626':'#000000'}">${finalGenRemark}</td>
               </tr>
             </tbody>
           </table>

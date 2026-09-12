@@ -113,7 +113,8 @@ $userId = (int)$_SESSION['user_id'];
 
   function renderReport(data, period) {
     document.getElementById('reportContent').innerHTML = renderSf9ReportCard(data, {
-      assetPrefix: '../../assets/images/'
+      assetPrefix: '../../assets/images/',
+      period: parseInt(period)
     });
   }
 

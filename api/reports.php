@@ -154,10 +154,24 @@ if ($action === 'student') {
     $allFinals     = [];
     foreach ($subjects as $sub) {
         $sid   = (int)$sub['id'];
-        $t1    = $gradeMap[$sid][1] ?? null;
-        $t2    = $gradeMap[$sid][2] ?? null;
-        $t3    = $gradeMap[$sid][3] ?? null;
-        $t4    = $gradeMap[$sid][4] ?? null;
+        $raw1  = $gradeMap[$sid][1] ?? null;
+        $raw2  = $gradeMap[$sid][2] ?? null;
+        $raw3  = $gradeMap[$sid][3] ?? null;
+        $raw4  = $gradeMap[$sid][4] ?? null;
+
+        // When a specific grading term is selected ($quarter > 0), only display grades up to that term
+        if ($quarter > 0) {
+            $t1 = ($quarter >= 1) ? $raw1 : null;
+            $t2 = ($quarter >= 2) ? $raw2 : null;
+            $t3 = ($quarter >= 3) ? $raw3 : null;
+            $t4 = ($quarter >= 4) ? $raw4 : null;
+        } else {
+            $t1 = $raw1;
+            $t2 = $raw2;
+            $t3 = $raw3;
+            $t4 = $raw4;
+        }
+
         $tVals = array_values(array_filter([$t1, $t2, $t3, $t4], fn($v) => $v !== null));
         $subAvg = count($tVals) ? round(array_sum($tVals) / count($tVals), 2) : null;
 
@@ -207,6 +221,7 @@ if ($action === 'student') {
             'next_grade'      => $nextGrade,
             'adviser_name'    => 'JOSEPH M. BATUYONG',
             'school_head'     => 'MARLON C. VALIENTES',
+            'selected_term'   => $quarter,
         ],
     ]);
 }

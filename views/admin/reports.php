@@ -348,7 +348,8 @@ $adminActivePage = 'reports';
       document.getElementById('reportContent').innerHTML = renderSf9ReportCard(data, {
         assetPrefix: '../../assets/images/',
         adviser: advInput ? advInput.value.trim() : undefined,
-        schoolHead: prinInput ? prinInput.value.trim() : undefined
+        schoolHead: prinInput ? prinInput.value.trim() : undefined,
+        period: parseInt(period)
       });
 
       // Synchronize in case user uses inline "Edit Sheet" directly on the printable card

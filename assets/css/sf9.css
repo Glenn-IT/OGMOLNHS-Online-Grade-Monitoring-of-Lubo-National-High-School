@@ -197,6 +197,10 @@
   font-size: 7.3pt;
   padding: 2.5px 2px;
 }
+.sf9-table th.selected-term-header {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+}
 .sf9-table .group-row {
   font-weight: bold;
   background-color: #f1f5f9;
