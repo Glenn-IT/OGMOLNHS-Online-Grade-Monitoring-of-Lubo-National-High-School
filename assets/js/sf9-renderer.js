@@ -23,33 +23,51 @@ function renderSf9ReportCard(data, options = {}) {
   const sy = data.school_year || '2026 - 2027';
   const curriculum = data.curriculum || (isJhs ? 'Junior High School (K to 12 Basic Education Curriculum)' : 'Senior High School (TVL - ICT / Academic Track)');
   const nextGrade = data.next_grade || (isJhs ? `Grade ${gradeLevel + 1}` : 'Graduated / Higher Education (Tertiary)');
-  const adviser = data.adviser_name || 'JOSEPH M. BATUYONG';
-  const schoolHead = data.school_head || 'MARLON C. VALIENTES';
+  const adviser = escapeHtml(options.adviser !== undefined && options.adviser !== null && options.adviser !== ''
+    ? options.adviser 
+    : (data.adviser_name || 'JOSEPH M. BATUYONG'));
+  const schoolHead = escapeHtml(options.schoolHead !== undefined && options.schoolHead !== null && options.schoolHead !== ''
+    ? options.schoolHead 
+    : (data.school_head || 'MARLON C. VALIENTES'));
 
   // Determine root path for images
   const assetPrefix = options.assetPrefix || '../../assets/images/';
   const depedLogo = `${assetPrefix}deped_logo.png`;
   const luboLogo = `${assetPrefix}lubo_logo.png`;
 
+  // Helper to safely format a grade value: returns rounded integer or '—'
+  const fmtG = val => (val !== null && val !== undefined && val !== '' && !isNaN(Number(val))) ? Math.round(Number(val)) : '—';
+
   // Build subject rows
   let subjectRowsHtml = '';
+  const allFinals = [];
 
   if (isJhs) {
     // Map subjects for JHS
     subjects.forEach(sub => {
-      const q1 = sub.q1 !== null && sub.q1 !== undefined ? Math.round(sub.q1) : '—';
-      const q2 = sub.q2 !== null && sub.q2 !== undefined ? Math.round(sub.q2) : '—';
-      const q3 = sub.q3 !== null && sub.q3 !== undefined ? Math.round(sub.q3) : '—';
-      const finalG = sub.avg !== null && sub.avg !== undefined ? Math.round(sub.avg) : '—';
-      const remark = finalG !== '—' ? (finalG >= 75 ? 'Passed' : 'Failed') : '—';
-      const remarkColor = remark === 'Failed' ? '#dc2626' : '#000000';
+      const q1 = fmtG(sub.q1 ?? sub.term1);
+      const q2 = fmtG(sub.q2 ?? sub.term2);
+      const q3 = fmtG(sub.q3 ?? sub.term3);
+
+      // Compute final grade from valid numbers
+      const validTerms = [q1, q2, q3].filter(v => typeof v === 'number');
+      let finalG = '—';
+      let remark = '—';
+      let remarkColor = '#000000';
+
+      if (validTerms.length > 0) {
+        finalG = Math.round(validTerms.reduce((a, b) => a + b, 0) / validTerms.length);
+        remark = finalG >= 75 ? 'Passed' : 'Failed';
+        remarkColor = remark === 'Failed' ? '#dc2626' : '#000000';
+        allFinals.push(finalG);
+      }
 
       subjectRowsHtml += `
         <tr data-subject="${escapeHtml(sub.name)}">
           <td class="subj-name">${escapeHtml(sub.name)}</td>
-          <td class="text-center grade-cell" contenteditable="false">${q1}</td>
-          <td class="text-center grade-cell" contenteditable="false">${q2}</td>
-          <td class="text-center grade-cell" contenteditable="false">${q3}</td>
+          <td class="text-center sf9-grade-cell" contenteditable="false">${q1}</td>
+          <td class="text-center sf9-grade-cell" contenteditable="false">${q2}</td>
+          <td class="text-center sf9-grade-cell" contenteditable="false">${q3}</td>
           <td class="text-center final-cell fw-bold">${finalG}</td>
           <td class="text-center remark-cell" style="color:${remarkColor}">${remark}</td>
         </tr>
@@ -64,14 +82,19 @@ function renderSf9ReportCard(data, options = {}) {
           { name: 'Health', grades: [q1, q2, q3] }
         ];
         mapehSubs.forEach(m => {
+          const subValid = m.grades.filter(v => typeof v === 'number');
+          const subFinal = subValid.length > 0 ? Math.round(subValid.reduce((a, b) => a + b, 0) / subValid.length) : '—';
+          const subRemark = subFinal !== '—' ? (subFinal >= 75 ? 'Passed' : 'Failed') : '—';
+          const subRemarkColor = subRemark === 'Failed' ? '#dc2626' : '#000000';
+
           subjectRowsHtml += `
             <tr class="sub-row" data-subject="${m.name}">
               <td class="subj-name">${m.name}</td>
-              <td class="text-center grade-cell" contenteditable="false">${m.grades[0]}</td>
-              <td class="text-center grade-cell" contenteditable="false">${m.grades[1]}</td>
-              <td class="text-center grade-cell" contenteditable="false">${m.grades[2]}</td>
-              <td class="text-center final-cell fw-bold">${finalG}</td>
-              <td class="text-center remark-cell" style="color:${remarkColor}">${remark}</td>
+              <td class="text-center sf9-grade-cell" contenteditable="false">${m.grades[0]}</td>
+              <td class="text-center sf9-grade-cell" contenteditable="false">${m.grades[1]}</td>
+              <td class="text-center sf9-grade-cell" contenteditable="false">${m.grades[2]}</td>
+              <td class="text-center final-cell fw-bold">${subFinal}</td>
+              <td class="text-center remark-cell" style="color:${subRemarkColor}">${subRemark}</td>
             </tr>
           `;
         });
@@ -100,19 +123,28 @@ function renderSf9ReportCard(data, options = {}) {
       if (grp.list.length > 0) {
         subjectRowsHtml += `<tr class="group-row"><td colspan="6">${grp.name}</td></tr>`;
         grp.list.forEach(sub => {
-          const q1 = sub.q1 !== null && sub.q1 !== undefined ? Math.round(sub.q1) : '—';
-          const q2 = sub.q2 !== null && sub.q2 !== undefined ? Math.round(sub.q2) : '—';
-          const q3 = sub.q3 !== null && sub.q3 !== undefined ? Math.round(sub.q3) : '—';
-          const finalG = sub.avg !== null && sub.avg !== undefined ? Math.round(sub.avg) : '—';
-          const remark = finalG !== '—' ? (finalG >= 75 ? 'Passed' : 'Failed') : '—';
-          const remarkColor = remark === 'Failed' ? '#dc2626' : '#000000';
+          const q1 = fmtG(sub.q1 ?? sub.term1);
+          const q2 = fmtG(sub.q2 ?? sub.term2);
+          const q3 = fmtG(sub.q3 ?? sub.term3);
+
+          const validTerms = [q1, q2, q3].filter(v => typeof v === 'number');
+          let finalG = '—';
+          let remark = '—';
+          let remarkColor = '#000000';
+
+          if (validTerms.length > 0) {
+            finalG = Math.round(validTerms.reduce((a, b) => a + b, 0) / validTerms.length);
+            remark = finalG >= 75 ? 'Passed' : 'Failed';
+            remarkColor = remark === 'Failed' ? '#dc2626' : '#000000';
+            allFinals.push(finalG);
+          }
 
           subjectRowsHtml += `
             <tr data-subject="${escapeHtml(sub.name)}">
               <td class="subj-name">${escapeHtml(sub.name)}</td>
-              <td class="text-center grade-cell" contenteditable="false">${q1}</td>
-              <td class="text-center grade-cell" contenteditable="false">${q2}</td>
-              <td class="text-center grade-cell" contenteditable="false">${q3}</td>
+              <td class="text-center sf9-grade-cell" contenteditable="false">${q1}</td>
+              <td class="text-center sf9-grade-cell" contenteditable="false">${q2}</td>
+              <td class="text-center sf9-grade-cell" contenteditable="false">${q3}</td>
               <td class="text-center final-cell fw-bold">${finalG}</td>
               <td class="text-center remark-cell" style="color:${remarkColor}">${remark}</td>
             </tr>
@@ -316,45 +348,45 @@ function renderSf9ReportCard(data, options = {}) {
             <tbody>
               <tr>
                 <td class="row-label">No. of Class Days</td>
-                <td contenteditable="false">21</td>
-                <td contenteditable="false">21</td>
-                <td contenteditable="false">22</td>
-                <td contenteditable="false">20</td>
-                <td contenteditable="false">15</td>
-                <td contenteditable="false">21</td>
-                <td contenteditable="false">19</td>
-                <td contenteditable="false">21</td>
-                <td contenteditable="false">18</td>
-                <td contenteditable="false">22</td>
-                <td class="fw-bold">200</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td class="fw-bold">-</td>
               </tr>
               <tr>
                 <td class="row-label">No. of Days Present</td>
-                <td contenteditable="false">21</td>
-                <td contenteditable="false">20</td>
-                <td contenteditable="false">22</td>
-                <td contenteditable="false">19</td>
-                <td contenteditable="false">15</td>
-                <td contenteditable="false">21</td>
-                <td contenteditable="false">19</td>
-                <td contenteditable="false">20</td>
-                <td contenteditable="false">18</td>
-                <td contenteditable="false">22</td>
-                <td class="fw-bold">197</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td class="fw-bold">-</td>
               </tr>
               <tr>
                 <td class="row-label">No. of Days Absent</td>
-                <td contenteditable="false">0</td>
-                <td contenteditable="false">1</td>
-                <td contenteditable="false">0</td>
-                <td contenteditable="false">1</td>
-                <td contenteditable="false">0</td>
-                <td contenteditable="false">0</td>
-                <td contenteditable="false">0</td>
-                <td contenteditable="false">1</td>
-                <td contenteditable="false">0</td>
-                <td contenteditable="false">0</td>
-                <td class="fw-bold">3</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td contenteditable="false">-</td>
+                <td class="fw-bold">-</td>
               </tr>
             </tbody>
           </table>
@@ -394,12 +426,12 @@ function renderSf9ReportCard(data, options = {}) {
             <div class="sf9-transfer-signers">
               <div class="sf9-signer-box">
                 <span class="text-muted small" style="font-size: 7.0pt; margin-bottom: 12px;">Approved by:</span>
-                <div class="sf9-signer-name" contenteditable="false">${schoolHead}</div>
+                <div class="sf9-signer-name" id="sf9SchoolHeadName" contenteditable="false">${schoolHead}</div>
                 <div class="sf9-signer-role">School Head / Principal</div>
               </div>
               <div class="sf9-signer-box">
                 <span class="text-muted small" style="font-size: 7.0pt; margin-bottom: 12px;">Prepared by:</span>
-                <div class="sf9-signer-name" contenteditable="false">${adviser}</div>
+                <div class="sf9-signer-name" id="sf9AdviserName" contenteditable="false">${adviser}</div>
                 <div class="sf9-signer-role">Class Adviser</div>
               </div>
             </div>
@@ -451,11 +483,105 @@ function printSf9Official() {
   window.print();
 }
 
-window.addEventListener('afterprint', () => {
-  document.body.classList.remove('printing-sf9');
-  const styleTag = document.getElementById('sf9-print-page-override');
-  if (styleTag) styleTag.remove();
-});
+if (typeof window !== 'undefined') {
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('printing-sf9');
+    const styleTag = document.getElementById('sf9-print-page-override');
+    if (styleTag) styleTag.remove();
+  });
+}
+
+function recalculateSf9Sheet() {
+  const container = document.getElementById('sf9PrintContainer');
+  if (!container) return;
+  const rows = container.querySelectorAll('#sf9GradesTable tbody tr[data-subject]');
+  const allFinals = [];
+
+  rows.forEach(r => {
+    const isSubRow = r.classList.contains('sub-row');
+    const cells = r.querySelectorAll('.sf9-grade-cell');
+    const vals = [];
+    cells.forEach(c => {
+      const txt = c.textContent.trim();
+      const num = parseFloat(txt);
+      if (!isNaN(num) && txt !== '' && txt !== '—' && txt !== '-') {
+        vals.push(num);
+      }
+    });
+
+    const finalCell = r.querySelector('.final-cell');
+    const remarkCell = r.querySelector('.remark-cell');
+
+    if (vals.length > 0) {
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const rounded = Math.round(avg);
+      if (finalCell) finalCell.textContent = rounded;
+      if (!isSubRow) allFinals.push(rounded);
+
+      if (remarkCell) {
+        if (rounded >= 75) {
+          remarkCell.textContent = 'Passed';
+          remarkCell.style.color = '#000000';
+        } else {
+          remarkCell.textContent = 'Failed';
+          remarkCell.style.color = '#dc2626';
+        }
+      }
+    } else {
+      if (finalCell) finalCell.textContent = '—';
+      if (remarkCell) {
+        remarkCell.textContent = '—';
+        remarkCell.style.color = '#000000';
+      }
+    }
+  });
+
+  const genAvgEl = container.querySelector('#sf9GenAvgVal');
+  const genRemarkEl = container.querySelector('#sf9GenAvgRemark');
+
+  if (allFinals.length > 0) {
+    const genAvg = (allFinals.reduce((a, b) => a + b, 0) / allFinals.length).toFixed(2);
+    if (genAvgEl) genAvgEl.textContent = genAvg;
+    if (genRemarkEl) {
+      if (parseFloat(genAvg) >= 75) {
+        genRemarkEl.textContent = 'Passed';
+        genRemarkEl.style.color = '#000000';
+      } else {
+        genRemarkEl.textContent = 'Failed';
+        genRemarkEl.style.color = '#dc2626';
+      }
+    }
+  } else {
+    if (genAvgEl) genAvgEl.textContent = '—';
+    if (genRemarkEl) {
+      genRemarkEl.textContent = '—';
+      genRemarkEl.style.color = '#000000';
+    }
+  }
+}
+
+function recalculateSf9Attendance() {
+  const container = document.getElementById('sf9PrintContainer');
+  if (!container) return;
+  const rows = container.querySelectorAll('.sf9-attendance-table tbody tr');
+  rows.forEach(r => {
+    const cells = r.querySelectorAll('td:not(.row-label):not(.sf9-att-label)');
+    if (cells.length > 1) {
+      let sum = 0;
+      let hasVal = false;
+      // All cells except the last (Total) column
+      for (let i = 0; i < cells.length - 1; i++) {
+        const txt = cells[i].textContent.trim();
+        const val = parseFloat(txt);
+        if (!isNaN(val) && txt !== '' && txt !== '-' && txt !== '—') {
+          sum += val;
+          hasVal = true;
+        }
+      }
+      cells[cells.length - 1].textContent = hasVal ? sum : '-';
+    }
+  });
+}
 
 function toggleSf9InlineEdit(btn) {
   const container = document.getElementById('sf9PrintContainer');
@@ -470,9 +596,42 @@ function toggleSf9InlineEdit(btn) {
     btn.classList.remove('btn-outline-warning');
     btn.classList.add('btn-warning');
     btn.innerHTML = '<i class="fas fa-check me-1"></i><span>Done Editing</span>';
+
+    // Bind real-time input recalculation
+    const table = container.querySelector('#sf9GradesTable');
+    if (table && !table.dataset.boundLive) {
+      table.dataset.boundLive = '1';
+      table.addEventListener('input', recalculateSf9Sheet);
+    }
+    const attTable = container.querySelector('.sf9-attendance-table');
+    if (attTable && !attTable.dataset.boundLive) {
+      attTable.dataset.boundLive = '1';
+      attTable.addEventListener('input', recalculateSf9Attendance);
+    }
   } else {
     btn.classList.remove('btn-warning');
     btn.classList.add('btn-outline-warning');
     btn.innerHTML = '<i class="fas fa-edit me-1"></i><span>Edit Sheet</span>';
+
+    // When done editing, ensure any blank grade cells get a clean dash '—'
+    const gradeCells = container.querySelectorAll('.sf9-grade-cell');
+    gradeCells.forEach(c => {
+      const txt = c.textContent.trim();
+      if (txt === '' || txt === '-') {
+        c.textContent = '—';
+      }
+    });
+
+    // Ensure any blank attendance cells get '-'
+    const attCells = container.querySelectorAll('.sf9-attendance-table tbody td:not(.row-label):not(.sf9-att-label)');
+    attCells.forEach(c => {
+      const txt = c.textContent.trim();
+      if (txt === '' || txt === '—') {
+        c.textContent = '-';
+      }
+    });
+
+    recalculateSf9Sheet();
+    recalculateSf9Attendance();
   }
 }

@@ -490,6 +490,8 @@ Record every modification, refactoring, and feature addition in this section.
 | **2026-08-05** | Antigravity AI | All 36 PHP files in `config/`, `api/`, `views/`, `components/` | System Audit: PHP syntax linting, DB connectivity audit, PHPMailer configuration | Yes: 100% syntactically valid, zero compile errors. |
 | **2026-08-17** | Antigravity AI | `database/migrations/2026-08-17-add-guardian-phone.sql`, `api/students.php`, `api/sms.php`, `views/student/profile.php`, `views/student/signup.php`, `views/admin/sms.php` | Feature: Added `guardian_phone` to `users`, synchronized Philippine 09XXXXXXXXX phone validation, integrated PhilSMS API v3 dispatcher | Yes: DB, API whitelist, SMS preview/dispatch, and UI inputs synchronized. |
 | **2026-09-12** | Antigravity AI | `SYSTEM-MEMORY.md`, `docs/SYSTEM-MEMORY.md` | Feature: Created master system memory and cross-system synchronization matrix | Yes: Mapped all files, functions, APIs, tables, and dependencies. |
+| **2026-09-12** | Antigravity AI | `assets/css/sf9.css`, `assets/js/sf9-renderer.js`, `api/reports.php` | Fix: Resolved SF9 individual report card table layout distortion (conflicting `.grade-cell` badge styling), added dash (`'—'`) fallback for missing grades, added live recalculation for inline editing matching `test-page/` | Yes: JHS, SHS, MAPEH breakdown, printable report cards, and API response synchronized. |
+| **2026-09-12** | Antigravity AI | `assets/js/sf9-renderer.js`, `views/admin/reports.php` | Feature: Attendance Record defaults to `'-'`, added Class Adviser & School Principal textboxes with two-way real-time live sync and student localStorage memory | Yes: SF9 attendance cells, printable signatures, and Admin Reports toolbar synchronized. |
 
 ---
 

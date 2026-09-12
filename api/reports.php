@@ -157,7 +157,8 @@ if ($action === 'student') {
         $t1    = $gradeMap[$sid][1] ?? null;
         $t2    = $gradeMap[$sid][2] ?? null;
         $t3    = $gradeMap[$sid][3] ?? null;
-        $tVals = array_values(array_filter([$t1, $t2, $t3], fn($v) => $v !== null));
+        $t4    = $gradeMap[$sid][4] ?? null;
+        $tVals = array_values(array_filter([$t1, $t2, $t3, $t4], fn($v) => $v !== null));
         $subAvg = count($tVals) ? round(array_sum($tVals) / count($tVals), 2) : null;
 
         if ($subAvg !== null) $allFinals[] = $subAvg;
@@ -169,9 +170,11 @@ if ($action === 'student') {
             'q1'      => $t1,
             'q2'      => $t2,
             'q3'      => $t3,
+            'q4'      => $t4,
             'term1'   => $t1,
             'term2'   => $t2,
             'term3'   => $t3,
+            'term4'   => $t4,
             'avg'     => $subAvg,
             'remarks' => $subAvg !== null ? ($subAvg >= 75 ? 'Passed' : 'Failed') : null
         ];

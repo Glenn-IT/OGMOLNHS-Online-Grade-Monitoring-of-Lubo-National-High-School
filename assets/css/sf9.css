@@ -180,6 +180,7 @@
   border: 1px solid var(--sf9-border);
   font-size: 7.3pt;
   margin-bottom: 4px;
+  table-layout: fixed;
 }
 .sf9-table th, 
 .sf9-table td {
@@ -187,6 +188,7 @@
   padding: 1.8px 3px;
   vertical-align: middle;
   height: 14.5px;
+  box-sizing: border-box;
 }
 .sf9-table th {
   font-weight: bold;
@@ -215,12 +217,47 @@
   padding-left: 5px;
   font-size: 7.1pt;
   line-height: 1.12;
+  text-align: left;
 }
+
+/* Explicit cell overrides to strictly prevent pollution from global .grade-cell in style.css */
+.sf9-table td.sf9-grade-cell,
+.sf9-table td.grade-cell,
+.sf9-table td.final-cell,
+.sf9-table td.remark-cell {
+  display: table-cell !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  width: auto !important;
+  height: 14.5px !important;
+  border: 1px solid var(--sf9-border) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #000000 !important;
+  font-weight: normal;
+  font-size: 7.3pt !important;
+  line-height: 1.15 !important;
+  padding: 1.8px 3px !important;
+  box-shadow: none !important;
+}
+
+.sf9-table td.final-cell {
+  font-weight: bold !important;
+}
+
+.sf9-table td.remark-cell {
+  font-weight: normal !important;
+}
+
 .sf9-table .gen-avg-row {
   font-weight: bold;
   background-color: #f8fafc;
   font-size: 7.6pt;
   height: 16px;
+}
+.sf9-table .gen-avg-row td {
+  border: 1px solid var(--sf9-border);
+  vertical-align: middle;
 }
 
 /* Performance Descriptors Table */
@@ -362,6 +399,20 @@
   grid-template-columns: 1.4fr 1fr;
   column-gap: 12px;
   margin-bottom: 10px;
+}
+
+/* Inline Edit Styling (from test-page reference) */
+.editable-active [contenteditable="true"] {
+  outline: 1px dashed #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.06) !important;
+  cursor: text;
+}
+.editable-active [contenteditable="true"]:hover {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+.editable-active [contenteditable="true"]:focus {
+  outline: 2px solid #2563eb !important;
+  background-color: #ffffff !important;
 }
 
 /* Print Rules */

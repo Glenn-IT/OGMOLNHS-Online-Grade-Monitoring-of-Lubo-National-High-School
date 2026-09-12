@@ -105,6 +105,7 @@ $userId = (int)$_SESSION['user_id'];
       }
       renderReport(data.data, period);
     } catch(e) {
+      console.error("Failed to load report:", e);
       document.getElementById('reportContent').innerHTML =
         '<p class="text-center text-danger py-4">Failed to load report.</p>';
     }

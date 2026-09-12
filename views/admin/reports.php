@@ -53,7 +53,7 @@ $adminActivePage = 'reports';
             </div>
             <div class="col-md-3" id="studentSelectGroup" style="display:none">
               <label class="form-label mb-1" style="font-size:0.8rem;font-weight:600">Select Student</label>
-              <select id="reportStudent" class="form-select form-select-sm" onchange="generateReport()"></select>
+              <select id="reportStudent" class="form-select form-select-sm" onchange="onStudentChange()"></select>
             </div>
             <div class="col-md-2">
               <label class="form-label mb-1" style="font-size:0.8rem;font-weight:600">Grading Term</label>
@@ -73,6 +73,22 @@ $adminActivePage = 'reports';
               <button class="btn btn-success btn-sm w-100" onclick="printReport()">
                 <i class="fas fa-print me-1"></i>Print
               </button>
+            </div>
+          </div>
+
+          <!-- Individual Student Signatories Bar (Only visible when reportType === 'student') -->
+          <div class="row g-2 align-items-end mt-2 pt-2 border-top" id="studentSignatoriesGroup" style="display:none">
+            <div class="col-md-6">
+              <label class="form-label mb-1" style="font-size:0.8rem;font-weight:600" for="reportAdviser">
+                <i class="fas fa-chalkboard-teacher me-1 text-primary"></i>Class Adviser
+              </label>
+              <input type="text" id="reportAdviser" class="form-control form-control-sm" placeholder="e.g. JOSEPH M. BATUYONG" oninput="updateSignatoriesLive()">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" style="font-size:0.8rem;font-weight:600" for="reportPrincipal">
+                <i class="fas fa-user-tie me-1 text-primary"></i>School Principal / Head
+              </label>
+              <input type="text" id="reportPrincipal" class="form-control form-control-sm" placeholder="e.g. MARLON C. VALIENTES" oninput="updateSignatoriesLive()">
             </div>
           </div>
         </div>
@@ -120,10 +136,63 @@ $adminActivePage = 'reports';
     document.body.classList.remove('printing-sf9');
   });
 
+  function getStoredSignatories(studentId) {
+    const defaultAdv = 'JOSEPH M. BATUYONG';
+    const defaultHead = 'MARLON C. VALIENTES';
+    const savedAdv = (studentId ? localStorage.getItem('ogms_sf9_adviser_' + studentId) : null) 
+      || localStorage.getItem('ogms_sf9_adviser_default') 
+      || defaultAdv;
+    const savedHead = (studentId ? localStorage.getItem('ogms_sf9_head_' + studentId) : null) 
+      || localStorage.getItem('ogms_sf9_head_default') 
+      || defaultHead;
+    return { adviser: savedAdv, schoolHead: savedHead };
+  }
+
   function onTypeChange() {
     const type = document.getElementById('reportType').value;
-    document.getElementById('studentSelectGroup').style.display = type === 'student' ? 'block' : 'none';
+    const isStudent = (type === 'student');
+    document.getElementById('studentSelectGroup').style.display = isStudent ? 'block' : 'none';
+    const sigGroup = document.getElementById('studentSignatoriesGroup');
+    if (sigGroup) sigGroup.style.display = isStudent ? 'flex' : 'none';
+
+    if (isStudent) {
+      const stuId = document.getElementById('reportStudent').value;
+      const stored = getStoredSignatories(stuId);
+      const advIn = document.getElementById('reportAdviser');
+      const headIn = document.getElementById('reportPrincipal');
+      if (advIn) advIn.value = stored.adviser;
+      if (headIn) headIn.value = stored.schoolHead;
+    }
     generateReport();
+  }
+
+  function onStudentChange() {
+    const stuId = document.getElementById('reportStudent').value;
+    const stored = getStoredSignatories(stuId);
+    const advIn = document.getElementById('reportAdviser');
+    const headIn = document.getElementById('reportPrincipal');
+    if (advIn) advIn.value = stored.adviser;
+    if (headIn) headIn.value = stored.schoolHead;
+    generateReport();
+  }
+
+  function updateSignatoriesLive() {
+    const stuId = document.getElementById('reportStudent')?.value;
+    const adviserVal = document.getElementById('reportAdviser')?.value ?? '';
+    const principalVal = document.getElementById('reportPrincipal')?.value ?? '';
+
+    if (stuId) {
+      localStorage.setItem('ogms_sf9_adviser_' + stuId, adviserVal);
+      localStorage.setItem('ogms_sf9_head_' + stuId, principalVal);
+    }
+    if (adviserVal) localStorage.setItem('ogms_sf9_adviser_default', adviserVal);
+    if (principalVal) localStorage.setItem('ogms_sf9_head_default', principalVal);
+
+    const advEl = document.getElementById('sf9AdviserName');
+    if (advEl) advEl.textContent = adviserVal || '_______________________';
+
+    const headEl = document.getElementById('sf9SchoolHeadName');
+    if (headEl) headEl.textContent = principalVal || '_______________________';
   }
 
   async function generateReport() {
@@ -157,7 +226,8 @@ $adminActivePage = 'reports';
       }
       renderReport(type, data.data, period);
     } catch(e) { 
-      document.getElementById('reportContent').innerHTML = '<p class="text-danger text-center py-4">Failed to load report.</p>'; 
+      console.error("Failed to load report:", e);
+      document.getElementById('reportContent').innerHTML = '<p class="text-danger text-center py-4">Failed to load report. <small class="d-block text-muted mt-1">Check console for details.</small></p>'; 
     } finally {
       isGenerating = false;
     }
@@ -263,9 +333,43 @@ $adminActivePage = 'reports';
         </div>`;
 
     } else {
+      const stuId = document.getElementById('reportStudent').value;
+      const advInput = document.getElementById('reportAdviser');
+      const prinInput = document.getElementById('reportPrincipal');
+
+      const stored = getStoredSignatories(stuId);
+      if (advInput && !advInput.value.trim()) {
+        advInput.value = data.adviser_name || stored.adviser;
+      }
+      if (prinInput && !prinInput.value.trim()) {
+        prinInput.value = data.school_head || stored.schoolHead;
+      }
+
       document.getElementById('reportContent').innerHTML = renderSf9ReportCard(data, {
-        assetPrefix: '../../assets/images/'
+        assetPrefix: '../../assets/images/',
+        adviser: advInput ? advInput.value.trim() : undefined,
+        schoolHead: prinInput ? prinInput.value.trim() : undefined
       });
+
+      // Synchronize in case user uses inline "Edit Sheet" directly on the printable card
+      const advEl = document.getElementById('sf9AdviserName');
+      if (advEl) {
+        advEl.addEventListener('input', () => {
+          const val = advEl.textContent.trim();
+          if (advInput) advInput.value = val;
+          if (stuId) localStorage.setItem('ogms_sf9_adviser_' + stuId, val);
+          localStorage.setItem('ogms_sf9_adviser_default', val);
+        });
+      }
+      const headEl = document.getElementById('sf9SchoolHeadName');
+      if (headEl) {
+        headEl.addEventListener('input', () => {
+          const val = headEl.textContent.trim();
+          if (prinInput) prinInput.value = val;
+          if (stuId) localStorage.setItem('ogms_sf9_head_' + stuId, val);
+          localStorage.setItem('ogms_sf9_head_default', val);
+        });
+      }
     }
   }
 
