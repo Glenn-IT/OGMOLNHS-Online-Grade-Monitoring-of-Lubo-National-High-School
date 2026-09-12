@@ -82,6 +82,7 @@ Full structure: [docs/PROJECT-STRUCTURE.md](docs/PROJECT-STRUCTURE.md)
 
 ## 📚 Documentation
 
+- [System Memory & Synchronization Matrix](SYSTEM-MEMORY.md)
 - [User Guide](docs/USER-GUIDE.md)
 - [Tech Stack](docs/Techstacks.md)
 - [Features](docs/FEATURES.md)
