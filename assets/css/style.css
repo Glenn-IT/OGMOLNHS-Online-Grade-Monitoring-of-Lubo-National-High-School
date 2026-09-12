@@ -852,6 +852,11 @@ a {
 .print-header {
   display: none;
 }
+.print-seal {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+}
 @media print {
   .sidebar,
   .topbar,

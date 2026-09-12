@@ -66,12 +66,18 @@ $userId = (int)$_SESSION['user_id'];
       </div>
 
       <div class="print-header">
-        <div class="print-logo"><i class="fas fa-graduation-cap"></i></div>
-        <div class="print-school-info">
+        <div class="print-logo print-logo-left">
+          <img src="../../assets/images/deped_logo.png" alt="DepEd Seal" class="print-seal">
+        </div>
+        <div class="print-school-info text-center">
           <p class="print-dept">Republic of the Philippines &bull; Department of Education &bull; Region II</p>
-          <h3>LUBO NATIONAL HIGH SCHOOL</h3>
-          <p>Lubo, Sto. Niño, Cagayan &nbsp;|&nbsp; Online Grade Monitoring System</p>
-          <p id="printReportTitle">Official Report Card – All Terms</p>
+          <p class="print-subdept" style="font-size:0.74rem;text-transform:uppercase;margin:1px 0 0 0;color:#64748b;letter-spacing:0.04em">Schools Division of Cagayan &bull; Sto. Niño District</p>
+          <h3 style="margin:3px 0;font-weight:800;letter-spacing:0.5px">LUBO NATIONAL HIGH SCHOOL</h3>
+          <p style="margin:0;font-size:0.82rem;color:#475569">Lubo, Sto. Niño, Cagayan &nbsp;|&nbsp; Online Grade Monitoring System</p>
+          <p id="printReportTitle" style="font-weight:700;margin-top:4px;font-size:0.95rem;color:#0f172a">Official Report Card – All Terms</p>
+        </div>
+        <div class="print-logo print-logo-right">
+          <img src="../../assets/images/lubo_logo.png" alt="Lubo NHS Seal" class="print-seal">
         </div>
       </div>
 
