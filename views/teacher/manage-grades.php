@@ -291,9 +291,42 @@ $teacherId = (int)$_SESSION['user_id'];
     for (const sec of allSections) {
       const stuRes = await fetch('../../api/sections.php?action=students&section_id=' + sec.id);
       const stuData = await stuRes.json();
-      sectionStudentsMap[sec.id] = stuData.data || [];
-      allStudents = allStudents.concat(stuData.data || []);
+      let list = stuData.data || [];
+      list.forEach(s => {
+        s.raw_name = s.full_name;
+        s.full_name = formatLastFirst(s.full_name);
+      });
+      list.sort((a, b) => a.full_name.localeCompare(b.full_name, undefined, { sensitivity: 'base' }));
+      sectionStudentsMap[sec.id] = list;
+      allStudents = allStudents.concat(list);
     }
+  }
+
+  function formatLastFirst(fullName) {
+    if (!fullName) return '';
+    const str = String(fullName).trim();
+    if (str.includes(',')) {
+      const parts = str.split(',').map(p => p.trim());
+      return `${parts[0]}, ${parts.slice(1).join(' ')}`;
+    }
+    const parts = str.split(/\s+/);
+    if (parts.length === 1) return parts[0];
+
+    const lower = parts.map(p => p.toLowerCase());
+    const len = parts.length;
+    let lastIdx = len - 1;
+
+    const prefixes = ['dela', 'delos', 'san', 'santa', 'sta', 'sta.', 'sto', 'sto.', 'del', 'de', 'van', 'von', 'mc', 'mac'];
+
+    if (len >= 4 && lower[len - 3] === 'de' && lower[len - 2] === 'la') {
+      lastIdx = len - 3;
+    } else if (len >= 3 && prefixes.includes(lower[len - 2])) {
+      lastIdx = len - 2;
+    }
+
+    const lastName = parts.slice(lastIdx).join(' ');
+    const firstName = parts.slice(0, lastIdx).join(' ');
+    return `${lastName}, ${firstName}`;
   }
 
   function populateFilters() {

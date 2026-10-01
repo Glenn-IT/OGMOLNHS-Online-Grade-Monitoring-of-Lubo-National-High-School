@@ -287,6 +287,12 @@ $teacherName = $_SESSION['full_name'] ?? 'Subject Teacher';
       currentStudents = stuData.data || [];
       currentGrades = grData.data || [];
 
+      currentStudents.forEach(s => {
+        s.raw_name = s.full_name;
+        s.full_name = formatLastFirst(s.full_name);
+      });
+      currentStudents.sort((a, b) => a.full_name.localeCompare(b.full_name, undefined, { sensitivity: 'base' }));
+
       renderGradeSheetView();
       togglePrintButtons(true);
     } catch(err) {
@@ -554,6 +560,33 @@ $teacherName = $_SESSION['full_name'] ?? 'Subject Teacher';
 </body>
 </html>`);
     printWindow.document.close();
+  }
+
+  function formatLastFirst(fullName) {
+    if (!fullName) return '';
+    const str = String(fullName).trim();
+    if (str.includes(',')) {
+      const parts = str.split(',').map(p => p.trim());
+      return `${parts[0]}, ${parts.slice(1).join(' ')}`;
+    }
+    const parts = str.split(/\s+/);
+    if (parts.length === 1) return parts[0];
+
+    const lower = parts.map(p => p.toLowerCase());
+    const len = parts.length;
+    let lastIdx = len - 1;
+
+    const prefixes = ['dela', 'delos', 'san', 'santa', 'sta', 'sta.', 'sto', 'sto.', 'del', 'de', 'van', 'von', 'mc', 'mac'];
+
+    if (len >= 4 && lower[len - 3] === 'de' && lower[len - 2] === 'la') {
+      lastIdx = len - 3;
+    } else if (len >= 3 && prefixes.includes(lower[len - 2])) {
+      lastIdx = len - 2;
+    }
+
+    const lastName = parts.slice(lastIdx).join(' ');
+    const firstName = parts.slice(0, lastIdx).join(' ');
+    return `${lastName}, ${firstName}`;
   }
 
   function esc(s) {
