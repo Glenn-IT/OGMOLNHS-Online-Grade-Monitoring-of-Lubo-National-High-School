@@ -337,13 +337,6 @@ $adminActivePage = 'manage-grades';
           </select>
           <small class="text-muted">Determines whether this subject appears in JHS or SHS grade levels and SF9 forms.</small>
         </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Assigned Teacher</label>
-          <select id="modalSubjectTeacher" class="form-select">
-            <option value="">— No Assigned Teacher (None) —</option>
-          </select>
-          <small class="text-muted">The assigned teacher encodes and manages grades for this subject in the Teacher Portal.</small>
-        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
@@ -510,10 +503,9 @@ $adminActivePage = 'manage-grades';
             </div>`;
         }).join('') : `<div class="text-muted p-2" style="font-size:.85rem"><i class="fas fa-info-circle me-1"></i>No sections created for Grade ${gLevel}.</div>`;
 
-        const assignedTeacher = (allTeacherAssignments || []).find(ta => ta.subject_id == sub.id && ta.grade_level == gLevel);
-        const gradeTeacherBadge = assignedTeacher 
-          ? `<span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2" style="font-weight:600;font-size:0.75rem"><i class="fas fa-chalkboard-teacher me-1"></i>${esc(assignedTeacher.teacher_name)}</span>` 
-          : '';
+        const gradeCollapseId = `grade-collapse-${sub.id}-${gLevel}`;
+        const showGrade = isFiltering ? ' show' : (gIdx === 0 ? ' show' : '');
+        const collapsedGradeCls = isFiltering ? '' : (gIdx === 0 ? '' : ' collapsed');
 
         return `
           <div class="grade-item">
@@ -521,7 +513,6 @@ $adminActivePage = 'manage-grades';
               <button class="accordion-button grade-accordion-btn ${collapsedGradeCls}" type="button" data-bs-toggle="collapse" data-bs-target="#${gradeCollapseId}">
                 <i class="fas fa-layer-group me-2 text-secondary"></i>Grade ${gLevel}
                 <span class="badge bg-secondary ms-2" style="font-weight:normal">${sectionsInGrade.length} Section${sectionsInGrade.length===1?'':'s'}</span>
-                ${gradeTeacherBadge}
               </button>
             </h3>
             <div id="${gradeCollapseId}" class="accordion-collapse collapse${showGrade}">
@@ -543,10 +534,9 @@ $adminActivePage = 'manage-grades';
               <i class="fas fa-book me-2"></i>${esc(sub.name)} 
               <span class="badge bg-primary-subtle text-primary ms-2" style="font-size:.72rem">${esc(sub.code||'')}</span>
               ${levelBadge}
-              ${sub.teacher_name ? `<span class="badge bg-info-subtle text-info ms-2" style="font-size:.72rem"><i class="fas fa-chalkboard-teacher me-1"></i>${esc(sub.teacher_name)}</span>` : `<span class="badge bg-secondary-subtle text-secondary ms-2" style="font-size:.72rem"><i class="fas fa-user-slash me-1"></i>No Teacher</span>`}
             </button>
             <div class="pe-3 d-flex gap-1" style="background:#0c1326; z-index:2">
-              <button class="btn btn-sm btn-outline-light py-0 px-2" style="font-size:.78rem" title="Edit Subject" onclick="event.stopPropagation(); openEditSubjectModal(${sub.id}, '${escAttr(sub.name)}', '${escAttr(sub.code||'')}', '${escAttr(subLevel)}', ${sub.teacher_id || 'null'})">
+              <button class="btn btn-sm btn-outline-light py-0 px-2" style="font-size:.78rem" title="Edit Subject" onclick="event.stopPropagation(); openEditSubjectModal(${sub.id}, '${escAttr(sub.name)}', '${escAttr(sub.code||'')}', '${escAttr(subLevel)}')">
                 <i class="fas fa-edit me-1"></i>Edit
               </button>
               <button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:.78rem" title="Delete Subject" onclick="event.stopPropagation(); deleteSubject(${sub.id}, '${escAttr(sub.name)}')">
@@ -1000,26 +990,23 @@ $adminActivePage = 'manage-grades';
     document.getElementById('modalSubjectName').value = '';
     document.getElementById('modalSubjectCode').value = '';
     document.getElementById('modalSubjectLevel').value = 'JHS';
-    populateSubjectTeacherSelect(null);
     getSubjectModal().show();
   }
 
-  function openEditSubjectModal(id, name, code, level = 'JHS', teacherId = null) {
+  function openEditSubjectModal(id, name, code, level = 'JHS') {
     document.getElementById('subjectModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Subject';
     document.getElementById('modalSubjectId').value = id;
     document.getElementById('modalSubjectName').value = name;
     document.getElementById('modalSubjectCode').value = code;
     document.getElementById('modalSubjectLevel').value = (level === 'SHS') ? 'SHS' : 'JHS';
-    populateSubjectTeacherSelect(teacherId);
     getSubjectModal().show();
   }
 
   async function saveSubject() {
-    const id        = document.getElementById('modalSubjectId').value.trim();
-    const name      = document.getElementById('modalSubjectName').value.trim();
-    const code      = document.getElementById('modalSubjectCode').value.trim().toUpperCase();
-    const level     = document.getElementById('modalSubjectLevel').value;
-    const teacherId = document.getElementById('modalSubjectTeacher').value;
+    const id    = document.getElementById('modalSubjectId').value.trim();
+    const name  = document.getElementById('modalSubjectName').value.trim();
+    const code  = document.getElementById('modalSubjectCode').value.trim().toUpperCase();
+    const level = document.getElementById('modalSubjectLevel').value;
 
     if (!name || !code) {
       showToast('Subject name and code are required.', 'error');
@@ -1033,7 +1020,6 @@ $adminActivePage = 'manage-grades';
     body.append('name', name);
     body.append('code', code);
     body.append('level', level);
-    body.append('teacher_id', teacherId);
 
     try {
       const res  = await fetch('../../api/grades.php', { method: 'POST', body });

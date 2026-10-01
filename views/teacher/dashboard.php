@@ -263,7 +263,7 @@ $recentGrades = $stmtRecent->fetchAll();
                 <i class="fas fa-chevron-right text-muted"></i>
               </a>
               <a href="reports.php" class="btn btn-outline-primary d-flex align-items-center justify-content-between p-2 text-start">
-                <span><i class="fas fa-file-pdf me-2"></i>Subject Performance Reports</span>
+                <span><i class="fas fa-table me-2"></i>Section Grade Sheets</span>
                 <i class="fas fa-chevron-right text-muted"></i>
               </a>
               <a href="profile.php" class="btn btn-outline-secondary d-flex align-items-center justify-content-between p-2 text-start">

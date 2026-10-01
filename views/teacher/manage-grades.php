@@ -175,11 +175,10 @@ $teacherId = (int)$_SESSION['user_id'];
                 <th class="text-center" style="min-width:90px">3rd Term</th>
                 <th class="text-center" style="min-width:90px">Final Grade</th>
                 <th class="text-center" style="min-width:90px">Remarks</th>
-                <th class="text-center" style="min-width:135px">Print Grade Sheet</th>
               </tr>
             </thead>
             <tbody id="classStudentTableBody">
-              <tr><td colspan="8" class="text-center py-4 text-muted">Loading students…</td></tr>
+              <tr><td colspan="7" class="text-center py-4 text-muted">Loading students…</td></tr>
             </tbody>
           </table>
         </div>
@@ -191,17 +190,8 @@ $teacherId = (int)$_SESSION['user_id'];
             <i class="fas fa-table me-1"></i>Print Section Grade Sheet
           </button>
         </div>
-        <div class="d-flex align-items-center gap-2">
-          <div class="input-group input-group-sm" style="width: auto;">
-            <span class="input-group-text bg-white"><i class="fas fa-user-graduate text-primary"></i></span>
-            <select id="modalQuickStudentSelect" class="form-select form-select-sm" style="max-width: 230px;" onchange="onModalStudentSelected(this.value)">
-              <option value="">Select Student to Print…</option>
-            </select>
-            <button class="btn btn-primary btn-sm text-nowrap" type="button" onclick="printSelectedStudentGradeSheet()" title="Print Individual Student SF9 Report Card">
-              <i class="fas fa-print me-1"></i>Print Grade Sheet
-            </button>
-          </div>
-          <button class="btn btn-secondary btn-sm ms-2" data-bs-dismiss="modal">Close</button>
+        <div>
+          <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
 
@@ -242,14 +232,9 @@ $teacherId = (int)$_SESSION['user_id'];
           <div class="mt-1" id="previewRemarksVal"><span class="text-muted">Enter grade to preview remarks</span></div>
         </div>
       </div>
-      <div class="modal-footer justify-content-between">
-        <button class="btn btn-outline-primary btn-sm" type="button" onclick="printCurrentModalStudentReport()" title="View and print this student's full SF9 report card">
-          <i class="fas fa-print me-1"></i>Print Grade Sheet
-        </button>
-        <div>
-          <button class="btn btn-secondary btn-sm me-1" data-bs-dismiss="modal">Cancel</button>
-          <button class="btn btn-primary btn-sm" onclick="saveTermGrade()"><i class="fas fa-save me-1"></i>Save Grade</button>
-        </div>
+      <div class="modal-footer justify-content-end">
+        <button class="btn btn-secondary btn-sm me-1" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="saveTermGrade()"><i class="fas fa-save me-1"></i>Save Grade</button>
       </div>
     </div>
   </div>
@@ -451,13 +436,6 @@ $teacherId = (int)$_SESSION['user_id'];
     document.getElementById('classModalTitle').innerHTML = `<i class="fas fa-book-open me-2 text-warning"></i>${esc(currentClassSubject.name)} <span class="badge bg-primary-subtle text-primary" style="font-size:.75rem">${esc(currentClassSubject.code||'')}</span>${grBadge}`;
     document.getElementById('classModalMeta').textContent = `Grade ${currentClassSection.grade_level} - Section ${currentClassSection.name}`;
 
-    const quickSel = document.getElementById('modalQuickStudentSelect');
-    if (quickSel) {
-      const sectionStudents = sectionStudentsMap[currentClassSection.id] || [];
-      quickSel.innerHTML = '<option value="">Select Student to Print…</option>' + 
-        sectionStudents.map(s => `<option value="${s.id}">${esc(s.full_name)}</option>`).join('');
-    }
-
     await reloadGradesData();
     renderClassStudentTable();
     new bootstrap.Modal(document.getElementById('classGradesModal')).show();
@@ -476,7 +454,7 @@ $teacherId = (int)$_SESSION['user_id'];
     const students = sectionStudentsMap[currentClassSection.id] || [];
 
     if (!students.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No students enrolled in this section.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No students enrolled in this section.</td></tr>';
       document.getElementById('classModalStats').innerHTML = '';
       return;
     }
@@ -520,11 +498,6 @@ $teacherId = (int)$_SESSION['user_id'];
             ${finalAvg !== null ? finalAvg.toFixed(2) : '—'}
           </td>
           <td class="text-center">${remarksBadge}</td>
-          <td class="text-center">
-            <button class="btn btn-outline-primary btn-sm py-1 px-2" onclick="printStudentSF9Report(${stu.id})" title="Print SF9 Report Card">
-              <i class="fas fa-print me-1"></i>Print
-            </button>
-          </td>
         </tr>`;
     }).join('');
 
@@ -637,30 +610,6 @@ $teacherId = (int)$_SESSION['user_id'];
     return Math.round((num + Number.EPSILON) * 100) / 100;
   }
 
-  function printStudentSF9Report(studentId) {
-    window.open(`reports.php?student_id=${studentId}`, '_blank');
-  }
-
-  function printCurrentModalStudentReport() {
-    if (activeGridStudentId) {
-      printStudentSF9Report(activeGridStudentId);
-    }
-  }
-
-  function onModalStudentSelected(studentId) {
-    activeGridStudentId = studentId || null;
-  }
-
-  function printSelectedStudentGradeSheet() {
-    const sel = document.getElementById('modalQuickStudentSelect');
-    const stuId = sel ? sel.value : null;
-    if (!stuId) {
-      showToast('Please select a student from the dropdown to print their report card.', 'warning');
-      return;
-    }
-    printStudentSF9Report(stuId);
-  }
-
   function printSectionGrades() {
     if (!currentClassSubject || !currentClassSection) return;
     const students = sectionStudentsMap[currentClassSection.id] || [];
@@ -749,12 +698,12 @@ $teacherId = (int)$_SESSION['user_id'];
     <div class="sig-box">
       <div class="sig-line"></div>
       <div class="sig-title"><?= htmlspecialchars($_SESSION['full_name']) ?></div>
-      <div class="sig-role">Class Adviser</div>
+      <div class="sig-role">Subject Teacher (Prepared By)</div>
     </div>
     <div class="sig-box">
       <div class="sig-line"></div>
-      <div class="sig-title">Subject Teacher</div>
-      <div class="sig-role">Prepared By</div>
+      <div class="sig-title">Class Adviser</div>
+      <div class="sig-role">Verified By</div>
     </div>
     <div class="sig-box">
       <div class="sig-line"></div>

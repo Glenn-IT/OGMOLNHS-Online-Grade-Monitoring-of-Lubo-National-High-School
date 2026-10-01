@@ -34,7 +34,7 @@ function teacherLink(string $page, string $current): string {
       <i class="fas fa-clipboard-check"></i> Manage Subject Grades
     </a>
     <a href="reports.php" class="<?= teacherLink('reports', $teacherActivePage) ?>">
-      <i class="fas fa-file-pdf"></i> Subject &amp; SF9 Reports
+      <i class="fas fa-table"></i> Section Grade Sheets
     </a>
     <div class="nav-section-label" style="margin-top:0.5rem">Account</div>
     <a href="profile.php" class="<?= teacherLink('profile', $teacherActivePage) ?>">
