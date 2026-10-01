@@ -3,7 +3,7 @@
 require_once '../config/db.php';
 require_once '../config/session.php';
 require_once '../config/school-year.php';
-requireAdmin();
+requireStaff();
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $pdo    = getDB();
@@ -11,18 +11,48 @@ $pdo    = getDB();
 // ─── LIST SECTIONS (active school year) ──────────────────────────────────────
 if ($action === 'list') {
     $syId = activeSchoolYear($pdo);
+
+    $where = ['s.school_year_id = ?'];
+    $params = [$syId];
+
+    if ($_SESSION['role'] === 'teacher') {
+        $teacherId = (int)$_SESSION['user_id'];
+        $chkTs = $pdo->prepare("SELECT DISTINCT grade_level FROM teacher_subjects WHERE teacher_id = ? AND school_year_id = ?");
+        $chkTs->execute([$teacherId, $syId]);
+        $assignedGrades = $chkTs->fetchAll(PDO::FETCH_COLUMN);
+
+        if (!empty($assignedGrades)) {
+            $inGrades = implode(',', array_map('intval', $assignedGrades));
+            $where[] = "(s.grade_level IN ($inGrades) OR s.adviser_id = ?)";
+            $params[] = $teacherId;
+        }
+    }
+
     $stmt = $pdo->prepare(
-        "SELECT s.id, s.name, s.grade_level, s.school_year_id,
+        "SELECT s.id, s.name, s.grade_level, s.school_year_id, s.adviser_id,
+                u.full_name AS adviser_name,
                 sy.label AS school_year,
                 COUNT(e.id) AS student_count
          FROM sections s
+         LEFT JOIN users u ON u.id = s.adviser_id
          LEFT JOIN school_years sy ON sy.id = s.school_year_id
          LEFT JOIN enrollments  e  ON e.section_id = s.id AND e.school_year_id = s.school_year_id
-         WHERE s.school_year_id = ?
+         WHERE " . implode(' AND ', $where) . "
          GROUP BY s.id
          ORDER BY s.grade_level, s.name"
     );
-    $stmt->execute([$syId]);
+    $stmt->execute($params);
+    jsonResponse(['success' => true, 'data' => $stmt->fetchAll()]);
+}
+
+// ─── LIST TEACHER ADVISERS (for dropdowns) ────────────────────────────────────
+if ($action === 'advisers') {
+    $stmt = $pdo->query(
+        "SELECT id, full_name, email
+         FROM users
+         WHERE role = 'teacher' AND is_active = 1
+         ORDER BY full_name"
+    );
     jsonResponse(['success' => true, 'data' => $stmt->fetchAll()]);
 }
 
@@ -44,12 +74,14 @@ if ($action === 'students') {
     jsonResponse(['success' => true, 'data' => $stmt->fetchAll()]);
 }
 
-// ─── SAVE SECTION (insert or update) ─────────────────────────────────────────
+// ─── SAVE SECTION (insert or update, admin only) ─────────────────────────────
 if ($action === 'save') {
+    requireAdmin();
     $id         = (int)($_POST['id']             ?? 0);
     $name       = trim($_POST['name']            ?? '');
     $gradeLevel = (int)($_POST['grade_level']    ?? 0);
     $syId       = (int)($_POST['school_year_id'] ?? 0);
+    $adviserId  = !empty($_POST['adviser_id'])   ? (int)$_POST['adviser_id'] : null;
 
     if (!$name || !$gradeLevel) {
         jsonResponse(['success' => false, 'message' => 'Section name and grade level are required.'], 400);
@@ -75,12 +107,12 @@ if ($action === 'save') {
     }
 
     if ($id) {
-        $pdo->prepare("UPDATE sections SET name=?, grade_level=?, school_year_id=? WHERE id=?")
-            ->execute([$name, $gradeLevel, $syId, $id]);
+        $pdo->prepare("UPDATE sections SET name=?, grade_level=?, school_year_id=?, adviser_id=? WHERE id=?")
+            ->execute([$name, $gradeLevel, $syId, $adviserId, $id]);
         jsonResponse(['success' => true, 'message' => 'Section updated.']);
     } else {
-        $pdo->prepare("INSERT INTO sections (name, grade_level, school_year_id) VALUES (?,?,?)")
-            ->execute([$name, $gradeLevel, $syId]);
+        $pdo->prepare("INSERT INTO sections (name, grade_level, school_year_id, adviser_id) VALUES (?,?,?,?)")
+            ->execute([$name, $gradeLevel, $syId, $adviserId]);
         jsonResponse(['success' => true, 'message' => 'Section created.', 'id' => (int)$pdo->lastInsertId()]);
     }
 }

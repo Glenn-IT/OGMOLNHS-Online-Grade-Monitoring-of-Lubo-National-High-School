@@ -36,8 +36,14 @@ function adminLink(string $page, string $current): string {
     <a href="manage-students.php" class="<?= adminLink('manage-students', $adminActivePage) ?>">
       <i class="fas fa-users"></i> Manage Students
     </a>
+    <a href="manage-teachers.php" class="<?= adminLink('manage-teachers', $adminActivePage) ?>">
+      <i class="fas fa-chalkboard-teacher"></i> Manage Teachers
+    </a>
     <a href="manage-sections.php" class="<?= adminLink('manage-sections', $adminActivePage) ?>">
       <i class="fas fa-layer-group"></i> Manage Sections
+    </a>
+    <a href="manage-posts.php" class="<?= adminLink('manage-posts', $adminActivePage) ?>">
+      <i class="fas fa-bullhorn"></i> School Posts &amp; Events
     </a>
     <a href="school-years.php" class="<?= adminLink('school-years', $adminActivePage) ?>">
       <i class="fas fa-calendar-alt"></i> School Years

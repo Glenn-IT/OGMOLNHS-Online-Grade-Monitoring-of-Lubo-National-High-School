@@ -3,6 +3,7 @@
 require_once '../config/db.php';
 require_once '../config/session.php';
 require_once '../config/school-year.php';
+require_once '../config/mailer.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
@@ -82,11 +83,88 @@ if ($action === 'get') {
     jsonResponse(['success' => true, 'data' => $student]);
 }
 
+// ─── SEND SIGNUP OTP ─────────────────────────────────────────────────────────
+if ($action === 'send_signup_otp') {
+    $email     = strtolower(trim($_POST['email']      ?? ''));
+    $firstName = trim($_POST['first_name'] ?? '');
+    $lastName  = trim($_POST['last_name']  ?? '');
+    $lrn       = trim($_POST['lrn']        ?? '');
+
+    if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        jsonResponse(['success' => false, 'message' => 'Valid email address is required.'], 400);
+    }
+    if ($lrn && !preg_match('/^\d{12}$/', $lrn)) {
+        jsonResponse(['success' => false, 'message' => 'LRN must be exactly 12 digits.'], 400);
+    }
+
+    $pdo = getDB();
+
+    // Check duplicate email
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ?');
+    $stmt->execute([$email]);
+    if ($stmt->fetch()) {
+        jsonResponse(['success' => false, 'message' => 'This email address is already registered. Please sign in or use another email.'], 409);
+    }
+
+    // Check duplicate LRN
+    if ($lrn) {
+        $stmt = $pdo->prepare('SELECT id FROM users WHERE lrn = ?');
+        $stmt->execute([$lrn]);
+        if ($stmt->fetch()) {
+            jsonResponse(['success' => false, 'message' => 'This 12-digit LRN is already registered.'], 409);
+        }
+    }
+
+    // Generate 6-digit OTP
+    $otp = str_pad((string)random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+
+    // Invalidate previous active OTPs for this email
+    $pdo->prepare('UPDATE email_verifications SET used = 1 WHERE email = ? AND used = 0')->execute([$email]);
+
+    // Insert new OTP with 10-minute expiry
+    $stmt = $pdo->prepare('INSERT INTO email_verifications (email, otp, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))');
+    $stmt->execute([$email, $otp]);
+
+    $recipientName = trim("$firstName $lastName") ?: 'Learner';
+    $subject = 'Your Account Verification OTP – Lubo National High School';
+    $bodyHtml = "
+    <div style='font-family:Arial,Helvetica,sans-serif;max-width:540px;margin:0 auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;'>
+      <div style='text-align:center;padding-bottom:18px;border-bottom:2px solid #0c1326;'>
+        <h2 style='color:#0c1326;margin:0;font-size:20px;letter-spacing:0.5px;'>LUBO NATIONAL HIGH SCHOOL</h2>
+        <p style='color:#64748b;margin:4px 0 0;font-size:13px;'>Online Grade Monitoring System (OGMS)</p>
+      </div>
+      <div style='padding:24px 0;'>
+        <p style='font-size:15px;color:#1e293b;margin:0 0 12px;'>Hello <strong>" . htmlspecialchars($recipientName) . "</strong>,</p>
+        <p style='font-size:14px;color:#475569;line-height:1.6;margin:0 0 20px;'>
+          Thank you for signing up for the Lubo NHS Online Grade Monitoring System. Please use the One-Time Password (OTP) below to verify your email address and finalize your registration:
+        </p>
+        <div style='background:#f1f5f9;border:1px dashed #cbd5e1;border-radius:10px;padding:20px;text-align:center;margin:0 0 20px;'>
+          <div style='font-size:32px;font-weight:bold;letter-spacing:8px;color:#0284c7;'>" . htmlspecialchars($otp) . "</div>
+          <div style='font-size:12px;color:#64748b;margin-top:6px;'><i class='fas fa-clock'></i> This code expires in 10 minutes</div>
+        </div>
+        <p style='font-size:13px;color:#94a3b8;line-height:1.5;margin:0;'>
+          If you did not initiate this registration request, please disregard this email. Never share your OTP with anyone.
+        </p>
+      </div>
+      <div style='border-top:1px solid #e2e8f0;padding-top:16px;text-align:center;color:#94a3b8;font-size:11px;'>
+        &copy; " . date('Y') . " Lubo National High School &bull; DepEd Philippines
+      </div>
+    </div>";
+
+    $mailOk = sendMail($email, $recipientName, $subject, $bodyHtml);
+
+    if ($mailOk) {
+        jsonResponse(['success' => true, 'message' => "Verification OTP sent to $email. Please check your inbox (and spam folder)."]);
+    } else {
+        jsonResponse(['success' => false, 'message' => 'Unable to send OTP email. Please ensure your email address is correct and try again.'], 500);
+    }
+}
+
 // ─── REGISTER NEW STUDENT (public signup / admin add) ────────────────────────
 if ($action === 'register') {
     $firstName     = trim($_POST['first_name']     ?? '');
     $lastName      = trim($_POST['last_name']      ?? '');
-    $email         = trim($_POST['email']          ?? '');
+    $email         = strtolower(trim($_POST['email'] ?? ''));
     $password      = $_POST['password']            ?? '';
     $lrn           = trim($_POST['lrn']            ?? '');
     $phone         = trim($_POST['phone']          ?? '');
@@ -117,6 +195,23 @@ if ($action === 'register') {
 
     $pdo = getDB();
 
+    // If public signup (not admin logged in), verify OTP
+    $isAdmin = !empty($_SESSION['role']) && $_SESSION['role'] === 'admin';
+    if (!$isAdmin) {
+        $otp = trim($_POST['otp'] ?? '');
+        if (!$otp) {
+            jsonResponse(['success' => false, 'message' => 'OTP verification code is required.'], 400);
+        }
+        $stmt = $pdo->prepare('SELECT id FROM email_verifications WHERE email = ? AND otp = ? AND used = 0 AND expires_at > NOW() ORDER BY id DESC LIMIT 1');
+        $stmt->execute([$email, $otp]);
+        $verRow = $stmt->fetch();
+        if (!$verRow) {
+            jsonResponse(['success' => false, 'message' => 'Invalid or expired OTP code. Please enter the correct code or request a new one.'], 400);
+        }
+        // Mark OTP as used
+        $pdo->prepare('UPDATE email_verifications SET used = 1 WHERE id = ?')->execute([$verRow['id']]);
+    }
+
     // Check email duplicate
     $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ?');
     $stmt->execute([$email]);
@@ -146,10 +241,11 @@ if ($action === 'register') {
 
     jsonResponse([
         'success' => true,
-        'message' => 'Account created. You can now log in.',
+        'message' => 'Account created successfully! You can now log in.',
         'id'      => (int)$pdo->lastInsertId(),
     ]);
 }
+
 
 // ─── UPDATE PROFILE ─────────────────────────────────────────────────────────
 if ($action === 'update') {

@@ -58,7 +58,7 @@ if (!empty($_SESSION['user_id'])) {
       <i class="fas fa-paper-plane me-2"></i>Send Reset Link
     </button>
     <div class="text-center mt-3">
-      <a href="/OGMS-Lubo-National-High-School/index.php" style="color:#1d4ed8;font-size:.875rem;text-decoration:none">
+      <a href="/OGMS-Lubo-National-High-School/login.php" style="color:#1d4ed8;font-size:.875rem;text-decoration:none">
         <i class="fas fa-arrow-left me-1"></i>Back to Login
       </a>
     </div>
@@ -104,7 +104,7 @@ if (!empty($_SESSION['user_id'])) {
       <p class="text-muted" style="font-size:.875rem">
         Your password has been changed successfully. You can now log in with your new password.
       </p>
-      <a href="/OGMS-Lubo-National-High-School/index.php" class="btn btn-primary w-100 mt-2">
+      <a href="/OGMS-Lubo-National-High-School/login.php" class="btn btn-primary w-100 mt-2">
         <i class="fas fa-sign-in-alt me-2"></i>Back to Login
       </a>
     </div>

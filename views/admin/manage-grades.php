@@ -176,9 +176,17 @@ $adminActivePage = 'manage-grades';
 
       <!-- Hierarchical Subjects Accordion Container -->
       <div class="content-card mb-3">
-        <div class="card-header-custom d-flex justify-content-between align-items-center">
+        <div class="card-header-custom d-flex justify-content-between align-items-center flex-wrap gap-2">
           <span class="card-title"><i class="fas fa-book me-2 text-primary"></i>Subjects &amp; Grade Level Sections</span>
-          <span class="badge bg-primary" id="subjectCount" style="font-size:.8rem">—</span>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-primary btn-sm" onclick="openAddSubjectModal()">
+              <i class="fas fa-plus me-1"></i>New Subject
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="restoreDefaultSubjects()" title="Restore 8 default core DepEd subjects">
+              <i class="fas fa-rotate me-1"></i>Reset Defaults
+            </button>
+            <span class="badge bg-primary" id="subjectCount" style="font-size:.8rem">—</span>
+          </div>
         </div>
         <div class="p-3">
           <div class="accordion" id="subjectAccordion">
@@ -308,13 +316,50 @@ $adminActivePage = 'manage-grades';
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     ADD / EDIT SUBJECT MODAL
+════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="subjectModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#0c1326;color:#fff">
+        <h5 class="modal-title" id="subjectModalTitle"><i class="fas fa-book me-2"></i>New Subject</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="modalSubjectId"/>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Subject Name</label>
+          <input type="text" id="modalSubjectName" class="form-control" placeholder="e.g. Mathematics" required/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Subject Code</label>
+          <input type="text" id="modalSubjectCode" class="form-control" placeholder="e.g. MATH" required/>
+          <small class="text-muted">Short abbreviation used in report cards and tables.</small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Assigned Teacher</label>
+          <select id="modalSubjectTeacher" class="form-select">
+            <option value="">— No Assigned Teacher (None) —</option>
+          </select>
+          <small class="text-muted">The assigned teacher encodes and manages grades for this subject in the Teacher Portal.</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="saveSubject()"><i class="fas fa-save me-1"></i>Save Subject</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../../assets/js/api-client.js"></script>
 <script src="../../assets/js/app.js"></script>
 <script>
   // ── State ─────────────────────────────────────────────────────────────────
-  let allSections = [], allSubjects = [], allStudents = [], allGrades = [];
+  let allSections = [], allSubjects = [], allStudents = [], allGrades = [], allTeachersList = [], allTeacherAssignments = [];
   let currentClassSubject = null, currentClassSection = null;
   let sectionStudentsMap = {}; // { sectionId: [student, ...] }
   let activeGridStudentId = null;
@@ -328,20 +373,24 @@ $adminActivePage = 'manage-grades';
   }
 
   async function loadData() {
-    const [secRes, subRes, stuRes] = await Promise.all([
+    const [secRes, subRes, stuRes, advRes] = await Promise.all([
       fetch('../../api/sections.php?action=list'),
       fetch('../../api/grades.php?action=list'),
       fetch('../../api/students.php?action=list'),
+      fetch('../../api/sections.php?action=advisers'),
     ]);
 
     const secData = await secRes.json();
     const grData  = await subRes.json();
     const stuData = await stuRes.json();
+    const advData = await advRes.json();
 
-    allSections = secData.data || [];
-    allSubjects = grData.subjects || [];
-    allStudents = stuData.data || [];
-    allGrades   = grData.data || [];
+    allSections          = secData.data || [];
+    allSubjects          = grData.subjects || [];
+    allStudents          = stuData.data || [];
+    allGrades            = grData.data || [];
+    allTeachersList      = advData.data || [];
+    allTeacherAssignments = grData.teacher_assignments || [];
 
     // Index students by section
     sectionStudentsMap = {};
@@ -459,12 +508,18 @@ $adminActivePage = 'manage-grades';
             </div>`;
         }).join('') : `<div class="text-muted p-2" style="font-size:.85rem"><i class="fas fa-info-circle me-1"></i>No sections created for Grade ${gLevel}.</div>`;
 
+        const assignedTeacher = (allTeacherAssignments || []).find(ta => ta.subject_id == sub.id && ta.grade_level == gLevel);
+        const gradeTeacherBadge = assignedTeacher 
+          ? `<span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2" style="font-weight:600;font-size:0.75rem"><i class="fas fa-chalkboard-teacher me-1"></i>${esc(assignedTeacher.teacher_name)}</span>` 
+          : '';
+
         return `
           <div class="grade-item">
             <h3 class="accordion-header" id="heading-grade-${sub.id}-${gLevel}">
               <button class="accordion-button grade-accordion-btn ${collapsedGradeCls}" type="button" data-bs-toggle="collapse" data-bs-target="#${gradeCollapseId}">
                 <i class="fas fa-layer-group me-2 text-secondary"></i>Grade ${gLevel}
                 <span class="badge bg-secondary ms-2" style="font-weight:normal">${sectionsInGrade.length} Section${sectionsInGrade.length===1?'':'s'}</span>
+                ${gradeTeacherBadge}
               </button>
             </h3>
             <div id="${gradeCollapseId}" class="accordion-collapse collapse${showGrade}">
@@ -477,11 +532,21 @@ $adminActivePage = 'manage-grades';
 
       return `
         <div class="subject-item mb-3">
-          <h2 class="accordion-header" id="heading-subject-${sub.id}">
-            <button class="accordion-button subject-accordion-btn ${collapsedSubjectCls}" type="button" data-bs-toggle="collapse" data-bs-target="#${subCollapseId}">
-              <i class="fas fa-book me-2"></i>${esc(sub.name)} <span class="badge bg-primary-subtle text-primary ms-2" style="font-size:.72rem">${esc(sub.code||'')}</span>
+          <div class="accordion-header d-flex align-items-center rounded-top" id="heading-subject-${sub.id}" style="background-color:#0c1326!important; overflow:hidden">
+            <button class="accordion-button subject-accordion-btn flex-grow-1 shadow-none ${collapsedSubjectCls}" type="button" data-bs-toggle="collapse" data-bs-target="#${subCollapseId}">
+              <i class="fas fa-book me-2"></i>${esc(sub.name)} 
+              <span class="badge bg-primary-subtle text-primary ms-2" style="font-size:.72rem">${esc(sub.code||'')}</span>
+              ${sub.teacher_name ? `<span class="badge bg-info-subtle text-info ms-2" style="font-size:.72rem"><i class="fas fa-chalkboard-teacher me-1"></i>${esc(sub.teacher_name)}</span>` : `<span class="badge bg-secondary-subtle text-secondary ms-2" style="font-size:.72rem"><i class="fas fa-user-slash me-1"></i>No Teacher</span>`}
             </button>
-          </h2>
+            <div class="pe-3 d-flex gap-1" style="background:#0c1326; z-index:2">
+              <button class="btn btn-sm btn-outline-light py-0 px-2" style="font-size:.78rem" title="Edit Subject" onclick="event.stopPropagation(); openEditSubjectModal(${sub.id}, '${escAttr(sub.name)}', '${escAttr(sub.code||'')}', ${sub.teacher_id || 'null'})">
+                <i class="fas fa-edit me-1"></i>Edit
+              </button>
+              <button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:.78rem" title="Delete Subject" onclick="event.stopPropagation(); deleteSubject(${sub.id}, '${escAttr(sub.name)}')">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
           <div id="${subCollapseId}" class="accordion-collapse collapse${showSubject}">
             <div class="p-3">
               ${gradeBlocksHtml}
@@ -898,6 +963,126 @@ $adminActivePage = 'manage-grades';
 </body>
 </html>`);
     printWindow.document.close();
+  }
+
+  // ── Subject Management Functions ─────────────────────────────────────────
+  let subjectModalInstance = null;
+  function getSubjectModal() {
+    if (!subjectModalInstance) {
+      subjectModalInstance = new bootstrap.Modal(document.getElementById('subjectModal'));
+    }
+    return subjectModalInstance;
+  }
+
+  function populateSubjectTeacherSelect(selectedId = null) {
+    const sel = document.getElementById('modalSubjectTeacher');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— No Assigned Teacher (None) —</option>' +
+      allTeachersList.map(t => `<option value="${t.id}" ${selectedId && String(selectedId) === String(t.id) ? 'selected' : ''}>${esc(t.full_name)} (${esc(t.email)})</option>`).join('');
+  }
+
+  function openAddSubjectModal() {
+    document.getElementById('subjectModalTitle').innerHTML = '<i class="fas fa-plus-circle me-2"></i>New Subject';
+    document.getElementById('modalSubjectId').value = '';
+    document.getElementById('modalSubjectName').value = '';
+    document.getElementById('modalSubjectCode').value = '';
+    populateSubjectTeacherSelect(null);
+    getSubjectModal().show();
+  }
+
+  function openEditSubjectModal(id, name, code, teacherId = null) {
+    document.getElementById('subjectModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Subject';
+    document.getElementById('modalSubjectId').value = id;
+    document.getElementById('modalSubjectName').value = name;
+    document.getElementById('modalSubjectCode').value = code;
+    populateSubjectTeacherSelect(teacherId);
+    getSubjectModal().show();
+  }
+
+  async function saveSubject() {
+    const id        = document.getElementById('modalSubjectId').value.trim();
+    const name      = document.getElementById('modalSubjectName').value.trim();
+    const code      = document.getElementById('modalSubjectCode').value.trim().toUpperCase();
+    const teacherId = document.getElementById('modalSubjectTeacher').value;
+
+    if (!name || !code) {
+      showToast('Subject name and code are required.', 'error');
+      return;
+    }
+
+    const action = id ? 'update_subject' : 'add_subject';
+    const body = new FormData();
+    body.append('action', action);
+    if (id) body.append('id', id);
+    body.append('name', name);
+    body.append('code', code);
+    body.append('teacher_id', teacherId);
+
+    try {
+      const res  = await fetch('../../api/grades.php', { method: 'POST', body });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || 'Subject saved successfully.', 'success');
+        getSubjectModal().hide();
+        await loadData();
+        populateFilters();
+        renderSummary();
+        renderHierarchy();
+      } else {
+        showToast(data.message || 'Failed to save subject.', 'error');
+      }
+    } catch (err) {
+      showToast('Network error while saving subject.', 'error');
+    }
+  }
+
+  async function deleteSubject(id, name) {
+    if (!confirm(`Are you sure you want to delete "${name}"? This will also remove any grades linked to this subject.`)) {
+      return;
+    }
+    const body = new FormData();
+    body.append('action', 'delete_subject');
+    body.append('id', id);
+
+    try {
+      const res  = await fetch('../../api/grades.php', { method: 'POST', body });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || 'Subject deleted.', 'success');
+        await loadData();
+        populateFilters();
+        renderSummary();
+        renderHierarchy();
+      } else {
+        showToast(data.message || 'Failed to delete subject.', 'error');
+      }
+    } catch (err) {
+      showToast('Network error while deleting subject.', 'error');
+    }
+  }
+
+  async function restoreDefaultSubjects() {
+    if (!confirm('This will restore the 8 default DepEd subjects and clear grades. Are you sure?')) {
+      return;
+    }
+    const body = new FormData();
+    body.append('action', 'restore_subjects');
+
+    try {
+      const res  = await fetch('../../api/grades.php', { method: 'POST', body });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || 'Default subjects restored.', 'success');
+        await loadData();
+        populateFilters();
+        renderSummary();
+        renderHierarchy();
+      } else {
+        showToast(data.message || 'Failed to restore default subjects.', 'error');
+      }
+    } catch (err) {
+      showToast('Network error while restoring subjects.', 'error');
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);

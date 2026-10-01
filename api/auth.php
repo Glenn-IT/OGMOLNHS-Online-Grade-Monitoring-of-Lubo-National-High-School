@@ -8,9 +8,10 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 // ─── LOGIN ─────────────────────────────────────────────────────────────────
 if ($action === 'login') {
-    // Lockout guard: max 3 failed attempts per tab (student/admin tracked separately),
+    // Lockout guard: max 3 failed attempts per tab (student/teacher/admin tracked separately),
     // then a 30-second cooldown before the next attempt is allowed.
-    $loginType   = ($_POST['login_type'] ?? 'student') === 'admin' ? 'admin' : 'student';
+    $rawType     = $_POST['login_type'] ?? 'student';
+    $loginType   = in_array($rawType, ['admin', 'teacher', 'student']) ? $rawType : 'student';
     $attemptsKey = "login_attempts_$loginType";
     $lockKey     = "login_lockout_until_$loginType";
 
@@ -63,6 +64,15 @@ if ($action === 'login') {
         ], 401);
     }
 
+    // Role check against tab
+    if ($user['role'] !== $loginType) {
+        $properTab = ucfirst($user['role']);
+        jsonResponse([
+            'success' => false,
+            'message' => "This account is registered as a $properTab. Please use the $properTab tab to log in.",
+        ], 403);
+    }
+
     // Reset counter on successful login
     unset($_SESSION[$attemptsKey], $_SESSION[$lockKey]);
 
@@ -75,7 +85,7 @@ if ($action === 'login') {
 
     $redirect = match($user['role']) {
         'admin'   => '/OGMS-Lubo-National-High-School/views/admin/dashboard.php',
-        'teacher' => '/OGMS-Lubo-National-High-School/views/admin/dashboard.php',
+        'teacher' => '/OGMS-Lubo-National-High-School/views/teacher/dashboard.php',
         default   => '/OGMS-Lubo-National-High-School/views/student/dashboard.php',
     };
 

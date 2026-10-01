@@ -11,10 +11,16 @@ $pdo     = getDB();
 
 // ─── CLASS SUMMARY REPORT (admin only) ───────────────────────────────────────
 if ($action === 'class') {
-    requireAdmin();
+    requireStaff();
 
     $where  = ['u.role = ?', 'u.is_active = 1'];
     $params = ['student'];
+
+    $sectionId = (int)($_GET['section_id'] ?? 0);
+    if ($sectionId) {
+        $where[] = 's.id = ?';
+        $params[] = $sectionId;
+    }
 
     $gradeWhere  = ['1=1'];
     $gradeParams = [];
@@ -57,15 +63,25 @@ if ($action === 'class') {
     ]);
 }
 
-// ─── SUBJECT PERFORMANCE REPORT (admin only) ─────────────────────────────────
+// ─── SUBJECT PERFORMANCE REPORT (admin and teachers) ─────────────────────────
 if ($action === 'subject') {
-    requireAdmin();
+    requireStaff();
 
-    $qFilter  = $quarter ? 'AND g.quarter = ?' : '';
-    $qParams  = $quarter ? [$quarter] : [];
+    $where   = ['1=1'];
+    $qParams = [];
+
+    if ($quarter) {
+        $where[] = 'g.quarter = ?';
+        $qParams[] = $quarter;
+    }
+
+    if ($_SESSION['role'] === 'teacher') {
+        $where[] = 's.teacher_id = ?';
+        $qParams[] = $_SESSION['user_id'];
+    }
 
     $stmt = $pdo->prepare(
-        "SELECT s.id, s.name,
+        "SELECT s.id, s.name, s.code,
                 ROUND(AVG(g.final_grade), 2)  AS avg,
                 MAX(g.final_grade)            AS highest,
                 MIN(g.final_grade)            AS lowest,
@@ -73,7 +89,7 @@ if ($action === 'subject') {
                 SUM(g.final_grade < 75)       AS fail_count
          FROM grades g
          JOIN subjects s ON s.id = g.subject_id
-         WHERE 1=1 $qFilter
+         WHERE " . implode(' AND ', $where) . "
          GROUP BY g.subject_id
          ORDER BY s.name"
     );

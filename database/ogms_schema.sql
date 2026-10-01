@@ -36,7 +36,9 @@ CREATE TABLE IF NOT EXISTS sections (
     id              INT AUTO_INCREMENT PRIMARY KEY,
     name            VARCHAR(50) NOT NULL,
     grade_level     TINYINT NOT NULL,
+    adviser_id      INT NULL,
     school_year_id  INT,
+    FOREIGN KEY (adviser_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (school_year_id) REFERENCES school_years(id),
     UNIQUE KEY uq_section (name, grade_level, school_year_id)
 );
@@ -106,3 +108,42 @@ CREATE TABLE IF NOT EXISTS password_resets (
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+-- ─── SCHOOL POSTS (Announcements, Events, Highlights) ─────────────────────────
+CREATE TABLE IF NOT EXISTS school_posts (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    type        ENUM('announcement', 'event', 'highlight') NOT NULL DEFAULT 'announcement',
+    title       VARCHAR(255) NOT NULL,
+    content     TEXT NOT NULL,
+    event_date  DATE NULL,
+    author_name VARCHAR(100) DEFAULT 'School Administration',
+    is_active   TINYINT(1) NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ─── EMAIL VERIFICATIONS (Sign-Up OTP) ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS email_verifications (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    email       VARCHAR(191) NOT NULL,
+    otp         VARCHAR(10) NOT NULL,
+    expires_at  DATETIME NOT NULL,
+    used        TINYINT(1) NOT NULL DEFAULT 0,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_email_otp (email, otp)
+);
+
+-- ─── TEACHER SUBJECT & GRADE LEVEL ASSIGNMENTS ───────────────────────────────
+CREATE TABLE IF NOT EXISTS teacher_subjects (
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    teacher_id     INT NOT NULL,
+    subject_id     INT NOT NULL,
+    grade_level    TINYINT NOT NULL,
+    school_year_id INT NOT NULL,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (teacher_id)     REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id)     REFERENCES subjects(id) ON DELETE CASCADE,
+    FOREIGN KEY (school_year_id) REFERENCES school_years(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_teacher_sub_grade (teacher_id, subject_id, grade_level, school_year_id)
+);
+

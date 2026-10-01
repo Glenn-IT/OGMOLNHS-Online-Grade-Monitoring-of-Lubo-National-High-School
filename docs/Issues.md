@@ -1,17 +1,15 @@
-1. Manage Grades - lets modify the manage grades make the style like the Manage section
+Create a Homepage like a guest page that is no need for Login its like a homepage of the school ok
+    
+    - add header and footer
+    - add events / announcements / highlights of the school 
+    if you add events and announcement and highlgiths add also a function on the admin that can add/edit/delte those features
 
-Stundent Grade
+Add Gmail verification like an OTP for confirmation for sign up like before the account creation it should confirm the OTP first
+App password - banp rdvr iowg rsra
+Gmail - prototypev1.03@gmail.com
 
-| Subject | Grade | Section | Total Student | Action button |
 
-if i open the row 1
-Aralin Panlipunan - Grade 7 - Rizal
-it should show another data gridview for the student
+Add a Teacher Account portal that manage the grades of the student that is enrolled to his section
 
-Learners Name | Term 1 | Term 2 | Term 3 | Final Grade | Average
+Add also a function on the admin that can edit the subject on the admin
 
-on the terms i can input grade and edit delete ok
-
-create also a filter ok
-
-2. Student Performance Ranking on Analytics - Student ranking per grade Level ok

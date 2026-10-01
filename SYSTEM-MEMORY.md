@@ -39,8 +39,10 @@ flowchart TD
     subgraph Backend_API ["Backend API Layer (api/*.php)"]
         API_Auth["api/auth.php"]
         API_Students["api/students.php"]
+        API_Teachers["api/teachers.php"]
         API_Grades["api/grades.php"]
         API_Sections["api/sections.php"]
+        API_Posts["api/posts.php"]
         API_SchoolYears["api/school-years.php"]
         API_Reports["api/reports.php"]
         API_Analytics["api/analytics.php"]
@@ -90,28 +92,39 @@ flowchart TD
 | Relative File Path | Type / Layer | Primary Responsibility | Direct Dependencies (Requires) | Inbound Callers / Consumers |
 |---|---|---|---|---|
 | `config/db.php` | Config / Database | Loads `.env`, defines DB/SMTP/SMS constants, provides `getDB(): PDO` singleton | `.env` | All `api/*.php`, `config/mailer.php`, `test-mail.php` |
-| `config/session.php` | Config / Auth | Starts secure `OGMS_SID`, guards routes (`requireLogin`, `requireAdmin`, `requireStudent`), provides `jsonResponse()` | None | All `api/*.php`, `views/*/*.php`, `index.php` |
+| `config/session.php` | Config / Auth | Starts secure `OGMS_SID`, guards routes (`requireLogin`, `requireAdmin`, `requireTeacher`, `requireStaff`, `requireStudent`), provides `jsonResponse()` | None | All `api/*.php`, `views/*/*.php`, `index.php`, `login.php` |
 | `config/school-year.php` | Config / Helper | Resolves active academic year ID (`activeSchoolYear`) and label | `config/db.php` | `api/students.php`, `api/grades.php`, `api/sections.php`, `api/reports.php`, `api/sms.php`, `api/school-years.php` |
-| `config/mailer.php` | Config / Integration | Sends HTML emails using PHPMailer via Gmail SMTP TLS | `vendor/autoload.php`, `config/db.php` | `api/auth.php` (`reset_request`), `test-mail.php` |
+| `config/mailer.php` | Config / Integration | Sends HTML emails using PHPMailer via Gmail SMTP TLS | `vendor/autoload.php`, `config/db.php` | `api/auth.php` (`reset_request`), `api/students.php` (`send_signup_otp`), `test-mail.php` |
 | `config/test-connection.php` | Diagnostics | Validates PDO connectivity and outputs table record counts | `config/db.php` | Developer CLI / Debug |
-| `api/auth.php` | API Endpoint | Handles `login`, `logout`, `check`, `reset_request`, `reset_confirm` | `config/db.php`, `config/session.php`, `config/mailer.php` | `index.php`, `views/student/forgot-password.php` |
-| `api/students.php` | API Endpoint | Student CRUD: `list`, `get`, `register`, `update`, `delete` | `config/db.php`, `config/session.php`, `config/school-year.php` | `views/admin/manage-students.php`, `views/student/profile.php`, `views/student/signup.php`, `views/admin/profile.php` |
-| `api/grades.php` | API Endpoint | Grade & Subject CRUD: `list`, `save`, `delete`, `add_subject`, `delete_subject`, `restore_subjects` | `config/db.php`, `config/session.php`, `config/school-year.php` | `views/admin/manage-grades.php`, `views/student/grades.php`, `views/student/analytics.php` |
-| `api/sections.php` | API Endpoint | Section & Enrollment CRUD: `list`, `students`, `save`, `delete`, `enroll`, `unenroll` | `config/db.php`, `config/session.php`, `config/school-year.php` | `views/admin/manage-sections.php`, `views/admin/manage-students.php`, `views/admin/manage-grades.php` |
+| `api/auth.php` | API Endpoint | Handles `login` (student, teacher, admin), `logout`, `check`, `reset_request`, `reset_confirm` | `config/db.php`, `config/session.php`, `config/mailer.php` | `login.php`, `views/student/forgot-password.php` |
+| `api/students.php` | API Endpoint | Student CRUD: `list`, `get`, `register` (with OTP verification), `send_signup_otp`, `update`, `delete` | `config/db.php`, `config/session.php`, `config/school-year.php`, `config/mailer.php` | `views/admin/manage-students.php`, `views/student/profile.php`, `views/student/signup.php`, `views/admin/profile.php` |
+| `api/teachers.php` | API Endpoint | Faculty & Teacher CRUD: `list`, `get`, `save` (create/update credentials), `toggle_status`, `delete` | `config/db.php`, `config/session.php`, `config/school-year.php` | `views/admin/manage-teachers.php` |
+| `api/grades.php` | API Endpoint | Grade & Subject CRUD: `list`, `save`, `delete`, `add_subject`, `update_subject`, `delete_subject`, `restore_subjects` | `config/db.php`, `config/session.php`, `config/school-year.php` | `views/admin/manage-grades.php`, `views/teacher/manage-grades.php`, `views/student/grades.php`, `views/student/analytics.php` |
+| `api/sections.php` | API Endpoint | Section & Enrollment CRUD: `list` (filtered for teacher), `students`, `advisers`, `save` (with `adviser_id`), `delete`, `enroll`, `unenroll` | `config/db.php`, `config/session.php`, `config/school-year.php` | `views/admin/manage-sections.php`, `views/admin/manage-students.php`, `views/admin/manage-grades.php`, `views/teacher/dashboard.php` |
 | `api/school-years.php` | API Endpoint | Academic Year management: `active`, `list`, `save`, `activate`, `delete` | `config/db.php`, `config/session.php`, `config/school-year.php` | `views/admin/school-years.php`, `views/student/dashboard.php` |
-| `api/reports.php` | API Endpoint | Compiles DepEd SF9 & class analytics: `class`, `subject`, `student` | `config/db.php`, `config/session.php`, `config/school-year.php` | `views/admin/reports.php`, `views/student/reports.php` |
+| `api/reports.php` | API Endpoint | Compiles DepEd SF9 & class analytics: `class` (scoped for teacher), `subject`, `student` | `config/db.php`, `config/session.php`, `config/school-year.php` | `views/admin/reports.php`, `views/teacher/reports.php`, `views/student/reports.php` |
+| `api/posts.php` | API Endpoint | School posts CRUD: `list` (public/admin), `save` (admin), `delete` (admin), `toggle_status` (admin) | `config/db.php`, `config/session.php` | `index.php`, `views/admin/manage-posts.php` |
 | `api/analytics.php` | API Endpoint | Aggregates KPIs, distributions, trends, rankings: `summary` | `config/db.php`, `config/session.php` | `views/admin/dashboard.php`, `views/admin/analytics.php`, `views/admin/profile.php` |
 | `api/sms.php` | API Endpoint | Grade SMS generation & PhilSMS API v3 dispatcher: `options`, `preview`, `logs`, `send`, `clear_logs` | `config/db.php`, `config/session.php`, `config/school-year.php` | `views/admin/sms.php` |
-| `index.php` | View / Auth | User login gateway (Tabs for Student and Admin, password eye toggle, brute lockout handling) | `config/session.php`, `assets/css/style.css` | Public entry point |
+| `index.php` | View / Public | Official Public School Homepage (Header, Hero, About LNHS, Announcements, Events, Highlights, Footer) | `config/session.php`, `config/db.php`, `assets/css/style.css` | Public entry point |
+| `login.php` | View / Auth | Unified user login portal with tabs for Student, Teacher, and Administrator | `config/session.php`, `assets/css/style.css` | Navigation links, guards |
 | `logout.php` | Controller | Destroys PHP session, clears cookies, redirects to `index.php` | `config/session.php` | Sidebars & User menus |
 | `components/admin-sidebar.php` | View Component | Reusable navigation sidebar for administrative pages with active state highlighting | Session (`$_SESSION['full_name']`) | Included by all `views/admin/*.php` |
+| `components/teacher-sidebar.php` | View Component | Reusable navigation sidebar for faculty portal pages with active state highlighting | Session (`$_SESSION['full_name']`) | Included by all `views/teacher/*.php` |
 | `components/student-sidebar.php` | View Component | Reusable navigation sidebar for student portal pages with active state highlighting | Session (`$_SESSION['full_name']`) | Included by all `views/student/*.php` |
+| `views/admin/manage-posts.php` | View / Admin | Administration panel to add, edit, delete, and toggle school announcements, events, and highlights | `config/session.php`, `components/admin-sidebar.php` | Admin navigation |
+| `views/admin/manage-teachers.php` | View / Admin | Administration panel to register teachers, edit faculty credentials/passwords, and assign class advisories | `config/session.php`, `components/admin-sidebar.php` | Admin navigation |
+| `views/teacher/dashboard.php` | View / Teacher | Faculty dashboard showing advisory section overview, metrics, student roster, and quick actions | `config/session.php`, `components/teacher-sidebar.php` | Teacher portal |
+| `views/teacher/manage-grades.php` | View / Teacher | Grade management grid for advisory class learners across 1st, 2nd, 3rd, and Final terms with SF9 printing | `config/session.php`, `components/teacher-sidebar.php` | Teacher portal |
+| `views/teacher/reports.php` | View / Teacher | DepEd SF9 report card generator and class summary report for advisory students | `config/session.php`, `components/teacher-sidebar.php`, `assets/js/sf9-renderer.js` | Teacher portal |
+| `views/teacher/profile.php` | View / Teacher | Faculty profile management and password change | `config/session.php`, `components/teacher-sidebar.php` | Teacher portal |
 | `assets/js/app.js` | Client Script | Global UI utilities: Toast notifications, loading spinners, date formatters, grade color badges, mobile sidebar toggle | DOM, FontAwesome | Loaded by all views |
 | `assets/js/api-client.js` | Client Script | Standardized wrapper for `fetch` GET/POST requests | DOM | Available across views |
-| `assets/js/sf9-renderer.js` | Client Script | DepEd Form 9 (SF9) front-and-back report card rendering engine (JHS & SHS support) | `assets/css/sf9.css`, `assets/css/print.css` | `views/admin/reports.php`, `views/student/reports.php`, `test-page/index.php` |
+| `assets/js/sf9-renderer.js` | Client Script | DepEd Form 9 (SF9) front-and-back report card rendering engine (JHS & SHS support) | `assets/css/sf9.css`, `assets/css/print.css` | `views/admin/reports.php`, `views/teacher/reports.php`, `views/student/reports.php`, `test-page/index.php` |
 | `assets/css/style.css` | Stylesheet | Core design system, CSS variables, dark-mode/light-mode variables, layout, tables, badges | None | All views |
-| `assets/css/sf9.css` | Stylesheet | Pixel-perfect DepEd SF9 report card layout for on-screen preview and letter-sized printing | None | `views/admin/reports.php`, `views/student/reports.php`, `test-page/index.php` |
-| `assets/css/print.css` | Stylesheet | Print-only stylesheet hiding navigation, buttons, and headers when printing reports | None | `views/admin/reports.php`, `views/student/reports.php` |
+| `assets/css/sf9.css` | Stylesheet | Pixel-perfect DepEd SF9 report card layout for on-screen preview and letter-sized printing | None | `views/admin/reports.php`, `views/teacher/reports.php`, `views/student/reports.php`, `test-page/index.php` |
+| `assets/css/print.css` | Stylesheet | Print-only stylesheet hiding navigation, buttons, and headers when printing reports | None | `views/admin/reports.php`, `views/teacher/reports.php`, `views/student/reports.php` |
+
 
 ---
 
@@ -126,6 +139,8 @@ erDiagram
     users ||--o{ enrollments : "enrolled in"
     users ||--o{ grades : "student grades"
     users ||--o{ subjects : "teaches"
+    users ||--o{ sections : "advises"
+    users ||--o{ school_posts : "creates"
     users ||--o{ password_resets : "requests"
     school_years ||--o{ sections : "has"
     school_years ||--o{ enrollments : "active in"
@@ -163,6 +178,7 @@ erDiagram
         varchar name "e.g. Rizal"
         tinyint grade_level "7 to 12"
         int school_year_id FK
+        int adviser_id FK
     }
 
     subjects {
@@ -214,6 +230,30 @@ erDiagram
         tinyint used "0=unused, 1=used"
         timestamp created_at
     }
+
+    email_verifications {
+        int id PK
+        varchar email
+        varchar otp_code "6-digit OTP"
+        datetime expires_at "NOW() + 10 min"
+        tinyint is_verified "0=pending, 1=verified"
+        timestamp created_at
+    }
+
+    school_posts {
+        int id PK
+        enum type "announcement, event, highlight"
+        varchar title
+        text content
+        varchar image_url
+        varchar event_date
+        varchar badge_text
+        int display_order
+        tinyint is_active "1=published, 0=hidden"
+        int created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
 ```
 
 ### Table Details & Field Constraints
@@ -231,7 +271,8 @@ erDiagram
 - **Format:** `YYYY-YYYY` with consecutive years (e.g., `2025-2026`).
 
 #### 3. `sections`
-- **Key Constraints:** `PRIMARY KEY (id)`, `FOREIGN KEY (school_year_id) REFERENCES school_years(id)`.
+- **Key Constraints:** `PRIMARY KEY (id)`, `FOREIGN KEY (school_year_id) REFERENCES school_years(id)`, `FOREIGN KEY (adviser_id) REFERENCES users(id)`.
+- **Adviser Role:** Class Adviser assigned to section must have `role = 'teacher'`.
 - **Unique Constraint:** `uq_section (name, grade_level, school_year_id)` — prevents duplicate section names within the same grade and academic year.
 - **Foreign Key Guard:** Cannot be deleted if referenced in `enrollments`.
 
@@ -266,6 +307,16 @@ erDiagram
 - Expiration: MySQL `NOW() + INTERVAL 15 MINUTE`.
 - Protected by brute-force attempt limits (10 attempts max per session).
 
+#### 9. `email_verifications`
+- Stores temporary 6-digit numeric OTP codes for public student sign up verification.
+- Expiration: MySQL `NOW() + INTERVAL 10 MINUTE`.
+- Tracks `is_verified` (0=pending, 1=verified) before student registration row is committed.
+
+#### 10. `school_posts`
+- Stores public announcements, upcoming events, and school highlights displayed on guest landing page.
+- Types: `'announcement'`, `'event'`, `'highlight'`.
+- Fields: `title`, `content`, `image_url`, `event_date`, `badge_text`, `display_order`, `is_active`, `created_by`.
+
 ---
 
 ## ⚙️ Functions & Methods Directory
@@ -284,13 +335,19 @@ function isApiRequest(): bool
 // Detects if the current request is an API request via URI match with '/api/'.
 
 function requireLogin(): void
-// Halts execution and redirects to index.php (or returns 401 JSON) if $_SESSION['user_id'] is empty.
+// Halts execution and redirects to login.php (or returns 401 JSON) if $_SESSION['user_id'] is empty.
 
 function requireAdmin(): void
-// Enforces requireLogin() + $_SESSION['role'] === 'admin'. Redirects to student dashboard (or 403 JSON).
+// Enforces requireLogin() + $_SESSION['role'] === 'admin'. Redirects to login.php (or 403 JSON).
+
+function requireTeacher(): void
+// Enforces requireLogin() + $_SESSION['role'] === 'teacher'. Redirects to login.php (or 403 JSON).
+
+function requireStaff(): void
+// Enforces requireLogin() + in_array($_SESSION['role'], ['admin', 'teacher']). Redirects to login.php (or 403 JSON).
 
 function requireStudent(): void
-// Enforces requireLogin() + $_SESSION['role'] === 'student'. Redirects to admin dashboard (or 403 JSON).
+// Enforces requireLogin() + $_SESSION['role'] === 'student'. Redirects to login.php (or 403 JSON).
 
 function jsonResponse(array $data, int $status = 200): void
 // Sets HTTP status code, Content-Type: application/json, no-cache headers, security headers, echoes JSON, and terminates script with exit.
@@ -495,7 +552,13 @@ Record every modification, refactoring, and feature addition in this section.
 | **2026-09-12** | Antigravity AI | `api/reports.php`, `assets/js/sf9-renderer.js`, `views/admin/reports.php`, `views/student/reports.php`, `assets/css/sf9.css` | Fix: Enabled Grading Term filtering for individual student reports; 1st Term now only displays Term 1 grades while 2nd/3rd terms show as `'—'`, with synchronized term averages and visual active-column highlighting | Yes: API quarter param, SF9 renderer, admin & student report views, and print CSS synchronized. |
 | **2026-09-12** | Antigravity AI | `views/admin/reports.php`, `views/student/reports.php`, `assets/css/print.css`, `assets/css/style.css` | UI/Print: Replaced graduation cap icon with official DepEd seal (left) and Lubo NHS seal (right) in print headers for Class Summary and Subject Performance reports | Yes: Admin reports, student reports, print CSS, and screen styles synchronized. |
 | **2026-09-12** | Antigravity AI | `views/admin/manage-grades.php`, `views/admin/reports.php` | Feature/Integration: Connected Manage Grades to Individual Student SF9 Report Cards; added per-student 'Print Grade Sheet' buttons in grid rows and quick student select in modal footer; enabled URL parameter auto-selection & generation (`type=student&student_id=X`) in `reports.php`; updated section grade sheet print view to use official DepEd & Lubo NHS logo seals | Yes: Manage Grades grid, quick select dropdown, term grade modal, Reports query params, and print headers synchronized. |
+| **2026-10-01** | Antigravity AI | `database/migrations/2026-10-01-posts-otp-teacher-adviser.sql`, `database/ogms_schema.sql`, `config/session.php`, `.env`, `api/auth.php`, `api/grades.php`, `api/sections.php`, `api/students.php`, `api/reports.php`, `api/posts.php`, `views/admin/manage-grades.php`, `views/admin/manage-sections.php`, `views/admin/manage-posts.php`, `views/student/signup.php`, `components/admin-sidebar.php`, `components/teacher-sidebar.php`, `views/teacher/*.php`, `login.php`, `index.php`, `docs/Issues.md` | Feature/Major: Executed 4 core system enhancements: (1) Public School Homepage on `index.php` with announcements, events, highlights, statistics, and full Admin CRUD in `manage-posts.php` and `api/posts.php`; (2) Gmail SMTP 6-digit OTP verification for student self-registration via `email_verifications` table & PHPMailer; (3) Teacher Account Portal (`views/teacher/*`) with advisory section grade management, SF9 report card generator, advisory student scoping, and adviser assignment in `manage-sections.php`; (4) Admin Subject Editing modal with live code & name updates in `views/admin/manage-grades.php` and `api/grades.php`. | Yes: DB migrations applied, endpoints secured with `requireStaff()` / `requireTeacher()`, public/auth routing updated, email OTP verified, and views synchronized. |
+| **2026-10-01** | Antigravity AI | `api/teachers.php`, `views/admin/manage-teachers.php`, `components/admin-sidebar.php`, `SYSTEM-MEMORY.md`, `docs/SYSTEM-MEMORY.md` | Feature: Added Admin Teacher Management portal: (1) Dedicated faculty CRUD endpoint `api/teachers.php` supporting list, get, save (register new teacher & edit credentials/password), status toggle, and delete; (2) Admin UI `views/admin/manage-teachers.php` with search, advisory status filter, active status filter, password visibility toggles, section advisory dropdown binding, and status badges; (3) Admin sidebar navigation link. | Yes: Endpoints secured with `requireAdmin()`, credentials encryption verified with bcrypt, section adviser foreign key unlinking verified, 100% PHP lint pass. |
+| **2026-10-01** | Antigravity AI | `database/migrations/2026-10-01-teacher-subjects-grade-level.sql`, `database/ogms_schema.sql`, `api/grades.php`, `api/sections.php`, `api/teachers.php`, `views/teacher/dashboard.php`, `views/teacher/manage-grades.php`, `views/admin/manage-teachers.php`, `views/admin/manage-grades.php`, `SYSTEM-MEMORY.md`, `docs/SYSTEM-MEMORY.md` | Feature/Scope: Teacher Subject + Grade Level Scoping (`teacher_subjects`): (1) Created `teacher_subjects` mapping table `(teacher_id, subject_id, grade_level, school_year_id)`; (2) Upgraded `api/teachers.php` and `views/admin/manage-teachers.php` with matrix UI to assign teachers to specific subjects and grade levels (Grades 7–12); (3) Upgraded `api/grades.php` so teachers only view and encode grades for students enrolled in sections matching their assigned subject and grade level, enforcing 403 Forbidden for unauthorized grade levels/subjects; (4) Scoped `api/sections.php?action=list` and `views/teacher/manage-grades.php` so a teacher (e.g. Filipino Grade 7) only sees Grade 7 sections (Rizal) and never sees unassigned grade levels (Grade 8 Roxas); (5) Enhanced Admin `manage-grades.php` to display assigned teacher badges on each Grade Level sub-accordion while maintaining full admin oversight. | Yes: Automated regression and role authorization tests executed for Grade 7 allowed vs Grade 8 blocked, 100% PHP lint pass. |
 
 ---
 
 *This system memory document must be preserved and kept updated across all development sessions.*
+
+
+

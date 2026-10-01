@@ -22,7 +22,7 @@ function requireLogin(): void {
         if (isApiRequest()) {
             jsonResponse(['success' => false, 'message' => 'Unauthenticated.'], 401);
         }
-        header('Location: /OGMS-Lubo-National-High-School/index.php');
+        header('Location: /OGMS-Lubo-National-High-School/login.php');
         exit;
     }
 }
@@ -32,6 +32,34 @@ function requireAdmin(): void {
     if ($_SESSION['role'] !== 'admin') {
         if (isApiRequest()) {
             jsonResponse(['success' => false, 'message' => 'Forbidden. Admin access required.'], 403);
+        }
+        $dest = $_SESSION['role'] === 'teacher'
+            ? '/OGMS-Lubo-National-High-School/views/teacher/dashboard.php'
+            : '/OGMS-Lubo-National-High-School/views/student/dashboard.php';
+        header("Location: $dest");
+        exit;
+    }
+}
+
+function requireTeacher(): void {
+    requireLogin();
+    if ($_SESSION['role'] !== 'teacher') {
+        if (isApiRequest()) {
+            jsonResponse(['success' => false, 'message' => 'Forbidden. Teacher access required.'], 403);
+        }
+        $dest = $_SESSION['role'] === 'admin'
+            ? '/OGMS-Lubo-National-High-School/views/admin/dashboard.php'
+            : '/OGMS-Lubo-National-High-School/views/student/dashboard.php';
+        header("Location: $dest");
+        exit;
+    }
+}
+
+function requireStaff(): void {
+    requireLogin();
+    if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'teacher') {
+        if (isApiRequest()) {
+            jsonResponse(['success' => false, 'message' => 'Forbidden. Staff access required.'], 403);
         }
         header('Location: /OGMS-Lubo-National-High-School/views/student/dashboard.php');
         exit;
@@ -44,7 +72,10 @@ function requireStudent(): void {
         if (isApiRequest()) {
             jsonResponse(['success' => false, 'message' => 'Forbidden. Student access required.'], 403);
         }
-        header('Location: /OGMS-Lubo-National-High-School/views/admin/dashboard.php');
+        $dest = $_SESSION['role'] === 'teacher'
+            ? '/OGMS-Lubo-National-High-School/views/teacher/dashboard.php'
+            : '/OGMS-Lubo-National-High-School/views/admin/dashboard.php';
+        header("Location: $dest");
         exit;
     }
 }

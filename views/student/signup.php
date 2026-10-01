@@ -81,7 +81,51 @@ if (!empty($_SESSION['user_id'])) {
 
         <div class="text-center mt-3">
           <span style="font-size:0.85rem;color:#64748b">Already have an account? </span>
-          <a href="../../index.php" style="color:var(--primary);font-weight:600;font-size:0.85rem">Sign In</a>
+          <a href="../../login.php" style="color:var(--primary);font-weight:600;font-size:0.85rem">Sign In</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- OTP Verification Modal -->
+    <div class="modal fade" id="otpModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content text-center p-3 border-0 shadow">
+          <div class="modal-body">
+            <div style="width: 68px; height: 68px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 28px;">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <h4 class="fw-bold mb-1" style="color: #0c1326;">Verify Your Gmail</h4>
+            <p class="text-muted mb-3" style="font-size: 0.88rem;">
+              We sent a 6-digit confirmation code to<br/>
+              <strong id="otpTargetEmail" style="color: #0284c7;">—</strong>
+            </p>
+
+            <form id="otpForm" onsubmit="verifyOtpAndRegister(event)">
+              <div class="mb-3">
+                <input type="text" id="otpInput" class="form-control text-center fw-bold"
+                       placeholder="123456" maxlength="6" pattern="\d{6}" required
+                       style="font-size: 1.7rem; letter-spacing: 10px; border: 2px solid #cbd5e1; border-radius: 12px; height: 58px;"
+                       autocomplete="one-time-code"/>
+                <small class="text-muted d-block mt-2" style="font-size: 0.78rem;">Please check your Inbox or Spam folder</small>
+              </div>
+
+              <button type="submit" class="btn-primary-custom w-100 mb-2" id="verifyOtpBtn" style="height:46px;">
+                <i class="fas fa-check-circle me-2"></i>Verify &amp; Create Account
+              </button>
+            </form>
+
+            <div class="mt-3" style="font-size: 0.84rem;">
+              <span class="text-muted">Didn't receive the email? </span>
+              <button type="button" class="btn btn-link p-0 text-decoration-none" id="resendOtpBtn" onclick="resendOtp()" style="font-size: 0.84rem; font-weight: 600; color: #0284c7;">Resend Code</button>
+              <span id="resendTimer" class="text-muted ms-1" style="display: none;">(60s)</span>
+            </div>
+
+            <div class="mt-3 pt-2 border-top">
+              <button type="button" class="btn btn-sm btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">
+                <i class="fas fa-arrow-left me-1"></i>Edit details / change email
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -89,7 +133,7 @@ if (!empty($_SESSION['user_id'])) {
     <div id="toast-container"></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../assets/js/api-client.js"></script>
-<script src="../../assets/js/app.js"></script>
+    <script src="../../assets/js/app.js"></script>
     <script>
       function togglePwd(id, btn) {
         const el   = document.getElementById(id);
@@ -124,11 +168,21 @@ if (!empty($_SESSION['user_id'])) {
         feedback.style.color = isGmail ? '#10b981' : '#dc3545';
         feedback.textContent = isGmail
           ? 'Looks good — a valid Gmail address.'
-          : 'Please use a real Gmail address (e.g. you@gmail.com).';
+          : 'Please use a valid Gmail address (e.g. you@gmail.com).';
         return isGmail;
       }
 
       document.getElementById('signupEmail').addEventListener('input', validateSignupEmail);
+
+      let otpModalInstance = null;
+      let resendTimerInterval = null;
+
+      function getOtpModal() {
+        if (!otpModalInstance) {
+          otpModalInstance = new bootstrap.Modal(document.getElementById('otpModal'));
+        }
+        return otpModalInstance;
+      }
 
       async function handleSignup(e) {
         e.preventDefault();
@@ -154,9 +208,56 @@ if (!empty($_SESSION['user_id'])) {
           showToast('LRN must be exactly 12 digits.', 'error'); return;
         }
 
+        const email = document.getElementById('signupEmail').value.trim().toLowerCase();
+        const firstName = document.getElementById('signupFirst').value.trim();
+        const lastName = document.getElementById('signupLast').value.trim();
+
         const btn = document.getElementById('signupBtn');
         btn.disabled  = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating account…';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending OTP to email…';
+
+        try {
+          const body = new FormData();
+          body.append('action',     'send_signup_otp');
+          body.append('first_name', firstName);
+          body.append('last_name',  lastName);
+          body.append('email',      email);
+          if (lrn) body.append('lrn', lrn);
+
+          const res  = await fetch('../../api/students.php', { method: 'POST', body });
+          const data = await res.json();
+
+          btn.disabled  = false;
+          btn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Create Account';
+
+          if (data.success) {
+            document.getElementById('otpTargetEmail').textContent = email;
+            document.getElementById('otpInput').value = '';
+            getOtpModal().show();
+            startResendCountdown(60);
+            showToast(data.message || 'OTP sent! Please check your inbox.', 'success');
+            setTimeout(() => document.getElementById('otpInput').focus(), 400);
+          } else {
+            showToast(data.message || 'Unable to send verification OTP.', 'error');
+          }
+        } catch (err) {
+          btn.disabled  = false;
+          btn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Create Account';
+          showToast('Server error while sending OTP. Please try again.', 'error');
+        }
+      }
+
+      async function verifyOtpAndRegister(e) {
+        e.preventDefault();
+        const otp = document.getElementById('otpInput').value.trim();
+        if (!otp || !/^\d{6}$/.test(otp)) {
+          showToast('Please enter the 6-digit OTP code.', 'error');
+          return;
+        }
+
+        const verifyBtn = document.getElementById('verifyOtpBtn');
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating account…';
 
         try {
           const body = new FormData();
@@ -164,26 +265,94 @@ if (!empty($_SESSION['user_id'])) {
           body.append('first_name', document.getElementById('signupFirst').value.trim());
           body.append('last_name',  document.getElementById('signupLast').value.trim());
           body.append('email',      document.getElementById('signupEmail').value.trim().toLowerCase());
-          body.append('password',   pwd);
-          body.append('lrn',        lrn);
+          body.append('password',   document.getElementById('signupPwd').value);
+          body.append('lrn',        document.getElementById('signupLrn').value.trim());
+          body.append('otp',        otp);
 
           const res  = await fetch('../../api/students.php', { method: 'POST', body });
           const data = await res.json();
 
           if (data.success) {
-            showToast('Account created! Redirecting to login…', 'success');
-            setTimeout(() => { window.location.href = '../../index.php'; }, 1500);
+            showToast('Account verified and created! Redirecting to login…', 'success');
+            getOtpModal().hide();
+            setTimeout(() => { window.location.href = '../../login.php'; }, 1500);
           } else {
             showToast(data.message || 'Registration failed.', 'error');
-            btn.disabled  = false;
-            btn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Create Account';
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Verify &amp; Create Account';
           }
         } catch (err) {
           showToast('Server error. Please try again.', 'error');
-          btn.disabled  = false;
-          btn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Create Account';
+          verifyBtn.disabled = false;
+          verifyBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Verify &amp; Create Account';
         }
       }
+
+      async function resendOtp() {
+        const resendBtn = document.getElementById('resendOtpBtn');
+        if (resendBtn.disabled) return;
+
+        const email = document.getElementById('signupEmail').value.trim().toLowerCase();
+        const firstName = document.getElementById('signupFirst').value.trim();
+        const lastName = document.getElementById('signupLast').value.trim();
+        const lrn = document.getElementById('signupLrn').value.trim();
+
+        resendBtn.disabled = true;
+        resendBtn.textContent = 'Sending…';
+
+        try {
+          const body = new FormData();
+          body.append('action',     'send_signup_otp');
+          body.append('email',      email);
+          body.append('first_name', firstName);
+          body.append('last_name',  lastName);
+          if (lrn) body.append('lrn', lrn);
+
+          const res  = await fetch('../../api/students.php', { method: 'POST', body });
+          const data = await res.json();
+
+          if (data.success) {
+            showToast('A fresh OTP has been sent to your email.', 'success');
+            startResendCountdown(60);
+          } else {
+            showToast(data.message || 'Failed to resend OTP.', 'error');
+            resendBtn.disabled = false;
+            resendBtn.textContent = 'Resend Code';
+          }
+        } catch (err) {
+          showToast('Error resending OTP.', 'error');
+          resendBtn.disabled = false;
+          resendBtn.textContent = 'Resend Code';
+        }
+      }
+
+      function startResendCountdown(seconds) {
+        const resendBtn = document.getElementById('resendOtpBtn');
+        const timerSpan = document.getElementById('resendTimer');
+        if (resendTimerInterval) clearInterval(resendTimerInterval);
+
+        let remaining = seconds;
+        resendBtn.disabled = true;
+        resendBtn.style.pointerEvents = 'none';
+        resendBtn.style.opacity = '0.5';
+        timerSpan.style.display = 'inline';
+        timerSpan.textContent = `(${remaining}s)`;
+
+        resendTimerInterval = setInterval(() => {
+          remaining--;
+          if (remaining <= 0) {
+            clearInterval(resendTimerInterval);
+            resendBtn.disabled = false;
+            resendBtn.style.pointerEvents = '';
+            resendBtn.style.opacity = '1';
+            resendBtn.textContent = 'Resend Code';
+            timerSpan.style.display = 'none';
+          } else {
+            timerSpan.textContent = `(${remaining}s)`;
+          }
+        }, 1000);
+      }
+
     </script>
   </body>
 </html>
