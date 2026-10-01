@@ -94,9 +94,12 @@ CREATE TABLE IF NOT EXISTS sms_logs (
     recipient_phone VARCHAR(20) NOT NULL,
     recipient_name  VARCHAR(100),
     message         TEXT NOT NULL,
+    sender_id       INT NULL DEFAULT NULL,
     status          ENUM('pending','sent','failed') DEFAULT 'pending',
     sent_at         TIMESTAMP NULL,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_sms_logs_sender (sender_id)
 );
 
 -- ─── PASSWORD RESETS ──────────────────────────────────────────────────────────

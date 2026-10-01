@@ -536,10 +536,6 @@ $adminActivePage = 'manage-grades';
             </div>`;
         }).join('') : `<div class="text-muted p-2" style="font-size:.85rem"><i class="fas fa-info-circle me-1"></i>No sections created for Grade ${gLevel}.</div>`;
 
-        const gradeCollapseId = `grade-collapse-${sub.id}-${gLevel}`;
-        const showGrade = isFiltering ? ' show' : (gIdx === 0 ? ' show' : '');
-        const collapsedGradeCls = isFiltering ? '' : (gIdx === 0 ? '' : ' collapsed');
-
         return `
           <div class="grade-item">
             <h3 class="accordion-header" id="heading-grade-${sub.id}-${gLevel}">

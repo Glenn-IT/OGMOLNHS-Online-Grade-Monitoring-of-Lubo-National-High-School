@@ -1,6 +1,6 @@
 <?php
 // components/teacher-sidebar.php
-// Set $teacherActivePage before including: 'dashboard','manage-grades','reports','profile'
+// Set $teacherActivePage before including: 'dashboard','manage-grades','reports','sms','profile'
 $teacherActivePage = $teacherActivePage ?? '';
 function teacherLink(string $page, string $current): string {
     return $page === $current ? 'sidebar-link active' : 'sidebar-link';
@@ -35,6 +35,9 @@ function teacherLink(string $page, string $current): string {
     </a>
     <a href="reports.php" class="<?= teacherLink('reports', $teacherActivePage) ?>">
       <i class="fas fa-table"></i> Section Grade Sheets
+    </a>
+    <a href="sms.php" class="<?= teacherLink('sms', $teacherActivePage) ?>">
+      <i class="fas fa-paper-plane"></i> Grade SMS Alerts
     </a>
     <div class="nav-section-label" style="margin-top:0.5rem">Account</div>
     <a href="profile.php" class="<?= teacherLink('profile', $teacherActivePage) ?>">
