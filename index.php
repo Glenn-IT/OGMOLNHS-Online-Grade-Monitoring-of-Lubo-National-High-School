@@ -4,9 +4,6 @@ require_once 'config/session.php';
 require_once 'config/db.php';
 require_once 'config/school-year.php';
 
-$pdo = getDB();
-$syLabel = activeSchoolYearLabel($pdo);
-
 // Check if user is logged in
 $isLoggedIn = !empty($_SESSION['user_id']);
 $userRole   = $_SESSION['role'] ?? '';
@@ -18,18 +15,31 @@ $dashboardUrl = match($userRole) {
     default   => 'views/student/dashboard.php',
 };
 
-// Fetch published posts directly for instant initial render
-$stmtAnn = $pdo->prepare("SELECT * FROM school_posts WHERE type = 'announcement' AND is_active = 1 ORDER BY COALESCE(event_date, created_at) DESC, id DESC LIMIT 6");
-$stmtAnn->execute();
-$announcements = $stmtAnn->fetchAll();
+$syLabel       = '2024-2025';
+$announcements = [];
+$events        = [];
+$highlights    = [];
+$dbError       = null;
 
-$stmtEve = $pdo->prepare("SELECT * FROM school_posts WHERE type = 'event' AND is_active = 1 ORDER BY COALESCE(event_date, created_at) ASC, id DESC LIMIT 6");
-$stmtEve->execute();
-$events = $stmtEve->fetchAll();
+try {
+    $pdo = getDB();
+    $syLabel = activeSchoolYearLabel($pdo);
 
-$stmtHl = $pdo->prepare("SELECT * FROM school_posts WHERE type = 'highlight' AND is_active = 1 ORDER BY COALESCE(event_date, created_at) DESC, id DESC LIMIT 6");
-$stmtHl->execute();
-$highlights = $stmtHl->fetchAll();
+    // Fetch published posts directly for instant initial render
+    $stmtAnn = $pdo->prepare("SELECT * FROM school_posts WHERE type = 'announcement' AND is_active = 1 ORDER BY COALESCE(event_date, created_at) DESC, id DESC LIMIT 6");
+    $stmtAnn->execute();
+    $announcements = $stmtAnn->fetchAll();
+
+    $stmtEve = $pdo->prepare("SELECT * FROM school_posts WHERE type = 'event' AND is_active = 1 ORDER BY COALESCE(event_date, created_at) ASC, id DESC LIMIT 6");
+    $stmtEve->execute();
+    $events = $stmtEve->fetchAll();
+
+    $stmtHl = $pdo->prepare("SELECT * FROM school_posts WHERE type = 'highlight' AND is_active = 1 ORDER BY COALESCE(event_date, created_at) DESC, id DESC LIMIT 6");
+    $stmtHl->execute();
+    $highlights = $stmtHl->fetchAll();
+} catch (Throwable $e) {
+    $dbError = $e->getMessage();
+}
 
 function fmtEventDate(?string $d): array {
     if (!$d) return ['month' => 'LNHS', 'day' => '—', 'year' => ''];
@@ -209,6 +219,13 @@ function fmtEventDate(?string $d): array {
   </style>
 </head>
 <body>
+<?php if (!empty($dbError)): ?>
+  <div style="background:#fff3cd;color:#856404;padding:12px 20px;font-size:0.88rem;border-bottom:1px solid #ffeeba;text-align:center;">
+    <i class="fas fa-exclamation-triangle me-1"></i>
+    <strong>Database Setup Notice:</strong> <?= htmlspecialchars($dbError) ?>.
+    <span class="ms-2">Please ensure MySQL is running in XAMPP and import <code>database/ogms_schema.sql</code> into phpMyAdmin.</span>
+  </div>
+<?php endif; ?>
 
   <!-- Top Announcement Bar -->
   <div style="background:#1e3a8a;color:#e0f2fe;font-size:0.8rem;padding:6px 0;text-align:center;">
