@@ -73,10 +73,10 @@ $adminActivePage = 'manage-sections';
         <div class="table-wrapper">
           <table class="table">
             <thead>
-              <tr><th>Grade Level</th><th>Section</th><th>Class Adviser</th><th>Students</th><th>Actions</th></tr>
+              <tr><th>Grade Level</th><th>Section</th><th>Students</th><th>Actions</th></tr>
             </thead>
             <tbody id="sectionsTableBody">
-              <tr><td colspan="5" class="text-center py-4">Loading…</td></tr>
+              <tr><td colspan="4" class="text-center py-4">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -112,12 +112,6 @@ $adminActivePage = 'manage-sections';
           <label class="form-label fw-semibold">Grade Level</label>
           <select id="sectionGrade" class="form-select">
             <?php for($g=7;$g<=12;$g++) echo "<option value='$g'>Grade $g</option>"; ?>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Class Adviser</label>
-          <select id="sectionAdviser" class="form-select">
-            <option value="">— Unassigned (None) —</option>
           </select>
         </div>
         <div class="alert alert-info py-2 mb-0" style="font-size:.82rem">
@@ -312,13 +306,9 @@ $adminActivePage = 'manage-sections';
 
     tbody.innerHTML = visible.map(sec => {
       const count = (sectionStudentsCache[sec.id] || []).length;
-      const adviser = sec.adviser_name
-        ? `<span class="badge bg-primary-subtle text-primary border"><i class="fas fa-chalkboard-teacher me-1"></i>${esc(sec.adviser_name)}</span>`
-        : `<span class="text-muted" style="font-size:.82rem">— None —</span>`;
       return `<tr>
         <td>Grade ${sec.grade_level}</td>
         <td><strong>${esc(sec.name)}</strong></td>
-        <td>${adviser}</td>
         <td><span class="badge bg-primary">${count}</span></td>
         <td>
           <button class="btn-sm-custom btn-view me-1" onclick="viewSection(${sec.id})" title="View students"><i class="fas fa-eye"></i></button>
@@ -397,27 +387,21 @@ $adminActivePage = 'manage-sections';
     document.getElementById('sectionName').value   = sec ? sec.name : '';
     document.getElementById('sectionGrade').value  = sec ? sec.grade_level : 7;
 
-    const advSel = document.getElementById('sectionAdviser');
-    advSel.innerHTML = '<option value="">— Unassigned (None) —</option>' +
-      teachersList.map(t => `<option value="${t.id}" ${sec && sec.adviser_id == t.id ? 'selected' : ''}>${esc(t.full_name)} (${esc(t.email)})</option>`).join('');
-
     document.getElementById('sectionModalTitle').innerHTML =
       `<i class="fas fa-layer-group me-2"></i>${sec ? 'Edit Section' : 'New Section'}`;
     new bootstrap.Modal(document.getElementById('sectionModal')).show();
   }
 
   async function saveSection() {
-    const id        = document.getElementById('sectionId').value;
-    const name      = document.getElementById('sectionName').value.trim();
-    const grade     = document.getElementById('sectionGrade').value;
-    const adviserId = document.getElementById('sectionAdviser').value;
+    const id    = document.getElementById('sectionId').value;
+    const name  = document.getElementById('sectionName').value.trim();
+    const grade = document.getElementById('sectionGrade').value;
     if (!name) { showToast('Section name is required.', 'error'); return; }
 
     const body = new FormData();
     body.append('action',      'save');
     body.append('name',        name);
     body.append('grade_level', grade);
-    if (adviserId) body.append('adviser_id', adviserId);
     if (id) body.append('id', id);
 
     try {

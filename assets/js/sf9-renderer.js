@@ -64,14 +64,14 @@ function renderSf9ReportCard(data, options = {}) {
       const q2 = fmtG(rawQ2);
       const q3 = fmtG(rawQ3);
 
-      // Compute final grade from valid numbers
-      const validTerms = [q1, q2, q3].filter(v => typeof v === 'number');
+      // Compute final grade ONLY when Terms 1, 2, and 3 are ALL complete numbers
+      const hasAllTerms = typeof q1 === 'number' && typeof q2 === 'number' && typeof q3 === 'number';
       let finalG = '—';
       let remark = '—';
       let remarkColor = '#000000';
 
-      if (validTerms.length > 0) {
-        finalG = Math.round(validTerms.reduce((a, b) => a + b, 0) / validTerms.length);
+      if (hasAllTerms) {
+        finalG = Math.round((q1 + q2 + q3) / 3);
         remark = finalG >= 75 ? 'Passed' : 'Failed';
         remarkColor = remark === 'Failed' ? '#dc2626' : '#000000';
         allFinals.push(finalG);
@@ -97,8 +97,8 @@ function renderSf9ReportCard(data, options = {}) {
           { name: 'Health', grades: [q1, q2, q3] }
         ];
         mapehSubs.forEach(m => {
-          const subValid = m.grades.filter(v => typeof v === 'number');
-          const subFinal = subValid.length > 0 ? Math.round(subValid.reduce((a, b) => a + b, 0) / subValid.length) : '—';
+          const subHasAll = m.grades.every(v => typeof v === 'number');
+          const subFinal = subHasAll ? Math.round(m.grades.reduce((a, b) => a + b, 0) / 3) : '—';
           const subRemark = subFinal !== '—' ? (subFinal >= 75 ? 'Passed' : 'Failed') : '—';
           const subRemarkColor = subRemark === 'Failed' ? '#dc2626' : '#000000';
 
@@ -152,13 +152,13 @@ function renderSf9ReportCard(data, options = {}) {
           const q2 = fmtG(rawQ2);
           const q3 = fmtG(rawQ3);
 
-          const validTerms = [q1, q2, q3].filter(v => typeof v === 'number');
+          const hasAllTerms = typeof q1 === 'number' && typeof q2 === 'number' && typeof q3 === 'number';
           let finalG = '—';
           let remark = '—';
           let remarkColor = '#000000';
 
-          if (validTerms.length > 0) {
-            finalG = Math.round(validTerms.reduce((a, b) => a + b, 0) / validTerms.length);
+          if (hasAllTerms) {
+            finalG = Math.round((q1 + q2 + q3) / 3);
             remark = finalG >= 75 ? 'Passed' : 'Failed';
             remarkColor = remark === 'Failed' ? '#dc2626' : '#000000';
             allFinals.push(finalG);
@@ -181,9 +181,10 @@ function renderSf9ReportCard(data, options = {}) {
 
   const trackTitle = isJhs ? 'Curriculum:' : 'Track / Strand:';
 
-  const finalGenAvg = (allFinals.length > 0)
+  const hasAllFinals = subjects.length > 0 && allFinals.length === subjects.length;
+  const finalGenAvg = hasAllFinals
     ? (allFinals.reduce((a, b) => a + b, 0) / allFinals.length).toFixed(2)
-    : genAvg;
+    : '—';
   const finalGenRemark = (finalGenAvg !== '—')
     ? (parseFloat(finalGenAvg) >= 75 ? 'Passed' : 'Failed')
     : '—';

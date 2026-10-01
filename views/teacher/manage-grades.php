@@ -227,39 +227,19 @@ $teacherId = (int)$_SESSION['user_id'];
         <input type="hidden" id="editGradeSubjectId"/>
         <input type="hidden" id="editGradeQuarter"/>
 
-        <div class="alert alert-info py-2 mb-3" style="font-size:.82rem">
-          <i class="fas fa-calculator me-1"></i>
-          <strong>DepEd Formula:</strong> Final Grade = (Written Works &times; 20%) + (Performance Tasks &times; 50%) + (Quarterly Exam &times; 30%)
-        </div>
-
         <div class="mb-3">
-          <label class="form-label fw-semibold">Written Works (20%)</label>
-          <div class="input-group">
-            <input type="number" id="inputWW" class="form-control" min="0" max="100" step="0.01" placeholder="0.00" oninput="calcPreviewGrade()"/>
+          <label class="form-label fw-semibold">Term Grade <span class="text-danger">*</span></label>
+          <div class="input-group input-group-lg">
+            <input type="number" id="inputTermGrade" class="form-control" min="0" max="100" step="0.01" placeholder="e.g. 85.00" oninput="calcPreviewGrade()" required/>
             <span class="input-group-text">/ 100</span>
           </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Performance Tasks (50%)</label>
-          <div class="input-group">
-            <input type="number" id="inputPT" class="form-control" min="0" max="100" step="0.01" placeholder="0.00" oninput="calcPreviewGrade()"/>
-            <span class="input-group-text">/ 100</span>
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Quarterly Exam (30%)</label>
-          <div class="input-group">
-            <input type="number" id="inputQE" class="form-control" min="0" max="100" step="0.01" placeholder="0.00" oninput="calcPreviewGrade()"/>
-            <span class="input-group-text">/ 100</span>
-          </div>
+          <small class="text-muted">Enter direct numerical term grade (0.00 – 100.00).</small>
         </div>
 
         <div class="p-3 bg-light rounded text-center border">
-          <div class="text-muted" style="font-size:.8rem;text-transform:uppercase;font-weight:600">Calculated Final Grade</div>
+          <div class="text-muted" style="font-size:.8rem;text-transform:uppercase;font-weight:600">Recorded Term Grade</div>
           <div class="h2 mb-0 fw-bold" id="previewGradeVal" style="color:var(--primary)">—</div>
-          <div class="mt-1" id="previewRemarksVal">—</div>
+          <div class="mt-1" id="previewRemarksVal"><span class="text-muted">Enter grade to preview remarks</span></div>
         </div>
       </div>
       <div class="modal-footer justify-content-between">
@@ -508,10 +488,16 @@ $teacherId = (int)$_SESSION['user_id'];
       const q2 = allGrades.find(g => g.student_id == stu.id && g.subject_id == currentClassSubject.id && g.quarter == 2);
       const q3 = allGrades.find(g => g.student_id == stu.id && g.subject_id == currentClassSubject.id && g.quarter == 3);
 
-      const finals = [q1, q2, q3].filter(q => q && q.final_grade !== null).map(q => parseFloat(q.final_grade));
+      const hasQ1 = q1 && q1.final_grade !== null && q1.final_grade !== '';
+      const hasQ2 = q2 && q2.final_grade !== null && q2.final_grade !== '';
+      const hasQ3 = q3 && q3.final_grade !== null && q3.final_grade !== '';
+
       let finalAvg = null;
-      if (finals.length > 0) {
-        finalAvg = round2(finals.reduce((a,b)=>a+b, 0) / finals.length);
+      if (hasQ1 && hasQ2 && hasQ3) {
+        const v1 = parseFloat(q1.final_grade);
+        const v2 = parseFloat(q2.final_grade);
+        const v3 = parseFloat(q3.final_grade);
+        finalAvg = round2((v1 + v2 + v3) / 3);
         totalFinals += finalAvg;
         countFinals++;
         if (finalAvg >= 75) passedCount++; else failedCount++;
@@ -576,34 +562,26 @@ $teacherId = (int)$_SESSION['user_id'];
     document.getElementById('editGradeQuarter').value = quarter;
 
     const existing = allGrades.find(g => g.student_id == studentId && g.subject_id == currentClassSubject.id && g.quarter == quarter);
-    document.getElementById('inputWW').value = existing && existing.written_works !== null ? existing.written_works : '';
-    document.getElementById('inputPT').value = existing && existing.performance_tasks !== null ? existing.performance_tasks : '';
-    document.getElementById('inputQE').value = existing && existing.quarterly_exam !== null ? existing.quarterly_exam : '';
+    const existingVal = (existing && existing.final_grade !== null) ? parseFloat(existing.final_grade).toFixed(2) : '';
+    document.getElementById('inputTermGrade').value = existingVal;
 
     calcPreviewGrade();
     new bootstrap.Modal(document.getElementById('termGradeModal')).show();
   }
 
   function calcPreviewGrade() {
-    const wwVal = document.getElementById('inputWW').value;
-    const ptVal = document.getElementById('inputPT').value;
-    const qeVal = document.getElementById('inputQE').value;
-
+    const rawVal = document.getElementById('inputTermGrade').value;
     const pGrade = document.getElementById('previewGradeVal');
     const pRemarks = document.getElementById('previewRemarksVal');
 
-    if (wwVal === '' || ptVal === '' || qeVal === '') {
+    if (rawVal === '') {
       pGrade.textContent = '—';
       pGrade.style.color = 'var(--primary)';
-      pRemarks.innerHTML = '<span class="text-muted">Enter all 3 components to calculate grade</span>';
+      pRemarks.innerHTML = '<span class="text-muted">Enter grade to preview remarks</span>';
       return;
     }
 
-    const ww = Math.max(0, Math.min(100, parseFloat(wwVal) || 0));
-    const pt = Math.max(0, Math.min(100, parseFloat(ptVal) || 0));
-    const qe = Math.max(0, Math.min(100, parseFloat(qeVal) || 0));
-
-    const finalVal = round2((ww * 0.20) + (pt * 0.50) + (qe * 0.30));
+    const finalVal = Math.max(0, Math.min(100, parseFloat(rawVal) || 0));
     pGrade.textContent = finalVal.toFixed(2);
 
     if (finalVal >= 75) {
@@ -619,19 +597,25 @@ $teacherId = (int)$_SESSION['user_id'];
     const studentId = document.getElementById('editGradeStudentId').value;
     const subjectId = document.getElementById('editGradeSubjectId').value;
     const quarter   = document.getElementById('editGradeQuarter').value;
+    const gradeVal  = document.getElementById('inputTermGrade').value;
 
-    const ww = document.getElementById('inputWW').value;
-    const pt = document.getElementById('inputPT').value;
-    const qe = document.getElementById('inputQE').value;
+    if (gradeVal === '') {
+      showToast('Please enter a valid term grade.', 'error');
+      return;
+    }
+
+    const numGrade = parseFloat(gradeVal);
+    if (isNaN(numGrade) || numGrade < 0 || numGrade > 100) {
+      showToast('Term grade must be a number between 0 and 100.', 'error');
+      return;
+    }
 
     const body = new FormData();
     body.append('action', 'save');
     body.append('student_id', studentId);
     body.append('subject_id', subjectId);
     body.append('quarter', quarter);
-    if (ww !== '') body.append('written_works', ww);
-    if (pt !== '') body.append('performance_tasks', pt);
-    if (qe !== '') body.append('quarterly_exam', qe);
+    body.append('grade', numGrade);
 
     try {
       const res = await fetch('../../api/grades.php', { method: 'POST', body });
@@ -687,8 +671,13 @@ $teacherId = (int)$_SESSION['user_id'];
       const q2 = allGrades.find(g => g.student_id == stu.id && g.subject_id == currentClassSubject.id && g.quarter == 2);
       const q3 = allGrades.find(g => g.student_id == stu.id && g.subject_id == currentClassSubject.id && g.quarter == 3);
 
-      const finals = [q1, q2, q3].filter(q => q && q.final_grade !== null).map(q => parseFloat(q.final_grade));
-      const finalAvg = finals.length ? (finals.reduce((a,b)=>a+b, 0) / finals.length).toFixed(2) : '—';
+      const hasQ1 = q1 && q1.final_grade !== null && q1.final_grade !== '';
+      const hasQ2 = q2 && q2.final_grade !== null && q2.final_grade !== '';
+      const hasQ3 = q3 && q3.final_grade !== null && q3.final_grade !== '';
+
+      const finalAvg = (hasQ1 && hasQ2 && hasQ3)
+        ? ((parseFloat(q1.final_grade) + parseFloat(q2.final_grade) + parseFloat(q3.final_grade)) / 3).toFixed(2)
+        : '—';
       const remarks = finalAvg !== '—' ? (parseFloat(finalAvg) >= 75 ? 'Passed' : 'Failed') : '—';
 
       return `<tr>

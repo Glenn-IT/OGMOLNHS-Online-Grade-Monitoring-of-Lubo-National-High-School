@@ -146,9 +146,11 @@ if ($action === 'student') {
     }
     $student['age'] = $age;
 
-    // Fetch enrolled subjects
-    $subjects = $pdo->query("SELECT id, name, code FROM subjects ORDER BY id")
-                    ->fetchAll();
+    // Fetch enrolled subjects filtered by student curriculum level (JHS vs SHS)
+    $curLevel = ($gradeLevel <= 10) ? 'JHS' : 'SHS';
+    $subStmt  = $pdo->prepare("SELECT id, name, code, level FROM subjects WHERE level = ? ORDER BY id");
+    $subStmt->execute([$curLevel]);
+    $subjects = $subStmt->fetchAll();
 
     // Fetch all grades for the student across all quarters (SF9 displays complete progress)
     $stmt = $pdo->prepare(
@@ -188,8 +190,9 @@ if ($action === 'student') {
             $t4 = $raw4;
         }
 
-        $tVals = array_values(array_filter([$t1, $t2, $t3, $t4], fn($v) => $v !== null));
-        $subAvg = count($tVals) ? round(array_sum($tVals) / count($tVals), 2) : null;
+        // Only compute final average if Terms 1, 2, and 3 are ALL completed
+        $hasCompleteTerms = ($raw1 !== null && $raw2 !== null && $raw3 !== null);
+        $subAvg = $hasCompleteTerms ? round(($raw1 + $raw2 + $raw3) / 3, 2) : null;
 
         if ($subAvg !== null) $allFinals[] = $subAvg;
 
@@ -197,6 +200,7 @@ if ($action === 'student') {
             'id'      => $sid,
             'name'    => $sub['name'],
             'code'    => $sub['code'],
+            'level'   => $sub['level'] ?? $curLevel,
             'q1'      => $t1,
             'q2'      => $t2,
             'q3'      => $t3,
@@ -210,7 +214,8 @@ if ($action === 'student') {
         ];
     }
 
-    $generalAverage = count($allFinals)
+    // General average is only computed when all subjects have complete final grades
+    $generalAverage = (count($allFinals) > 0 && count($allFinals) === count($subjects))
         ? round(array_sum($allFinals) / count($allFinals), 2)
         : null;
 

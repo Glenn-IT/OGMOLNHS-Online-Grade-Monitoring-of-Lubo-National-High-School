@@ -28,23 +28,21 @@ if ($action === 'list') {
     $pdo  = getDB();
     $syId = activeSchoolYear($pdo);
 
-    // 1. Fetch teachers and active advisory section
-    $stmt = $pdo->prepare(
-        "SELECT u.id, u.full_name, u.email, u.phone, u.gender, u.address, u.avatar_url, u.is_active, u.created_at,
-                s.id AS section_id, s.name AS section_name, s.grade_level AS section_grade_level
+    // 1. Fetch teachers
+    $stmt = $pdo->query(
+        "SELECT u.id, u.full_name, u.email, u.phone, u.gender, u.address, u.avatar_url, u.is_active, u.created_at
          FROM users u
-         LEFT JOIN sections s ON s.adviser_id = u.id AND s.school_year_id = ?
          WHERE u.role = 'teacher'
          ORDER BY u.full_name ASC"
     );
-    $stmt->execute([$syId]);
     $teachers = $stmt->fetchAll();
 
-    // 2. Fetch all teaching assignments in active school year
+    // 2. Fetch all teaching assignments in active school year (including teacher_name for duplicate checking)
     $tsStmt = $pdo->prepare(
-        "SELECT ts.teacher_id, ts.subject_id, ts.grade_level, sub.name AS subject_name, sub.code AS subject_code
+        "SELECT ts.teacher_id, ts.subject_id, ts.grade_level, sub.name AS subject_name, sub.code AS subject_code, sub.level AS subject_level, u.full_name AS teacher_name
          FROM teacher_subjects ts
          JOIN subjects sub ON sub.id = ts.subject_id
+         JOIN users u ON u.id = ts.teacher_id
          WHERE ts.school_year_id = ?
          ORDER BY sub.name, ts.grade_level"
     );
@@ -75,7 +73,6 @@ if ($action === 'list') {
     // Format output for each teacher
     foreach ($teachers as &$t) {
         $tId = (int)$t['id'];
-        $t['grade_level'] = $t['section_grade_level']; // keep compatibility with existing UI
 
         if (isset($assignmentsByTeacher[$tId])) {
             $t['teaching_assignments'] = $assignmentsByTeacher[$tId];
@@ -101,7 +98,11 @@ if ($action === 'list') {
     }
     unset($t);
 
-    jsonResponse(['success' => true, 'data' => $teachers]);
+    jsonResponse([
+        'success'         => true,
+        'data'            => $teachers,
+        'all_assignments' => $allAssignments
+    ]);
 }
 
 // ─── GET SINGLE TEACHER ──────────────────────────────────────────────────────
@@ -120,13 +121,11 @@ if ($action === 'get') {
     $syId = activeSchoolYear($pdo);
 
     $stmt = $pdo->prepare(
-        "SELECT u.id, u.full_name, u.email, u.phone, u.gender, u.address, u.is_active, u.created_at,
-                s.id AS section_id, s.name AS section_name, s.grade_level
+        "SELECT u.id, u.full_name, u.email, u.phone, u.gender, u.address, u.is_active, u.created_at
          FROM users u
-         LEFT JOIN sections s ON s.adviser_id = u.id AND s.school_year_id = ?
          WHERE u.id = ? AND u.role = 'teacher'"
     );
-    $stmt->execute([$syId, $id]);
+    $stmt->execute([$id]);
     $teacher = $stmt->fetch();
 
     if (!$teacher) {
@@ -257,17 +256,6 @@ if ($action === 'save') {
             $stmt->execute([$fullName, $email, $hashed, $phone ?: null, $gender, $address ?: null, $isActive]);
             $teacherId = (int)$pdo->lastInsertId();
             $msg = 'Teacher registered successfully.';
-        }
-
-        // Handle section advisory assignment
-        // 1. Clear any sections currently advised by this teacher in the active school year
-        $clearStmt = $pdo->prepare("UPDATE sections SET adviser_id = NULL WHERE adviser_id = ? AND school_year_id = ?");
-        $clearStmt->execute([$teacherId, $syId]);
-
-        // 2. If a section was selected, assign this teacher as its adviser
-        if ($sectionId && $sectionId > 0) {
-            $setStmt = $pdo->prepare("UPDATE sections SET adviser_id = ? WHERE id = ? AND school_year_id = ?");
-            $setStmt->execute([$teacherId, $sectionId, $syId]);
         }
 
         // Handle teaching subjects assignment (supports subject + grade_level pairs)

@@ -23,7 +23,7 @@ $adminActivePage = 'manage-teachers';
         <button class="topbar-btn hamburger"><i class="fas fa-bars"></i></button>
         <div>
           <div class="topbar-title">Manage Teachers</div>
-          <div class="topbar-subtitle">Register faculty accounts, update login credentials, and assign class advisories</div>
+          <div class="topbar-subtitle">Register faculty accounts, update login credentials, and assign curriculum subjects</div>
         </div>
       </div>
       <div class="topbar-right">
@@ -37,20 +37,13 @@ $adminActivePage = 'manage-teachers';
       <div class="content-card mb-3">
         <div class="card-body-custom">
           <div class="row g-2 align-items-end">
-            <div class="col-md-4">
+            <div class="col-md-6">
               <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Search by name, email, phone…" oninput="filterTeachers()"/>
+                <input type="text" id="searchInput" placeholder="Search by name, email, phone, subjects…" oninput="filterTeachers()"/>
               </div>
             </div>
             <div class="col-md-3">
-              <select id="filterAdvisory" class="form-select form-select-sm" onchange="filterTeachers()">
-                <option value="">All Advisory Statuses</option>
-                <option value="has_advisory">With Advisory Section</option>
-                <option value="no_advisory">No Advisory Section</option>
-              </select>
-            </div>
-            <div class="col-md-2">
               <select id="filterStatus" class="form-select form-select-sm" onchange="filterTeachers()">
                 <option value="">All Account Statuses</option>
                 <option value="1">Active</option>
@@ -82,13 +75,12 @@ $adminActivePage = 'manage-teachers';
                 <th>Login Email</th>
                 <th>Contact Phone</th>
                 <th>Teaching Subject(s)</th>
-                <th>Advisory Section</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="teachersTableBody">
-              <tr><td colspan="8" class="text-center py-4">Loading teacher records…</td></tr>
+              <tr><td colspan="7" class="text-center py-4">Loading teacher records…</td></tr>
             </tbody>
           </table>
         </div>
@@ -191,15 +183,7 @@ $adminActivePage = 'manage-teachers';
               </small>
             </div>
 
-            <div class="col-md-6">
-              <label class="form-label">Class Advisory Section (Optional)</label>
-              <select id="tSection" class="form-select">
-                <option value="">— No Advisory Section (None) —</option>
-              </select>
-              <small class="text-muted" style="font-size:0.75rem">Optional adviser role for student records and SF9 signings.</small>
-            </div>
-
-            <div class="col-md-6">
+            <div class="col-md-12">
               <label class="form-label">Account Status</label>
               <select id="tIsActive" class="form-select">
                 <option value="1">Active (Can Log In)</option>
@@ -228,8 +212,9 @@ $adminActivePage = 'manage-teachers';
 <script src="../../assets/js/app.js"></script>
 <script>
   let allTeachersData = [];
-  let allSectionsData = [];
   let allSubjectsData = [];
+  let allAssignmentsData = [];
+  let currentEditingTeacherId = null;
   let teacherModal = null;
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -238,20 +223,7 @@ $adminActivePage = 'manage-teachers';
   });
 
   async function loadInitialData() {
-    await Promise.all([loadSections(), loadSubjects(), loadTeachers()]);
-  }
-
-  async function loadSections() {
-    try {
-      const res = await fetch('../../api/sections.php?action=list');
-      const json = await res.json();
-      if (json.success) {
-        allSectionsData = json.data || [];
-        populateSectionDropdown();
-      }
-    } catch (e) {
-      console.error('Failed to load sections:', e);
-    }
+    await Promise.all([loadSubjects(), loadTeachers()]);
   }
 
   async function loadSubjects() {
@@ -260,24 +232,14 @@ $adminActivePage = 'manage-teachers';
       const json = await res.json();
       if (json.success) {
         allSubjectsData = json.subjects || [];
-        populateSubjectMatrix([]);
+        populateSubjectMatrix([], null);
       }
     } catch (e) {
       console.error('Failed to load subjects:', e);
     }
   }
 
-  function populateSectionDropdown(selectedSectionId = null) {
-    const sel = document.getElementById('tSection');
-    sel.innerHTML = '<option value="">— No Advisory Section (None) —</option>';
-    allSectionsData.forEach(s => {
-      const isSelected = selectedSectionId && String(selectedSectionId) === String(s.id);
-      const adviserNote = s.adviser_name ? ` (Current: ${s.adviser_name})` : '';
-      sel.innerHTML += `<option value="${s.id}" ${isSelected ? 'selected' : ''}>Grade ${s.grade_level} - ${s.name}${adviserNote}</option>`;
-    });
-  }
-
-  function populateSubjectMatrix(assignedPairs = []) {
+  function populateSubjectMatrix(assignedPairs = [], currentTeacherId = null) {
     const tbody = document.getElementById('tSubjectsTableBody');
     if (!tbody) return;
     if (!allSubjectsData.length) {
@@ -294,36 +256,80 @@ $adminActivePage = 'manage-teachers';
       }
     });
 
-    const grades = [7, 8, 9, 10, 11, 12];
+    const jhsSubjects = allSubjectsData.filter(s => (s.level || 'JHS') === 'JHS');
+    const shsSubjects = allSubjectsData.filter(s => s.level === 'SHS');
 
-    tbody.innerHTML = allSubjectsData.map(s => {
-      const gradeCols = grades.map(gl => {
-        const key = `${s.id}_${gl}`;
-        const isChecked = pairSet.has(key);
+    const renderRows = (subs, defaultGrades, isShs = false) => {
+      return subs.map(s => {
+        const grades = [7, 8, 9, 10, 11, 12];
+        const gradeCols = grades.map(gl => {
+          const key = `${s.id}_${gl}`;
+          const isChecked = pairSet.has(key);
+          const isApplicable = defaultGrades.includes(gl);
+
+          if (!isApplicable) {
+            return `<td class="text-center text-muted" style="background:#f8fafc;font-size:0.75rem">—</td>`;
+          }
+
+          // Check if this subject & grade is assigned to another teacher
+          const existing = allAssignmentsData.find(a => 
+            a.subject_id == s.id && 
+            a.grade_level == gl && 
+            (!currentTeacherId || a.teacher_id != currentTeacherId)
+          );
+
+          let cellClass = '';
+          let warningTag = '';
+          if (existing) {
+            cellClass = 'bg-warning-subtle';
+            const shortName = existing.teacher_name ? existing.teacher_name.split(' ')[0] : 'Assigned';
+            warningTag = `<div class="text-truncate mt-1" style="font-size:0.62rem;color:#b45309;font-weight:600" title="Already assigned to ${esc(existing.teacher_name)}"><i class="fas fa-user-check"></i> ${esc(shortName)}</div>`;
+          }
+
+          return `
+            <td class="text-center ${cellClass}" style="vertical-align:middle;padding:4px">
+              <input type="checkbox" class="form-check-input t-assignment-cb ${existing ? 'border-warning' : ''}" 
+                     data-subject-id="${s.id}" data-grade="${gl}" id="cb_${key}" ${isChecked ? 'checked' : ''} />
+              ${warningTag}
+            </td>
+          `;
+        }).join('');
+
+        const quickBtn = isShs 
+          ? `<button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size:0.72rem" onclick="toggleSubGrades(${s.id}, [11,12])" title="Toggle Grade 11-12">SHS</button>`
+          : `<button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size:0.72rem" onclick="toggleSubGrades(${s.id}, [7,8,9,10])" title="Toggle Grade 7-10">JHS</button>`;
+
+        const lvlBadge = isShs
+          ? `<span class="badge bg-warning text-dark ms-1" style="font-size:0.68rem">SHS</span>`
+          : `<span class="badge bg-info-subtle text-info border border-info-subtle ms-1" style="font-size:0.68rem">JHS</span>`;
+
         return `
-          <td class="text-center">
-            <input type="checkbox" class="form-check-input t-assignment-cb" 
-                   data-subject-id="${s.id}" data-grade="${gl}" id="cb_${key}" ${isChecked ? 'checked' : ''} />
-          </td>
+          <tr>
+            <td>
+              <strong>${esc(s.name)}</strong>
+              <span class="badge bg-light text-dark border ms-1" style="font-size:0.7rem">${esc(s.code||'')}</span>
+              ${lvlBadge}
+            </td>
+            ${gradeCols}
+            <td class="text-center">
+              ${quickBtn}
+            </td>
+          </tr>
         `;
       }).join('');
+    };
 
-      return `
-        <tr>
-          <td>
-            <strong>${esc(s.name)}</strong>
-            <span class="badge bg-light text-dark border ms-1" style="font-size:0.7rem">${esc(s.code||'')}</span>
-          </td>
-          ${gradeCols}
-          <td class="text-center">
-            <div class="btn-group btn-group-sm">
-              <button type="button" class="btn btn-outline-secondary py-0 px-1" style="font-size:0.72rem" onclick="toggleSubGrades(${s.id}, [7,8,9,10])" title="Toggle Junior High 7-10">JHS</button>
-              <button type="button" class="btn btn-outline-secondary py-0 px-1" style="font-size:0.72rem" onclick="toggleSubGrades(${s.id}, [7,8,9,10,11,12])" title="Toggle All Grades">All</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
+    let html = '';
+    if (jhsSubjects.length) {
+      html += `<tr class="table-light"><th colspan="8" class="text-primary py-1" style="font-size:0.78rem"><i class="fas fa-school me-1"></i>Junior High School Curriculum (Grades 7–10)</th></tr>`;
+      html += renderRows(jhsSubjects, [7, 8, 9, 10], false);
+    }
+    if (shsSubjects.length) {
+      html += `<tr class="table-light"><th colspan="8" class="text-warning-emphasis py-1" style="font-size:0.78rem"><i class="fas fa-graduation-cap me-1"></i>Senior High School Curriculum (Grades 11–12)</th></tr>`;
+      html += renderRows(shsSubjects, [11, 12], true);
+    }
+
+    tbody.innerHTML = html;
   }
 
   function toggleSubGrades(subjectId, gradeArray) {
@@ -338,14 +344,15 @@ $adminActivePage = 'manage-teachers';
       const json = await res.json();
       if (json.success) {
         allTeachersData = json.data || [];
+        allAssignmentsData = json.all_assignments || [];
         renderTeachers(allTeachersData);
       } else {
         document.getElementById('teachersTableBody').innerHTML =
-          `<tr><td colspan="8" class="text-center text-danger py-4">${esc(json.message || 'Failed to load teachers.')}</td></tr>`;
+          `<tr><td colspan="7" class="text-center text-danger py-4">${esc(json.message || 'Failed to load teachers.')}</td></tr>`;
       }
     } catch (e) {
       document.getElementById('teachersTableBody').innerHTML =
-        '<tr><td colspan="8" class="text-center text-danger py-4">Network error loading teachers.</td></tr>';
+        '<tr><td colspan="7" class="text-center text-danger py-4">Network error loading teachers.</td></tr>';
     }
   }
 
@@ -355,25 +362,19 @@ $adminActivePage = 'manage-teachers';
   }
 
   function filterTeachers() {
-    const q        = document.getElementById('searchInput').value.toLowerCase().trim();
-    const advisory = document.getElementById('filterAdvisory').value;
-    const status   = document.getElementById('filterStatus').value;
+    const q      = document.getElementById('searchInput').value.toLowerCase().trim();
+    const status = document.getElementById('filterStatus').value;
 
     const filtered = allTeachersData.filter(t => {
       const matchQ = !q ||
         t.full_name.toLowerCase().includes(q) ||
         t.email.toLowerCase().includes(q) ||
         (t.phone || '').includes(q) ||
-        (t.assigned_subjects || '').toLowerCase().includes(q) ||
-        (t.section_name || '').toLowerCase().includes(q);
-
-      const matchAdvisory = !advisory ||
-        (advisory === 'has_advisory' && !!t.section_id) ||
-        (advisory === 'no_advisory' && !t.section_id);
+        (t.assigned_subjects || '').toLowerCase().includes(q);
 
       const matchStatus = status === '' || String(t.is_active) === String(status);
 
-      return matchQ && matchAdvisory && matchStatus;
+      return matchQ && matchStatus;
     });
 
     renderTeachers(filtered);
@@ -381,7 +382,6 @@ $adminActivePage = 'manage-teachers';
 
   function clearFilters() {
     document.getElementById('searchInput').value = '';
-    document.getElementById('filterAdvisory').value = '';
     document.getElementById('filterStatus').value = '';
     renderTeachers(allTeachersData);
   }
@@ -391,7 +391,7 @@ $adminActivePage = 'manage-teachers';
     const tbody = document.getElementById('teachersTableBody');
 
     if (!data.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-inbox me-2"></i>No teacher records found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-inbox me-2"></i>No teacher records found.</td></tr>';
       return;
     }
 
@@ -402,10 +402,6 @@ $adminActivePage = 'manage-teachers';
       const subjectsBadges = t.assigned_subjects
         ? t.assigned_subjects.split(', ').map(s => `<span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1 mb-1" style="font-size:0.75rem"><i class="fas fa-book me-1"></i>${esc(s)}</span>`).join('')
         : `<span class="text-muted" style="font-size:0.82rem"><em>No subjects assigned</em></span>`;
-
-      const advisoryBadge = t.section_id
-        ? `<span class="badge bg-secondary" style="font-weight:600;"><i class="fas fa-chalkboard me-1"></i>Gr. ${esc(t.grade_level)} - ${esc(t.section_name)}</span>`
-        : `<span class="text-muted" style="font-size:0.85rem"><em>None</em></span>`;
 
       const statusBadge = t.is_active == 1
         ? `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Active</span>`
@@ -428,7 +424,6 @@ $adminActivePage = 'manage-teachers';
           <td><code style="font-size:0.85rem">${esc(t.email)}</code></td>
           <td>${t.phone ? `<span style="font-size:0.85rem">${esc(t.phone)}</span>` : '<span class="text-muted">—</span>'}</td>
           <td>${subjectsBadges}</td>
-          <td>${advisoryBadge}</td>
           <td>${statusBadge}</td>
           <td>
             <div class="d-flex gap-1">
@@ -463,6 +458,7 @@ $adminActivePage = 'manage-teachers';
   }
 
   function openAddTeacherModal() {
+    currentEditingTeacherId = null;
     document.getElementById('teacherForm').reset();
     document.getElementById('teacherIdField').value = '';
     document.getElementById('teacherModalTitle').innerHTML = '<i class="fas fa-user-plus me-2 text-primary"></i>Register Teacher';
@@ -470,13 +466,13 @@ $adminActivePage = 'manage-teachers';
     document.getElementById('tPassword').setAttribute('required', 'required');
     document.getElementById('tPassword').placeholder = 'Min. 6 characters';
     document.getElementById('tPasswordHint').style.display = 'none';
-    populateSectionDropdown(null);
-    populateSubjectMatrix([]);
+    populateSubjectMatrix([], null);
     teacherModal.show();
   }
 
   async function openEditTeacherModal(id) {
     try {
+      currentEditingTeacherId = id;
       const res = await fetch(`../../api/teachers.php?action=get&id=${id}`);
       const json = await res.json();
       if (!json.success || !json.data) {
@@ -498,8 +494,7 @@ $adminActivePage = 'manage-teachers';
       document.getElementById('tIsActive').value = t.is_active;
       document.getElementById('tAddress').value = t.address || '';
 
-      populateSectionDropdown(t.section_id);
-      populateSubjectMatrix(t.teaching_assignments || []);
+      populateSubjectMatrix(t.teaching_assignments || [], id);
 
       document.getElementById('teacherModalTitle').innerHTML = '<i class="fas fa-user-edit me-2 text-primary"></i>Edit Teacher Credentials &amp; Details';
       teacherModal.show();
@@ -521,7 +516,6 @@ $adminActivePage = 'manage-teachers';
     const password  = document.getElementById('tPassword').value;
     const phone     = document.getElementById('tPhone').value.trim();
     const gender    = document.getElementById('tGender').value;
-    const sectionId = document.getElementById('tSection').value;
     const isActive  = document.getElementById('tIsActive').value;
     const address   = document.getElementById('tAddress').value.trim();
 
@@ -558,7 +552,6 @@ $adminActivePage = 'manage-teachers';
     if (password) formData.append('password', password);
     formData.append('phone', phone);
     formData.append('gender', gender);
-    formData.append('section_id', sectionId);
     formData.append('is_active', isActive);
     formData.append('address', address);
     formData.append('teaching_assignments', JSON.stringify(selectedAssignments));

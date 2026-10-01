@@ -80,14 +80,14 @@ if ($action === 'list') {
     if ($_SESSION['role'] === 'teacher') {
         $teacherId = (int)$_SESSION['user_id'];
         $tsStmt = $pdo->prepare(
-            "SELECT ts.id AS assignment_id, ts.subject_id AS id, s.name, s.code, ts.grade_level,
+            "SELECT ts.id AS assignment_id, ts.subject_id AS id, s.name, s.code, s.level, ts.grade_level,
                     u.full_name AS teacher_name,
                     CONCAT(s.name, ' (Grade ', ts.grade_level, ')') AS display_name
              FROM teacher_subjects ts
              JOIN subjects s ON s.id = ts.subject_id
              LEFT JOIN users u ON u.id = ts.teacher_id
              WHERE ts.teacher_id = ? AND ts.school_year_id = ?
-             ORDER BY s.name, ts.grade_level"
+             ORDER BY s.level, s.name, ts.grade_level"
         );
         $tsStmt->execute([$teacherId, $syId]);
         $subjects = $tsStmt->fetchAll();
@@ -95,23 +95,23 @@ if ($action === 'list') {
         if (empty($subjects)) {
             // Fallback for unmigrated teachers
             $subStmt = $pdo->prepare(
-                "SELECT s.id, s.name, s.code, s.teacher_id, 7 AS grade_level, u.full_name AS teacher_name,
+                "SELECT s.id, s.name, s.code, s.level, s.teacher_id, 7 AS grade_level, u.full_name AS teacher_name,
                         s.name AS display_name
                  FROM subjects s 
                  LEFT JOIN users u ON u.id = s.teacher_id 
                  WHERE s.teacher_id = ? 
-                 ORDER BY s.name"
+                 ORDER BY s.level, s.name"
             );
             $subStmt->execute([$teacherId]);
             $subjects = $subStmt->fetchAll();
         }
     } else {
         $subjects = $pdo->query(
-            "SELECT s.id, s.name, s.code, s.teacher_id, u.full_name AS teacher_name,
+            "SELECT s.id, s.name, s.code, s.level, s.teacher_id, u.full_name AS teacher_name,
                     s.name AS display_name
              FROM subjects s 
              LEFT JOIN users u ON u.id = s.teacher_id 
-             ORDER BY s.name"
+             ORDER BY s.level, s.name"
         )->fetchAll();
 
         // Include all teacher subject assignments for admin view
@@ -138,9 +138,19 @@ if ($action === 'save') {
     $subjectId  = (int)($_POST['subject_id']  ?? 0);
     $quarter    = (int)($_POST['quarter']      ?? 0);
     $syId       = (int)($_POST['school_year_id'] ?? 0);
-    $ww         = isset($_POST['written_works']) && $_POST['written_works'] !== '' ? (float)$_POST['written_works'] : null;
-    $pt         = isset($_POST['performance_tasks']) && $_POST['performance_tasks'] !== '' ? (float)$_POST['performance_tasks'] : null;
-    $qe         = isset($_POST['quarterly_exam']) && $_POST['quarterly_exam'] !== '' ? (float)$_POST['quarterly_exam'] : null;
+
+    // Direct Term Grade Input (no written works / performance tasks / quarterly exam components needed)
+    $grade = null;
+    if (isset($_POST['grade']) && $_POST['grade'] !== '') {
+        $grade = (float)$_POST['grade'];
+    } elseif (isset($_POST['final_grade']) && $_POST['final_grade'] !== '') {
+        $grade = (float)$_POST['final_grade'];
+    } elseif (isset($_POST['written_works']) || isset($_POST['performance_tasks']) || isset($_POST['quarterly_exam'])) {
+        $ww = (float)($_POST['written_works'] ?? 0);
+        $pt = (float)($_POST['performance_tasks'] ?? 0);
+        $qe = (float)($_POST['quarterly_exam'] ?? 0);
+        $grade = round(($ww * 0.20) + ($pt * 0.50) + ($qe * 0.30), 2);
+    }
 
     if (!$studentId || !$subjectId || !$quarter) {
         jsonResponse(['success' => false, 'message' => 'student_id, subject_id, and quarter are required.'], 400);
@@ -148,10 +158,11 @@ if ($action === 'save') {
     if ($quarter < 1 || $quarter > 4) {
         jsonResponse(['success' => false, 'message' => 'Quarter must be 1–4.'], 400);
     }
-    foreach ([$ww, $pt, $qe] as $v) {
-        if ($v !== null && ($v < 0 || $v > 100)) {
-            jsonResponse(['success' => false, 'message' => 'Grades must be between 0 and 100.'], 400);
-        }
+    if ($grade === null) {
+        jsonResponse(['success' => false, 'message' => 'Quarter grade value is required.'], 400);
+    }
+    if ($grade < 0 || $grade > 100) {
+        jsonResponse(['success' => false, 'message' => 'Grade must be between 0 and 100.'], 400);
     }
 
     // Resolve active school year if not provided
@@ -185,31 +196,20 @@ if ($action === 'save') {
         }
     }
 
-    // Compute final grade: WW(20%) + PT(50%) + QE(30%)
-    $finalGrade = null;
-    if ($ww !== null && $pt !== null && $qe !== null) {
-        $finalGrade = round(($ww * 0.20) + ($pt * 0.50) + ($qe * 0.30), 2);
-    }
-
-    $remarks = null;
-    if ($finalGrade !== null) {
-        $remarks = $finalGrade >= 75 ? 'Passed' : 'Failed';
-    }
+    $finalGrade = round($grade, 2);
+    $remarks = $finalGrade >= 75 ? 'Passed' : 'Failed';
 
     // Upsert using UNIQUE KEY (student_id, subject_id, quarter, school_year_id)
     $stmt = $pdo->prepare(
         "INSERT INTO grades (student_id, subject_id, quarter, school_year_id,
-                             written_works, performance_tasks, quarterly_exam, final_grade, remarks, encoded_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             final_grade, remarks, encoded_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
-             written_works      = VALUES(written_works),
-             performance_tasks  = VALUES(performance_tasks),
-             quarterly_exam     = VALUES(quarterly_exam),
              final_grade        = VALUES(final_grade),
              remarks            = VALUES(remarks),
              encoded_by         = VALUES(encoded_by)"
     );
-    $stmt->execute([$studentId, $subjectId, $quarter, $syId, $ww, $pt, $qe, $finalGrade, $remarks, $_SESSION['user_id']]);
+    $stmt->execute([$studentId, $subjectId, $quarter, $syId, $finalGrade, $remarks, $_SESSION['user_id']]);
 
     jsonResponse(['success' => true, 'message' => 'Grade saved.', 'final_grade' => $finalGrade, 'remarks' => $remarks]);
 }
@@ -256,8 +256,9 @@ if ($action === 'delete') {
 // ─── ADD SUBJECT (admin only) ────────────────────────────────────────────────
 if ($action === 'add_subject') {
     requireAdmin();
-    $name = trim($_POST['name'] ?? '');
-    $code = strtoupper(trim($_POST['code'] ?? ''));
+    $name  = trim($_POST['name'] ?? '');
+    $code  = strtoupper(trim($_POST['code'] ?? ''));
+    $level = in_array($_POST['level'] ?? '', ['JHS', 'SHS']) ? $_POST['level'] : 'JHS';
     $teacherId = !empty($_POST['teacher_id']) ? (int)$_POST['teacher_id'] : null;
 
     if (!$name || !$code) {
@@ -277,8 +278,8 @@ if ($action === 'add_subject') {
         if (!$tChk->fetch()) $teacherId = null;
     }
 
-    $stmt = $pdo->prepare("INSERT INTO subjects (name, code, teacher_id) VALUES (?, ?, ?)");
-    $stmt->execute([$name, $code, $teacherId]);
+    $stmt = $pdo->prepare("INSERT INTO subjects (name, code, level, teacher_id) VALUES (?, ?, ?, ?)");
+    $stmt->execute([$name, $code, $level, $teacherId]);
 
     jsonResponse(['success' => true, 'message' => 'Subject created successfully.', 'id' => (int)$pdo->lastInsertId()]);
 }
@@ -286,9 +287,10 @@ if ($action === 'add_subject') {
 // ─── UPDATE SUBJECT (admin only) ─────────────────────────────────────────────
 if ($action === 'update_subject') {
     requireAdmin();
-    $id   = (int)($_POST['id'] ?? 0);
-    $name = trim($_POST['name'] ?? '');
-    $code = strtoupper(trim($_POST['code'] ?? ''));
+    $id    = (int)($_POST['id'] ?? 0);
+    $name  = trim($_POST['name'] ?? '');
+    $code  = strtoupper(trim($_POST['code'] ?? ''));
+    $level = in_array($_POST['level'] ?? '', ['JHS', 'SHS']) ? $_POST['level'] : 'JHS';
     $teacherId = isset($_POST['teacher_id']) && $_POST['teacher_id'] !== '' ? (int)$_POST['teacher_id'] : null;
 
     if (!$id || !$name || !$code) {
@@ -308,8 +310,8 @@ if ($action === 'update_subject') {
         if (!$tChk->fetch()) $teacherId = null;
     }
 
-    $stmt = $pdo->prepare("UPDATE subjects SET name = ?, code = ?, teacher_id = ? WHERE id = ?");
-    $stmt->execute([$name, $code, $teacherId ?: null, $id]);
+    $stmt = $pdo->prepare("UPDATE subjects SET name = ?, code = ?, level = ?, teacher_id = ? WHERE id = ?");
+    $stmt->execute([$name, $code, $level, $teacherId ?: null, $id]);
 
     jsonResponse(['success' => true, 'message' => 'Subject updated successfully.']);
 }
@@ -323,6 +325,7 @@ if ($action === 'delete_subject') {
     }
     $pdo = getDB();
     $pdo->prepare("DELETE FROM grades WHERE subject_id = ?")->execute([$id]);
+    $pdo->prepare("DELETE FROM teacher_subjects WHERE subject_id = ?")->execute([$id]);
     $pdo->prepare("DELETE FROM subjects WHERE id = ?")->execute([$id]);
     jsonResponse(['success' => true, 'message' => 'Subject deleted successfully.']);
 }
@@ -332,10 +335,7 @@ if ($action === 'restore_subjects') {
     requireAdmin();
     $pdo = getDB();
 
-    // Wipe grade entries so there is NO data
-    $pdo->exec("DELETE FROM grades");
-
-    $defaultSubjects = [
+    $defaultJhs = [
         ['Araling Panlipunan', 'AP'],
         ['Mathematics',        'MATH'],
         ['Science',            'SCI'],
@@ -346,16 +346,49 @@ if ($action === 'restore_subjects') {
         ['Values Education',   'VE']
     ];
 
-    foreach ($defaultSubjects as [$name, $code]) {
+    $defaultShs = [
+        ['Oral Communication in Context', 'OCC'],
+        ['Reading and Writing Skills', 'RWS'],
+        ['Komunikasyon at Pananaliksik sa Wika at Kulturang Pilipino', 'KPWKP'],
+        ['21st Century Literature from the Philippines and the World', '21CLPW'],
+        ['Contemporary Philippine Arts from the Regions', 'CPAR'],
+        ['Media and Information Literacy', 'MIL'],
+        ['General Mathematics', 'GENMATH'],
+        ['Statistics and Probability', 'STATPROB'],
+        ['Earth and Life Science', 'ELS'],
+        ['Physical Science', 'PHYSCI'],
+        ['Personal Development', 'PERDEV'],
+        ['Understanding Culture, Society, and Politics', 'UCSP'],
+        ['Physical Education and Health', 'PEH'],
+        ['English for Academic and Professional Purposes', 'EAPP'],
+        ['Practical Research 1', 'PR1'],
+        ['Practical Research 2', 'PR2'],
+        ['Empowerment Technologies', 'EMPTECH'],
+        ['Entrepreneurship', 'ENTREP'],
+        ['Inquiries, Investigations and Immersion', 'III']
+    ];
+
+    foreach ($defaultJhs as [$name, $code]) {
         $stmt = $pdo->prepare("SELECT id FROM subjects WHERE code = ? OR name = ?");
         $stmt->execute([$code, $name]);
         if (!$stmt->fetch()) {
-            $pdo->prepare("INSERT INTO subjects (name, code) VALUES (?, ?)")
-                ->execute([$name, $code]);
+            $pdo->prepare("INSERT INTO subjects (name, code, level) VALUES (?, ?, 'JHS')")->execute([$name, $code]);
+        } else {
+            $pdo->prepare("UPDATE subjects SET level = 'JHS' WHERE code = ? OR name = ?")->execute([$code, $name]);
         }
     }
 
-    jsonResponse(['success' => true, 'message' => 'Default subjects restored with 0 grade entries.']);
+    foreach ($defaultShs as [$name, $code]) {
+        $stmt = $pdo->prepare("SELECT id FROM subjects WHERE code = ? OR name = ?");
+        $stmt->execute([$code, $name]);
+        if (!$stmt->fetch()) {
+            $pdo->prepare("INSERT INTO subjects (name, code, level) VALUES (?, ?, 'SHS')")->execute([$name, $code]);
+        } else {
+            $pdo->prepare("UPDATE subjects SET level = 'SHS' WHERE code = ? OR name = ?")->execute([$code, $name]);
+        }
+    }
+
+    jsonResponse(['success' => true, 'message' => 'Default JHS and SHS core subjects verified & restored.']);
 }
 
 jsonResponse(['success' => false, 'message' => 'Unknown action.'], 400);

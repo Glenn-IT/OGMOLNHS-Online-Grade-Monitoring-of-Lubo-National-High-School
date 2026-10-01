@@ -281,26 +281,18 @@ $adminActivePage = 'manage-grades';
 
         <div class="p-2 mb-3 bg-light rounded border" id="editGradeStudentInfo" style="font-size:.85rem"></div>
 
-        <div class="row g-3">
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Written Works <small class="text-muted">(20%)</small></label>
-            <input type="number" id="editWW" class="form-control" min="0" max="100" step="0.01" oninput="updateEditPreview()"/>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Term Grade <span class="text-danger">*</span></label>
+          <div class="input-group input-group-lg">
+            <input type="number" id="editGrade" class="form-control" min="0" max="100" step="0.01" placeholder="e.g. 85.00" oninput="updateEditPreview()" required/>
+            <span class="input-group-text">/ 100</span>
           </div>
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Performance Tasks <small class="text-muted">(50%)</small></label>
-            <input type="number" id="editPT" class="form-control" min="0" max="100" step="0.01" oninput="updateEditPreview()"/>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Quarterly Exam <small class="text-muted">(30%)</small></label>
-            <input type="number" id="editQE" class="form-control" min="0" max="100" step="0.01" oninput="updateEditPreview()"/>
-          </div>
+          <small class="text-muted">Enter direct numerical term grade (0.00 – 100.00).</small>
         </div>
 
-        <div class="mt-3 p-2 rounded" id="editPreviewBox" style="display:none;background:#f8fafc;border:1px solid #e2e8f0">
-          <div class="d-flex justify-content-between align-items-center">
-            <span style="font-size:.8rem;color:#64748b;font-weight:600">Calculated Final Grade</span>
-            <div id="editPreviewContent"></div>
-          </div>
+        <div class="mt-3 p-3 rounded text-center border" id="editPreviewBox" style="display:none;background:#f8fafc">
+          <div class="text-muted" style="font-size:.8rem;text-transform:uppercase;font-weight:600">Recorded Term Grade</div>
+          <div class="h3 mb-1 fw-bold" id="editPreviewContent">—</div>
         </div>
       </div>
       <div class="modal-footer justify-content-between">
@@ -329,13 +321,21 @@ $adminActivePage = 'manage-grades';
       <div class="modal-body">
         <input type="hidden" id="modalSubjectId"/>
         <div class="mb-3">
-          <label class="form-label fw-semibold">Subject Name</label>
+          <label class="form-label fw-semibold">Subject Name <span class="text-danger">*</span></label>
           <input type="text" id="modalSubjectName" class="form-control" placeholder="e.g. Mathematics" required/>
         </div>
         <div class="mb-3">
-          <label class="form-label fw-semibold">Subject Code</label>
+          <label class="form-label fw-semibold">Subject Code <span class="text-danger">*</span></label>
           <input type="text" id="modalSubjectCode" class="form-control" placeholder="e.g. MATH" required/>
           <small class="text-muted">Short abbreviation used in report cards and tables.</small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Curriculum Level <span class="text-danger">*</span></label>
+          <select id="modalSubjectLevel" class="form-select" required>
+            <option value="JHS">Junior High School (JHS – Grades 7–10)</option>
+            <option value="SHS">Senior High School (SHS – Grades 11–12)</option>
+          </select>
+          <small class="text-muted">Determines whether this subject appears in JHS or SHS grade levels and SF9 forms.</small>
         </div>
         <div class="mb-3">
           <label class="form-label fw-semibold">Assigned Teacher</label>
@@ -469,7 +469,9 @@ $adminActivePage = 'manage-grades';
       const showSubject = isFiltering ? ' show' : (sIdx === 0 ? ' show' : '');
       const collapsedSubjectCls = isFiltering ? '' : (sIdx === 0 ? '' : ' collapsed');
 
-      const gradeLevels = [7, 8, 9, 10, 11, 12].filter(g => {
+      const subLevel = sub.level || 'JHS';
+      const defaultGrades = (subLevel === 'SHS') ? [11, 12] : [7, 8, 9, 10];
+      const gradeLevels = defaultGrades.filter(g => {
         if (gradeFilter && g != gradeFilter) return false;
         return true;
       });
@@ -530,16 +532,21 @@ $adminActivePage = 'manage-grades';
           </div>`;
       }).join('');
 
+      const levelBadge = subLevel === 'SHS'
+        ? `<span class="badge bg-warning text-dark ms-2" style="font-size:.72rem"><i class="fas fa-graduation-cap me-1"></i>SHS</span>`
+        : `<span class="badge bg-info-subtle text-info border border-info-subtle ms-2" style="font-size:.72rem">JHS</span>`;
+
       return `
         <div class="subject-item mb-3">
           <div class="accordion-header d-flex align-items-center rounded-top" id="heading-subject-${sub.id}" style="background-color:#0c1326!important; overflow:hidden">
             <button class="accordion-button subject-accordion-btn flex-grow-1 shadow-none ${collapsedSubjectCls}" type="button" data-bs-toggle="collapse" data-bs-target="#${subCollapseId}">
               <i class="fas fa-book me-2"></i>${esc(sub.name)} 
               <span class="badge bg-primary-subtle text-primary ms-2" style="font-size:.72rem">${esc(sub.code||'')}</span>
+              ${levelBadge}
               ${sub.teacher_name ? `<span class="badge bg-info-subtle text-info ms-2" style="font-size:.72rem"><i class="fas fa-chalkboard-teacher me-1"></i>${esc(sub.teacher_name)}</span>` : `<span class="badge bg-secondary-subtle text-secondary ms-2" style="font-size:.72rem"><i class="fas fa-user-slash me-1"></i>No Teacher</span>`}
             </button>
             <div class="pe-3 d-flex gap-1" style="background:#0c1326; z-index:2">
-              <button class="btn btn-sm btn-outline-light py-0 px-2" style="font-size:.78rem" title="Edit Subject" onclick="event.stopPropagation(); openEditSubjectModal(${sub.id}, '${escAttr(sub.name)}', '${escAttr(sub.code||'')}', ${sub.teacher_id || 'null'})">
+              <button class="btn btn-sm btn-outline-light py-0 px-2" style="font-size:.78rem" title="Edit Subject" onclick="event.stopPropagation(); openEditSubjectModal(${sub.id}, '${escAttr(sub.name)}', '${escAttr(sub.code||'')}', '${escAttr(subLevel)}', ${sub.teacher_id || 'null'})">
                 <i class="fas fa-edit me-1"></i>Edit
               </button>
               <button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:.78rem" title="Delete Subject" onclick="event.stopPropagation(); deleteSubject(${sub.id}, '${escAttr(sub.name)}')">
@@ -624,12 +631,21 @@ $adminActivePage = 'manage-grades';
       tbody.innerHTML = students.map(stu => {
         const qMap = studentGradesMap[stu.id];
         
-        // Calculate average across 3 terms for this subject
-        const termVals = [1, 2, 3].map(q => qMap[q] ? parseFloat(qMap[q].final_grade) : null).filter(v => v !== null);
-        const subAvg = termVals.length ? (termVals.reduce((a,b)=>a+b,0)/termVals.length).toFixed(2) : null;
-        if (subAvg !== null) classFinals.push(parseFloat(subAvg));
+        // Calculate average across 3 terms for this subject ONLY if all 3 terms exist
+        const hasT1 = qMap[1] && qMap[1].final_grade !== null && qMap[1].final_grade !== '';
+        const hasT2 = qMap[2] && qMap[2].final_grade !== null && qMap[2].final_grade !== '';
+        const hasT3 = qMap[3] && qMap[3].final_grade !== null && qMap[3].final_grade !== '';
 
-        const subRemarks = subAvg !== null ? (subAvg >= 75 ? '<span class="badge bg-success">Passed</span>' : '<span class="badge bg-danger">Failed</span>') : '<span class="text-muted">—</span>';
+        let subAvg = null;
+        if (hasT1 && hasT2 && hasT3) {
+          const v1 = parseFloat(qMap[1].final_grade);
+          const v2 = parseFloat(qMap[2].final_grade);
+          const v3 = parseFloat(qMap[3].final_grade);
+          subAvg = ((v1 + v2 + v3) / 3).toFixed(2);
+          classFinals.push(parseFloat(subAvg));
+        }
+
+        const subRemarks = subAvg !== null ? (parseFloat(subAvg) >= 75 ? '<span class="badge bg-success">Passed</span>' : '<span class="badge bg-danger">Failed</span>') : '<span class="text-muted">—</span>';
 
         const termCellsHtml = [1, 2, 3].map(q => {
           const g = qMap[q];
@@ -668,7 +684,7 @@ $adminActivePage = 'manage-grades';
             </td>
             <td><code>${stu.lrn||'—'}</code></td>
             ${termCellsHtml}
-            <td class="text-center"><strong class="${subAvg >= 75 ? 'text-success':'text-danger'}">${subAvg || '—'}</strong></td>
+            <td class="text-center"><strong class="${subAvg !== null ? (parseFloat(subAvg) >= 75 ? 'text-success':'text-danger') : ''}">${subAvg || '—'}</strong></td>
             <td class="text-center">${subRemarks}</td>
             <td class="text-center" onclick="event.stopPropagation()">
               <button class="btn btn-sm btn-primary py-1 px-2 text-nowrap" onclick="openStudentReportCard(${stu.id})" title="Print Individual SF9 Grade Sheet for ${escAttr(stu.full_name)}">
@@ -701,19 +717,15 @@ $adminActivePage = 'manage-grades';
     document.getElementById('editGradeTitle').innerHTML = `<i class="fas fa-edit me-2"></i>Grade Entry (${termName})`;
     document.getElementById('editGradeStudentInfo').innerHTML = `<strong>Student:</strong> ${studentName} &nbsp;|&nbsp; <strong>Subject:</strong> ${esc(currentClassSubject.name)} &nbsp;|&nbsp; <strong>Period:</strong> ${termName}`;
 
-    document.getElementById('editWW').value = '';
-    document.getElementById('editPT').value = '';
-    document.getElementById('editQE').value = '';
+    document.getElementById('editGrade').value = '';
     document.getElementById('editPreviewBox').style.display = 'none';
 
     // Prefill existing grade if any
     const url = `../../api/grades.php?action=list&student_id=${studentId}&subject_id=${subjectId}&quarter=${quarter}`;
     fetch(url).then(r=>r.json()).then(data=>{
       const g = (data.data||[])[0];
-      if (g) {
-        document.getElementById('editWW').value = g.written_works !== null ? g.written_works : '';
-        document.getElementById('editPT').value = g.performance_tasks !== null ? g.performance_tasks : '';
-        document.getElementById('editQE').value = g.quarterly_exam !== null ? g.quarterly_exam : '';
+      if (g && g.final_grade !== null) {
+        document.getElementById('editGrade').value = parseFloat(g.final_grade).toFixed(2);
         updateEditPreview();
       }
     });
@@ -722,14 +734,13 @@ $adminActivePage = 'manage-grades';
   }
 
   function updateEditPreview() {
-    const ww = parseFloat(document.getElementById('editWW').value);
-    const pt = parseFloat(document.getElementById('editPT').value);
-    const qe = parseFloat(document.getElementById('editQE').value);
+    const rawVal = document.getElementById('editGrade').value;
 
-    if (!isNaN(ww) && !isNaN(pt) && !isNaN(qe)) {
-      const finalGrade = (ww * 0.20 + pt * 0.50 + qe * 0.30).toFixed(2);
-      const remarks = finalGrade >= 75 ? 'Passed' : 'Failed';
-      const badgeCls = finalGrade >= 75 ? 'bg-success' : 'bg-danger';
+    if (rawVal !== '') {
+      const finalGrade = Math.max(0, Math.min(100, parseFloat(rawVal) || 0)).toFixed(2);
+      const isPassed = parseFloat(finalGrade) >= 75;
+      const remarks = isPassed ? 'Passed' : 'Failed';
+      const badgeCls = isPassed ? 'bg-success' : 'bg-danger';
 
       document.getElementById('editPreviewContent').innerHTML = `<span class="badge ${badgeCls} fs-6">${finalGrade} (${remarks})</span>`;
       document.getElementById('editPreviewBox').style.display = 'block';
@@ -742,12 +753,16 @@ $adminActivePage = 'manage-grades';
     const studentId = document.getElementById('editGradeStudentId').value;
     const subjectId = document.getElementById('editGradeSubjectId').value;
     const quarter   = document.getElementById('editGradeQuarter').value;
-    const ww        = document.getElementById('editWW').value;
-    const pt        = document.getElementById('editPT').value;
-    const qe        = document.getElementById('editQE').value;
+    const gradeVal  = document.getElementById('editGrade').value;
 
-    if (!ww || !pt || !qe) {
-      showToast('Please fill in Written Works (20%), Performance Tasks (50%), and Quarterly Exam (30%).', 'error');
+    if (gradeVal === '') {
+      showToast('Please enter a term grade.', 'error');
+      return;
+    }
+
+    const numGrade = parseFloat(gradeVal);
+    if (isNaN(numGrade) || numGrade < 0 || numGrade > 100) {
+      showToast('Term grade must be a number between 0 and 100.', 'error');
       return;
     }
 
@@ -756,9 +771,7 @@ $adminActivePage = 'manage-grades';
     body.append('student_id', studentId);
     body.append('subject_id', subjectId);
     body.append('quarter', quarter);
-    body.append('written_works', ww);
-    body.append('performance_tasks', pt);
-    body.append('quarterly_exam', qe);
+    body.append('grade', numGrade);
 
     try {
       const res = await fetch('../../api/grades.php', { method: 'POST', body });
@@ -861,8 +874,8 @@ $adminActivePage = 'manage-grades';
       const q1 = getGrade(stu.id, currentClassSubject.id, 1);
       const q2 = getGrade(stu.id, currentClassSubject.id, 2);
       const q3 = getGrade(stu.id, currentClassSubject.id, 3);
-      const valid = [q1, q2, q3].filter(v => v !== null && !isNaN(v));
-      const avg = valid.length ? (valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(2) : '—';
+      const hasAll = (q1 !== null && !isNaN(q1)) && (q2 !== null && !isNaN(q2)) && (q3 !== null && !isNaN(q3));
+      const avg = hasAll ? ((q1 + q2 + q3) / 3).toFixed(2) : '—';
       const isPassed = avg !== '—' && parseFloat(avg) >= 75;
       const remarks = avg === '—' ? '—' : (isPassed ? 'Passed' : 'Failed');
       
@@ -986,15 +999,17 @@ $adminActivePage = 'manage-grades';
     document.getElementById('modalSubjectId').value = '';
     document.getElementById('modalSubjectName').value = '';
     document.getElementById('modalSubjectCode').value = '';
+    document.getElementById('modalSubjectLevel').value = 'JHS';
     populateSubjectTeacherSelect(null);
     getSubjectModal().show();
   }
 
-  function openEditSubjectModal(id, name, code, teacherId = null) {
+  function openEditSubjectModal(id, name, code, level = 'JHS', teacherId = null) {
     document.getElementById('subjectModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Subject';
     document.getElementById('modalSubjectId').value = id;
     document.getElementById('modalSubjectName').value = name;
     document.getElementById('modalSubjectCode').value = code;
+    document.getElementById('modalSubjectLevel').value = (level === 'SHS') ? 'SHS' : 'JHS';
     populateSubjectTeacherSelect(teacherId);
     getSubjectModal().show();
   }
@@ -1003,6 +1018,7 @@ $adminActivePage = 'manage-grades';
     const id        = document.getElementById('modalSubjectId').value.trim();
     const name      = document.getElementById('modalSubjectName').value.trim();
     const code      = document.getElementById('modalSubjectCode').value.trim().toUpperCase();
+    const level     = document.getElementById('modalSubjectLevel').value;
     const teacherId = document.getElementById('modalSubjectTeacher').value;
 
     if (!name || !code) {
@@ -1016,6 +1032,7 @@ $adminActivePage = 'manage-grades';
     if (id) body.append('id', id);
     body.append('name', name);
     body.append('code', code);
+    body.append('level', level);
     body.append('teacher_id', teacherId);
 
     try {

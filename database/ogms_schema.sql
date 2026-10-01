@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS subjects (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     name        VARCHAR(100) NOT NULL,
     code        VARCHAR(20),
+    level       ENUM('JHS', 'SHS') NOT NULL DEFAULT 'JHS',
     teacher_id  INT,
     FOREIGN KEY (teacher_id) REFERENCES users(id)
 );
