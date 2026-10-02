@@ -12,6 +12,13 @@ if (file_exists($envFile)) {
             list($name, $value) = explode('=', $line, 2);
             $name  = trim($name);
             $value = trim($value, " \t\n\r\0\x0B\"'");
+            // If it's SMTP_PASS, automatically strip internal spaces (common when copying 16-char Google App Passwords formatted as "xxxx xxxx xxxx xxxx")
+            if ($name === 'SMTP_PASS') {
+                $value = preg_replace('/\s+/', '', $value);
+            }
+            if ($name === 'SMTP_USER') {
+                $value = trim($value);
+            }
             if (!defined($name)) {
                 define($name, $value);
             }

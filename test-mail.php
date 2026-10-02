@@ -112,7 +112,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div>
             <i class="fas fa-key me-2 <?= $smtpPassConfigured ? 'text-success' : 'text-danger' ?>"></i>
             <strong>SMTP_PASS (Gmail 16-char App Password)</strong>
-            <div class="text-muted" style="font-size:0.78rem"><?= $smtpPassConfigured ? '•••••••••••••••• (' . strlen(SMTP_PASS) . ' chars)' : 'Not configured' ?></div>
+            <div class="text-muted" style="font-size:0.78rem">
+              <?php if ($smtpPassConfigured): ?>
+                <?php
+                  $rawLen = strlen(SMTP_PASS);
+                  $cleanLen = strlen(preg_replace('/\s+/', '', (string)SMTP_PASS));
+                ?>
+                •••••••••••••••• (<?= $cleanLen ?> chars clean)
+                <?php if ($rawLen !== $cleanLen): ?>
+                  <span class="badge bg-info text-dark ms-1">Spaces auto-stripped (was <?= $rawLen ?> chars)</span>
+                <?php endif; ?>
+              <?php else: ?>
+                Not configured
+              <?php endif; ?>
+            </div>
           </div>
           <span class="badge <?= $smtpPassConfigured ? 'bg-success' : 'bg-danger' ?> status-badge">
             <?= $smtpPassConfigured ? 'Configured' : 'Empty' ?>
@@ -153,6 +166,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="small bg-white p-2 border rounded mt-2 text-dark font-monospace">
             <?= htmlspecialchars($errorMsg ?: 'Unknown error. Check Apache and PHP error logs.') ?>
           </div>
+
+          <?php if (stripos($errorMsg, 'authenticate') !== false): ?>
+            <div class="mt-3 p-2 bg-white rounded border border-danger-subtle small text-dark">
+              <strong class="text-danger"><i class="fas fa-lightbulb me-1"></i>How to resolve "Could not authenticate":</strong>
+              <ul class="mb-1 mt-1 ps-3">
+                <li><strong>Remove spaces from <code>SMTP_PASS</code> in <code>.env</code>:</strong> Google shows App Passwords as <code>xxxx xxxx xxxx xxxx</code> (19 chars). Make sure it is written without spaces: <code>SMTP_PASS=xxxxxxxxxxxxxxxx</code> (16 chars).</li>
+                <li><strong>Must be a Google "App Password", not your normal login password:</strong> Standard Gmail passwords are blocked by Google for SMTP.</li>
+                <li><strong>Generate a fresh App Password:</strong> Go to <a href="https://myaccount.google.com/apppasswords" target="_blank" class="fw-semibold">Google Account &rarr; Security &rarr; 2-Step Verification &rarr; App Passwords</a>, create a new one named "OGMS Laptop", and paste the 16 characters into your <code>.env</code>.</li>
+              </ul>
+            </div>
+          <?php endif; ?>
         </div>
       <?php elseif ($result === 'invalid'): ?>
         <div class="alert alert-warning">Please enter a valid recipient email address.</div>
