@@ -38,7 +38,7 @@ if ($action === 'login') {
     }
 
     $pdo  = getDB();
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ? AND is_active = 1');
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ?');
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
@@ -73,15 +73,60 @@ if ($action === 'login') {
         ], 403);
     }
 
+    // Teacher approval check
+    if ($user['role'] === 'teacher') {
+        $appStatus = $user['approval_status'] ?? 'approved';
+        if ($appStatus === 'pending') {
+            jsonResponse([
+                'success'          => false,
+                'pending_approval' => true,
+                'message'          => 'Your teacher account is pending administrator approval. Please wait for an administrator to review and activate your account before logging in.',
+            ], 403);
+        }
+        if ($appStatus === 'rejected') {
+            jsonResponse([
+                'success' => false,
+                'message' => 'Your teacher registration was not approved. Please contact the LNHS administration for inquiries.',
+            ], 403);
+        }
+    }
+
+    // Admin approval check
+    if ($user['role'] === 'admin') {
+        $appStatus = $user['approval_status'] ?? 'approved';
+        if ($appStatus === 'pending') {
+            jsonResponse([
+                'success'          => false,
+                'pending_approval' => true,
+                'message'          => 'Your administrator account is pending approval by the Superadmin. Please wait for the Superadmin to review and activate your account before logging in.',
+            ], 403);
+        }
+        if ($appStatus === 'rejected') {
+            jsonResponse([
+                'success' => false,
+                'message' => 'Your administrator account registration was not approved. Please contact the Superadmin.',
+            ], 403);
+        }
+    }
+
+    // Account active check
+    if ((int)$user['is_active'] !== 1) {
+        jsonResponse([
+            'success' => false,
+            'message' => 'Your account is currently inactive or deactivated. Please contact the administrator.',
+        ], 403);
+    }
+
     // Reset counter on successful login
     unset($_SESSION[$attemptsKey], $_SESSION[$lockKey]);
 
     session_regenerate_id(true);
-    $_SESSION['user_id']   = $user['id'];
-    $_SESSION['full_name'] = $user['full_name'];
-    $_SESSION['role']      = $user['role'];
-    $_SESSION['email']     = $user['email'];
-    $_SESSION['lrn']       = $user['lrn'];
+    $_SESSION['user_id']       = $user['id'];
+    $_SESSION['full_name']     = $user['full_name'];
+    $_SESSION['role']          = $user['role'];
+    $_SESSION['is_superadmin'] = (int)($user['is_superadmin'] ?? 0);
+    $_SESSION['email']         = $user['email'];
+    $_SESSION['lrn']           = $user['lrn'];
 
     $redirect = match($user['role']) {
         'admin'   => '/OGMS-Lubo-National-High-School/views/admin/dashboard.php',
@@ -90,10 +135,11 @@ if ($action === 'login') {
     };
 
     jsonResponse([
-        'success'  => true,
-        'role'     => $user['role'],
-        'name'     => $user['full_name'],
-        'redirect' => $redirect,
+        'success'       => true,
+        'role'          => $user['role'],
+        'is_superadmin' => (int)($user['is_superadmin'] ?? 0),
+        'name'          => $user['full_name'],
+        'redirect'      => $redirect,
     ]);
 }
 
@@ -107,10 +153,11 @@ if ($action === 'logout') {
 if ($action === 'check') {
     if (!empty($_SESSION['user_id'])) {
         jsonResponse([
-            'logged_in' => true,
-            'role'      => $_SESSION['role'],
-            'name'      => $_SESSION['full_name'],
-            'user_id'   => $_SESSION['user_id'],
+            'logged_in'     => true,
+            'role'          => $_SESSION['role'],
+            'is_superadmin' => !empty($_SESSION['is_superadmin']),
+            'name'          => $_SESSION['full_name'],
+            'user_id'       => $_SESSION['user_id'],
         ]);
     }
     jsonResponse(['logged_in' => false]);

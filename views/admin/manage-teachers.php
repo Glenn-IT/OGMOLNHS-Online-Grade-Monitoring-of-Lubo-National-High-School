@@ -46,6 +46,7 @@ $adminActivePage = 'manage-teachers';
             <div class="col-md-3">
               <select id="filterStatus" class="form-select form-select-sm" onchange="filterTeachers()">
                 <option value="">All Account Statuses</option>
+                <option value="pending">Pending Approval</option>
                 <option value="1">Active</option>
                 <option value="0">Inactive</option>
               </select>
@@ -60,6 +61,22 @@ $adminActivePage = 'manage-teachers';
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Pending Registrations Alert Banner -->
+      <div id="pendingAlertBanner" class="alert alert-warning align-items-center justify-content-between p-3 mb-3 border-warning-subtle shadow-sm" style="display:none;">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width:42px;height:42px;border-radius:50%;background:#fef3c7;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">
+            <i class="fas fa-user-clock"></i>
+          </div>
+          <div>
+            <strong id="pendingAlertText" style="color:#92400e;font-size:0.95rem">Teacher registrations awaiting administrator approval.</strong>
+            <div style="font-size:0.82rem;color:#78350f">New faculty members registered online. Click <strong>Approve</strong> in the roster below to grant portal access.</div>
+          </div>
+        </div>
+        <button class="btn btn-warning btn-sm fw-semibold text-dark px-3" onclick="filterByPending()">
+          <i class="fas fa-filter me-1"></i>View Pending
+        </button>
       </div>
 
       <div class="content-card">
@@ -345,6 +362,20 @@ $adminActivePage = 'manage-teachers';
       if (json.success) {
         allTeachersData = json.data || [];
         allAssignmentsData = json.all_assignments || [];
+
+        // Check for pending registrations
+        const pendingCount = allTeachersData.filter(t => t.approval_status === 'pending').length;
+        const banner = document.getElementById('pendingAlertBanner');
+        if (banner) {
+          if (pendingCount > 0) {
+            banner.style.display = 'flex';
+            document.getElementById('pendingAlertText').textContent =
+              `${pendingCount} teacher registration${pendingCount > 1 ? 's' : ''} awaiting administrator approval.`;
+          } else {
+            banner.style.display = 'none';
+          }
+        }
+
         renderTeachers(allTeachersData);
       } else {
         document.getElementById('teachersTableBody').innerHTML =
@@ -361,6 +392,11 @@ $adminActivePage = 'manage-teachers';
       c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  function filterByPending() {
+    document.getElementById('filterStatus').value = 'pending';
+    filterTeachers();
+  }
+
   function filterTeachers() {
     const q      = document.getElementById('searchInput').value.toLowerCase().trim();
     const status = document.getElementById('filterStatus').value;
@@ -372,7 +408,14 @@ $adminActivePage = 'manage-teachers';
         (t.phone || '').includes(q) ||
         (t.assigned_subjects || '').toLowerCase().includes(q);
 
-      const matchStatus = status === '' || String(t.is_active) === String(status);
+      let matchStatus = true;
+      if (status === 'pending') {
+        matchStatus = t.approval_status === 'pending';
+      } else if (status === '1') {
+        matchStatus = t.is_active == 1 && t.approval_status !== 'pending';
+      } else if (status === '0') {
+        matchStatus = t.is_active == 0 && t.approval_status !== 'pending';
+      }
 
       return matchQ && matchStatus;
     });
@@ -403,16 +446,50 @@ $adminActivePage = 'manage-teachers';
         ? t.assigned_subjects.split(', ').map(s => `<span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1 mb-1" style="font-size:0.75rem"><i class="fas fa-book me-1"></i>${esc(s)}</span>`).join('')
         : `<span class="text-muted" style="font-size:0.82rem"><em>No subjects assigned</em></span>`;
 
-      const statusBadge = t.is_active == 1
-        ? `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Active</span>`
-        : `<span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>Inactive</span>`;
+      let statusBadge = '';
+      if (t.approval_status === 'pending') {
+        statusBadge = `<span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending Approval</span>`;
+      } else if (t.is_active == 1) {
+        statusBadge = `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Active</span>`;
+      } else {
+        statusBadge = `<span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>Inactive</span>`;
+      }
+
+      let actionButtons = '';
+      if (t.approval_status === 'pending') {
+        actionButtons = `
+          <button class="btn btn-success btn-sm" title="Approve & Activate Teacher" onclick="approveTeacher(${t.id}, '${esc(t.full_name)}')">
+            <i class="fas fa-check-circle me-1"></i>Approve
+          </button>
+          <button class="btn btn-outline-primary btn-sm" title="Edit Credentials & Details" onclick="openEditTeacherModal(${t.id})">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-outline-danger btn-sm" title="Reject Application" onclick="rejectTeacher(${t.id}, '${esc(t.full_name)}')">
+            <i class="fas fa-times-circle"></i>
+          </button>
+        `;
+      } else {
+        actionButtons = `
+          <button class="btn btn-outline-primary btn-sm" title="Edit Credentials & Details" onclick="openEditTeacherModal(${t.id})">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-outline-${t.is_active == 1 ? 'warning' : 'success'} btn-sm"
+                  title="${t.is_active == 1 ? 'Deactivate Account' : 'Activate Account'}"
+                  onclick="toggleTeacherStatus(${t.id})">
+            <i class="fas fa-${t.is_active == 1 ? 'user-slash' : 'user-check'}"></i>
+          </button>
+          <button class="btn btn-outline-danger btn-sm" title="Delete Teacher" onclick="deleteTeacher(${t.id}, '${esc(t.full_name)}')">
+            <i class="fas fa-trash"></i>
+          </button>
+        `;
+      }
 
       return `
-        <tr>
+        <tr class="${t.approval_status === 'pending' ? 'table-warning-subtle' : ''}">
           <td>${i + 1}</td>
           <td>
             <div class="d-flex align-items-center gap-2">
-              <div style="width:34px;height:34px;border-radius:50%;background:#0c1326;color:#fff;
+              <div style="width:34px;height:34px;border-radius:50%;background:${t.approval_status === 'pending' ? '#d97706' : '#0c1326'};color:#fff;
                           display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;flex-shrink:0">
                 ${initials}
               </div>
@@ -427,17 +504,7 @@ $adminActivePage = 'manage-teachers';
           <td>${statusBadge}</td>
           <td>
             <div class="d-flex gap-1">
-              <button class="btn btn-outline-primary btn-sm" title="Edit Credentials & Details" onclick="openEditTeacherModal(${t.id})">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button class="btn btn-outline-${t.is_active == 1 ? 'warning' : 'success'} btn-sm"
-                      title="${t.is_active == 1 ? 'Deactivate Account' : 'Activate Account'}"
-                      onclick="toggleTeacherStatus(${t.id})">
-                <i class="fas fa-${t.is_active == 1 ? 'user-slash' : 'user-check'}"></i>
-              </button>
-              <button class="btn btn-outline-danger btn-sm" title="Delete Teacher" onclick="deleteTeacher(${t.id}, '${esc(t.full_name)}')">
-                <i class="fas fa-trash"></i>
-              </button>
+              ${actionButtons}
             </div>
           </td>
         </tr>
@@ -618,6 +685,50 @@ $adminActivePage = 'manage-teachers';
       }
     } catch (e) {
       showToast('Network error deleting teacher.', 'error');
+    }
+  }
+
+  async function approveTeacher(id, name) {
+    if (!confirm(`Are you sure you want to approve and activate the faculty account for "${name}"?\n\nThis will activate their login access to the Teacher Portal.`)) {
+      return;
+    }
+    try {
+      const res = await fetch('../../api/teachers.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=approve&id=${id}`
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast(json.message || 'Teacher account approved successfully!', 'success');
+        await loadTeachers();
+      } else {
+        showToast(json.message || 'Failed to approve teacher.', 'error');
+      }
+    } catch (e) {
+      showToast('Network error while approving teacher.', 'error');
+    }
+  }
+
+  async function rejectTeacher(id, name) {
+    if (!confirm(`Are you sure you want to reject the teacher registration application for "${name}"?`)) {
+      return;
+    }
+    try {
+      const res = await fetch('../../api/teachers.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=reject&id=${id}`
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast(json.message || 'Teacher registration rejected.', 'info');
+        await loadTeachers();
+      } else {
+        showToast(json.message || 'Failed to reject teacher.', 'error');
+      }
+    } catch (e) {
+      showToast('Network error while rejecting teacher.', 'error');
     }
   }
 </script>

@@ -15,13 +15,14 @@ function adminLink(string $page, string $current): string {
       </div>
     </div>
   </div>
+<?php $isSuper = !empty($_SESSION['is_superadmin']) && (int)$_SESSION['is_superadmin'] === 1; ?>
   <div class="sidebar-user">
-    <div class="user-avatar" style="background:#0c1326">
-      <i class="fas fa-user-shield" style="font-size:0.9rem"></i>
+    <div class="user-avatar" style="background:<?= $isSuper ? '#b45309' : '#0c1326' ?>">
+      <i class="fas fa-<?= $isSuper ? 'crown' : 'user-shield' ?>" style="font-size:0.9rem;<?= $isSuper ? 'color:#fef08a' : '' ?>"></i>
     </div>
     <div class="user-info">
       <strong><?= htmlspecialchars($_SESSION['full_name'] ?? 'Administrator') ?></strong>
-      <span>School Admin</span>
+      <span><?= $isSuper ? 'Super Administrator' : 'School Administrator' ?></span>
     </div>
   </div>
   <nav class="sidebar-nav">
@@ -30,6 +31,11 @@ function adminLink(string $page, string $current): string {
       <i class="fas fa-tachometer-alt"></i> Dashboard
     </a>
     <div class="nav-section-label" style="margin-top:0.5rem">Management</div>
+    <?php if ($isSuper): ?>
+    <a href="manage-admins.php" class="<?= adminLink('manage-admins', $adminActivePage) ?>">
+      <i class="fas fa-user-shield text-warning"></i> Manage Admins
+    </a>
+    <?php endif; ?>
     <a href="manage-grades.php" class="<?= adminLink('manage-grades', $adminActivePage) ?>">
       <i class="fas fa-clipboard-list"></i> Manage Grades
     </a>

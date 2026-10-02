@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     email       VARCHAR(100) UNIQUE NOT NULL,
     password    VARCHAR(255) NOT NULL,
     role        ENUM('admin','teacher','student') NOT NULL DEFAULT 'student',
+    is_superadmin TINYINT(1) DEFAULT 0,
     phone       VARCHAR(20),
     address     TEXT,
     birthdate   DATE,
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     guardian_name VARCHAR(100),
     avatar_url  VARCHAR(255),
     is_active   TINYINT(1) DEFAULT 1,
+    approval_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'approved',
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

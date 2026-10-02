@@ -41,6 +41,21 @@ function requireAdmin(): void {
     }
 }
 
+function isSuperAdmin(): bool {
+    return !empty($_SESSION['is_superadmin']) && (int)$_SESSION['is_superadmin'] === 1;
+}
+
+function requireSuperAdmin(): void {
+    requireAdmin();
+    if (!isSuperAdmin()) {
+        if (isApiRequest()) {
+            jsonResponse(['success' => false, 'message' => 'Forbidden. Superadmin access required.'], 403);
+        }
+        header('Location: /OGMS-Lubo-National-High-School/views/admin/dashboard.php');
+        exit;
+    }
+}
+
 function requireTeacher(): void {
     requireLogin();
     if ($_SESSION['role'] !== 'teacher') {

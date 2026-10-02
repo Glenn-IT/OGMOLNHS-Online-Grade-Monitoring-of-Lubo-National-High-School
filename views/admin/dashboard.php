@@ -1,5 +1,6 @@
 <?php
 require_once '../../config/session.php';
+require_once '../../config/db.php';
 requireAdmin();
 $adminActivePage = 'dashboard';
 ?>
@@ -41,6 +42,33 @@ $adminActivePage = 'dashboard';
         <h2>Welcome, <?= htmlspecialchars($_SESSION['full_name']) ?>!</h2>
         <p>Manage grades, students, and generate reports for Lubo National High School.</p>
       </div>
+
+      <?php if (isSuperAdmin()): ?>
+        <?php
+        try {
+            $pdo = getDB();
+            $pendingAdminCount = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin' AND approval_status = 'pending'")->fetchColumn();
+        } catch (Throwable $e) {
+            $pendingAdminCount = 0;
+        }
+        ?>
+        <?php if ($pendingAdminCount > 0): ?>
+        <div class="alert alert-warning d-flex align-items-center justify-content-between p-3 mb-4 border-warning-subtle shadow-sm">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:42px;height:42px;border-radius:50%;background:#fef3c7;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">
+              <i class="fas fa-user-clock"></i>
+            </div>
+            <div>
+              <strong style="color:#92400e;font-size:0.95rem"><?= $pendingAdminCount ?> Administrator Registration<?= $pendingAdminCount > 1 ? 's' : '' ?> Awaiting Your Approval</strong>
+              <div style="font-size:0.82rem;color:#78350f">As Superadmin, you have exclusive authority to authorize or reject new administrator accounts.</div>
+            </div>
+          </div>
+          <a href="manage-admins.php" class="btn btn-warning btn-sm text-dark fw-semibold px-3">
+            <i class="fas fa-user-shield me-1"></i>Review Applications
+          </a>
+        </div>
+        <?php endif; ?>
+      <?php endif; ?>
 
       <div class="row g-3 mb-4">
         <div class="col-sm-6 col-xl-3">

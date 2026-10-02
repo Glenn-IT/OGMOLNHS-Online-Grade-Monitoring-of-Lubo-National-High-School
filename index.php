@@ -595,9 +595,9 @@ function fmtEventDate(?string $d): array {
           <h5>Portal Access</h5>
           <ul class="list-unstyled" style="font-size:0.85rem;line-height:2;">
             <li><a href="login.php"><i class="fas fa-sign-in-alt me-1"></i>Portal Sign In</a></li>
-            <li><a href="views/student/signup.php"><i class="fas fa-user-plus me-1"></i>Student Sign Up</a></li>
-            <li><a href="login.php?role=teacher"><i class="fas fa-chalkboard-teacher me-1"></i>Faculty Portal</a></li>
-            <li><a href="login.php?role=admin"><i class="fas fa-user-shield me-1"></i>Admin Gateway</a></li>
+            <li><a href="views/student/signup.php"><i class="fas fa-user-graduate me-1"></i>Student Sign Up</a></li>
+            <li><a href="views/teacher/signup.php"><i class="fas fa-chalkboard-teacher me-1"></i>Teacher Registration</a></li>
+            <li><a href="login.php"><i class="fas fa-user-shield me-1"></i>Admin Gateway</a></li>
           </ul>
         </div>
       </div>

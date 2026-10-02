@@ -156,7 +156,14 @@ if ($action === 'send_signup_otp') {
     if ($mailOk) {
         jsonResponse(['success' => true, 'message' => "Verification OTP sent to $email. Please check your inbox (and spam folder)."]);
     } else {
-        jsonResponse(['success' => false, 'message' => 'Unable to send OTP email. Please ensure your email address is correct and try again.'], 500);
+        $detail = function_exists('getMailerLastError') ? getMailerLastError() : '';
+        $msg = 'Unable to send OTP email.';
+        if ($detail) {
+            $msg .= ' ' . $detail;
+        } else {
+            $msg .= ' Please check your SMTP configuration and internet connection.';
+        }
+        jsonResponse(['success' => false, 'message' => $msg], 500);
     }
 }
 

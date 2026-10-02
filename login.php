@@ -145,8 +145,13 @@ if (!empty($_SESSION['user_id'])) {
               <i class="fas fa-sign-in-alt me-2"></i>Sign In as Teacher
             </button>
           </form>
-          <div class="alert alert-light border mt-3 py-2 text-center" style="font-size:0.8rem;color:#64748b">
-            <i class="fas fa-info-circle me-1 text-primary"></i>Faculty accounts are assigned by the LNHS administration.
+          <div class="divider mt-3"><span>or</span></div>
+          <div class="text-center">
+            <span style="font-size:0.85rem;color:#64748b">New faculty member? </span>
+            <a href="views/teacher/signup.php" style="color:#0284c7;font-weight:600;font-size:0.85rem">Register as Teacher</a>
+          </div>
+          <div class="alert alert-light border mt-3 py-2 text-center" style="font-size:0.78rem;color:#64748b">
+            <i class="fas fa-info-circle me-1 text-primary"></i>Faculty registrations require email OTP verification and administrator approval.
           </div>
         </div>
 
@@ -174,6 +179,14 @@ if (!empty($_SESSION['user_id'])) {
               <i class="fas fa-shield-alt me-2"></i>Sign In as Admin
             </button>
           </form>
+          <div class="divider mt-3"><span>or</span></div>
+          <div class="text-center">
+            <span style="font-size:0.85rem;color:#64748b">New administrator? </span>
+            <a href="views/admin/signup.php" style="color:var(--primary);font-weight:600;font-size:0.85rem">Register as Admin</a>
+          </div>
+          <div class="alert alert-light border mt-3 py-2 text-center" style="font-size:0.78rem;color:#64748b">
+            <i class="fas fa-shield-alt me-1 text-warning"></i>Administrator registrations require email OTP verification and Superadmin approval.
+          </div>
         </div>
 
       </div>
@@ -245,7 +258,11 @@ if (!empty($_SESSION['user_id'])) {
               window.location.href = data.redirect || 'index.php';
             }, 800);
           } else {
-            showToast(data.message || 'Login failed.', 'error');
+            if (data.pending_approval) {
+              showToast(data.message || 'Account is pending administrator approval.', 'warning', 8000);
+            } else {
+              showToast(data.message || 'Login failed.', 'error');
+            }
           }
         } catch (err) {
           btn.disabled = false;
