@@ -110,7 +110,6 @@ $initials  = strtoupper(substr($nameParts[0],0,1) . substr(end($nameParts),0,1))
             <div class="card-body-custom d-flex flex-column gap-2">
               <a href="grades.php"    class="btn btn-outline-primary btn-sm w-100 text-start"><i class="fas fa-list me-2"></i>View My Grades</a>
               <a href="analytics.php" class="btn btn-outline-info btn-sm w-100 text-start"><i class="fas fa-chart-line me-2"></i>Performance Analytics</a>
-              <a href="reports.php"   class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-print me-2"></i>Print Report Card</a>
               <a href="profile.php"   class="btn btn-outline-success btn-sm w-100 text-start"><i class="fas fa-user-edit me-2"></i>Edit Profile</a>
             </div>
           </div>

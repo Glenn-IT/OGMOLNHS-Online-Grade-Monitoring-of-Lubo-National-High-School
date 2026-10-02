@@ -1,6 +1,6 @@
 <?php
 // components/student-sidebar.php
-// Set $studentActivePage before including: 'dashboard','grades','analytics','reports','profile'
+// Set $studentActivePage before including: 'dashboard','grades','analytics','profile'
 $studentActivePage = $studentActivePage ?? '';
 function studentLink(string $page, string $current): string {
     return $page === $current ? 'sidebar-link active' : 'sidebar-link';
@@ -35,9 +35,6 @@ $initials  = strtoupper(substr($nameParts[0], 0, 1) . substr(end($nameParts), 0,
     </a>
     <a href="analytics.php" class="<?= studentLink('analytics', $studentActivePage) ?>">
       <i class="fas fa-chart-bar"></i> Analytics
-    </a>
-    <a href="reports.php" class="<?= studentLink('reports', $studentActivePage) ?>">
-      <i class="fas fa-file-alt"></i> Reports
     </a>
     <div class="nav-section-label" style="margin-top:0.5rem">Account</div>
     <a href="profile.php" class="<?= studentLink('profile', $studentActivePage) ?>">

@@ -25,11 +25,6 @@ $studentActivePage = 'grades';
           <div class="topbar-subtitle">View your academic performance by subject and term</div>
         </div>
       </div>
-      <div class="topbar-right">
-        <a href="reports.php" class="btn btn-success btn-sm">
-          <i class="fas fa-print me-1"></i>Print Report Card
-        </a>
-      </div>
     </header>
 
     <main class="page-content fade-in">
@@ -82,15 +77,12 @@ $studentActivePage = 'grades';
               <tr>
                 <th>Subject</th>
                 <th>Term</th>
-                <th>Written Works<br><small class="text-muted" style="font-weight:400">(20%)</small></th>
-                <th>Performance Tasks<br><small class="text-muted" style="font-weight:400">(50%)</small></th>
-                <th>Term Exam<br><small class="text-muted" style="font-weight:400">(30%)</small></th>
-                <th>Final Grade</th>
+                <th>Quarter / Term Grade</th>
                 <th>Remarks</th>
               </tr>
             </thead>
             <tbody id="gradesBody">
-              <tr><td colspan="7" class="text-center py-4 text-muted">Loading grades…</td></tr>
+              <tr><td colspan="4" class="text-center py-4 text-muted">Loading grades…</td></tr>
             </tbody>
           </table>
         </div>
@@ -137,19 +129,17 @@ $studentActivePage = 'grades';
 
     if (!rows.length) {
       document.getElementById('gradesBody').innerHTML =
-        '<tr><td colspan="7" class="text-center text-muted py-4">No grades found for selected filters.</td></tr>';
+        '<tr><td colspan="4" class="text-center text-muted py-4">No grades found for selected filters.</td></tr>';
     } else {
       document.getElementById('gradesBody').innerHTML = rows.map(g => {
         const sub = subjectMap[g.subject_id] || {};
-        const fg  = parseFloat(g.final_grade);
+        const hasGrade = g.final_grade !== null && g.final_grade !== '' && !isNaN(parseFloat(g.final_grade));
+        const fg  = hasGrade ? parseFloat(g.final_grade) : null;
         return `<tr>
           <td><strong>${sub.name||'—'}</strong></td>
           <td><span class="badge bg-primary" style="font-size:0.78rem">${termLabels[g.quarter]||('Term '+g.quarter)}</span></td>
-          <td class="text-center">${g.written_works ?? '—'}</td>
-          <td class="text-center">${g.performance_tasks ?? '—'}</td>
-          <td class="text-center">${g.quarterly_exam ?? '—'}</td>
-          <td>${gradeCell(fg)}</td>
-          <td>${getGradeBadge(fg)}</td>
+          <td>${hasGrade ? gradeCell(fg) : '<span class="text-muted">—</span>'}</td>
+          <td>${hasGrade ? getGradeBadge(fg) : '<span class="text-muted">—</span>'}</td>
         </tr>`;
       }).join('');
     }
