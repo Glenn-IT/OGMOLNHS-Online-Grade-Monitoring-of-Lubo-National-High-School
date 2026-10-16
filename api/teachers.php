@@ -8,6 +8,29 @@ require_once '../config/mailer.php';
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 // ─── LIST ALL TEACHERS (Admin only) ──────────────────────────────────────────
+// Helper function to split full_name into first_name, middle_name, last_name
+function splitFullName(string $fullName): array {
+    $parts = array_values(array_filter(explode(' ', trim($fullName))));
+    $count = count($parts);
+    if ($count === 0) {
+        return ['first_name' => '', 'middle_name' => '', 'last_name' => ''];
+    }
+    if ($count === 1) {
+        return ['first_name' => $parts[0], 'middle_name' => '', 'last_name' => ''];
+    }
+    if ($count === 2) {
+        return ['first_name' => $parts[0], 'middle_name' => '', 'last_name' => $parts[1]];
+    }
+    if ($count === 3) {
+        return ['first_name' => $parts[0], 'middle_name' => $parts[1], 'last_name' => $parts[2]];
+    }
+    return [
+        'first_name'  => $parts[0],
+        'middle_name' => implode(' ', array_slice($parts, 1, -1)),
+        'last_name'   => $parts[$count - 1]
+    ];
+}
+
 // Helper function to format assignments into a readable string
 function formatAssignmentsString(array $assignments) {
     if (empty($assignments)) return '';
@@ -74,6 +97,10 @@ if ($action === 'list') {
     // Format output for each teacher
     foreach ($teachers as &$t) {
         $tId = (int)$t['id'];
+        $parsed = splitFullName($t['full_name'] ?? '');
+        $t['first_name']  = $parsed['first_name'];
+        $t['middle_name'] = $parsed['middle_name'];
+        $t['last_name']   = $parsed['last_name'];
 
         if (isset($assignmentsByTeacher[$tId])) {
             $t['teaching_assignments'] = $assignmentsByTeacher[$tId];
@@ -158,7 +185,85 @@ if ($action === 'get') {
         $teacher['assigned_subject_ids'] = implode(',', array_column($leg, 'subject_id'));
     }
 
+    $parsed = splitFullName($teacher['full_name'] ?? '');
+    $teacher['first_name']  = $parsed['first_name'];
+    $teacher['middle_name'] = $parsed['middle_name'];
+    $teacher['last_name']   = $parsed['last_name'];
+
     jsonResponse(['success' => true, 'data' => $teacher]);
+}
+
+// ─── CHECK DUPLICATE TEACHER ACCOUNT (Public & Admin) ─────────────────────────
+if ($action === 'check_duplicate') {
+    $pdo = getDB();
+
+    $email      = strtolower(trim($_POST['email'] ?? $_GET['email'] ?? ''));
+    $phone      = trim($_POST['phone'] ?? $_GET['phone'] ?? '');
+    $firstName  = trim($_POST['first_name'] ?? $_GET['first_name'] ?? '');
+    $middleName = trim($_POST['middle_name'] ?? $_GET['middle_name'] ?? '');
+    $lastName   = trim($_POST['last_name'] ?? $_GET['last_name'] ?? '');
+    $fullName   = trim($_POST['full_name'] ?? $_GET['full_name'] ?? '');
+    $excludeId  = (int)($_POST['exclude_id'] ?? $_GET['exclude_id'] ?? 0);
+
+    if (!$fullName && ($firstName || $lastName)) {
+        $fullName = trim($firstName . ($middleName !== '' ? ' ' . $middleName : '') . ' ' . $lastName);
+    }
+
+    $errors = [];
+
+    // Check duplicate email
+    if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $stmt = $pdo->prepare("SELECT id, role, approval_status, is_active FROM users WHERE email = ? AND id != ?");
+        $stmt->execute([$email, $excludeId]);
+        $existing = $stmt->fetch();
+        if ($existing) {
+            $msg = 'This email address is already registered.';
+            if ($existing['role'] === 'teacher' && $existing['approval_status'] === 'pending') {
+                $msg = 'This email address is already submitted and pending administrator approval.';
+            } elseif ((int)$existing['is_active'] === 1) {
+                $msg = 'This email address is already registered to an active account. Please sign in instead.';
+            }
+            $errors['email'] = $msg;
+        }
+    }
+
+    // Check duplicate name for teacher accounts
+    if ($fullName) {
+        $stmt = $pdo->prepare("SELECT id, approval_status, is_active FROM users WHERE role = 'teacher' AND LOWER(TRIM(full_name)) = LOWER(TRIM(?)) AND id != ?");
+        $stmt->execute([$fullName, $excludeId]);
+        $existingName = $stmt->fetch();
+        if ($existingName) {
+            $msg = "A teacher account under the name \"$fullName\" is already registered.";
+            if ($existingName['approval_status'] === 'pending') {
+                $msg .= ' The application is currently pending administrator review and approval.';
+            }
+            $errors['name'] = $msg;
+        }
+    }
+
+    // Check duplicate phone
+    if ($phone && preg_match('/^09\d{9}$/', $phone)) {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE phone = ? AND id != ?");
+        $stmt->execute([$phone, $excludeId]);
+        if ($stmt->fetch()) {
+            $errors['phone'] = 'This phone number is already registered to another account.';
+        }
+    }
+
+    if (!empty($errors)) {
+        jsonResponse([
+            'success'   => false,
+            'duplicate' => true,
+            'errors'    => $errors,
+            'message'   => reset($errors)
+        ]);
+    }
+
+    jsonResponse([
+        'success'   => true,
+        'duplicate' => false,
+        'message'   => 'No duplicates found.'
+    ]);
 }
 
 // ─── SAVE TEACHER (Create or Edit Credentials / Profile) ───────────────────────
@@ -167,23 +272,26 @@ if ($action === 'save') {
     $pdo = getDB();
     $syId = activeSchoolYear($pdo);
 
-    $id        = (int)($_POST['id'] ?? 0);
-    $fullName  = trim($_POST['full_name'] ?? '');
-    $email     = strtolower(trim($_POST['email'] ?? ''));
-    $password  = $_POST['password'] ?? '';
-    $phone     = trim($_POST['phone'] ?? '');
-    $gender    = trim($_POST['gender'] ?? 'Other');
-    $address   = trim($_POST['address'] ?? '');
-    $isActive  = isset($_POST['is_active']) ? (int)$_POST['is_active'] : 1;
-    $sectionId = isset($_POST['section_id']) && $_POST['section_id'] !== '' ? (int)$_POST['section_id'] : null;
+    $id         = (int)($_POST['id'] ?? 0);
+    $firstName  = trim($_POST['first_name'] ?? '');
+    $middleName = trim($_POST['middle_name'] ?? '');
+    $lastName   = trim($_POST['last_name'] ?? '');
+    $fullName   = trim($_POST['full_name'] ?? '');
+    $email      = strtolower(trim($_POST['email'] ?? ''));
+    $password   = $_POST['password'] ?? '';
+    $phone      = trim($_POST['phone'] ?? '');
+    $gender     = trim($_POST['gender'] ?? 'Other');
+    $address    = trim($_POST['address'] ?? '');
+    $isActive   = isset($_POST['is_active']) ? (int)$_POST['is_active'] : 1;
+    $sectionId  = isset($_POST['section_id']) && $_POST['section_id'] !== '' ? (int)$_POST['section_id'] : null;
 
-    // Support separate first_name & last_name if submitted
-    if (!$fullName && (isset($_POST['first_name']) || isset($_POST['last_name']))) {
-        $fullName = trim(($_POST['first_name'] ?? '') . ' ' . ($_POST['last_name'] ?? ''));
+    // Support separate first_name, middle_name & last_name if submitted
+    if ($firstName || $lastName) {
+        $fullName = trim($firstName . ($middleName !== '' ? ' ' . $middleName : '') . ' ' . $lastName);
     }
 
     if (!$fullName) {
-        jsonResponse(['success' => false, 'message' => 'Teacher full name is required.'], 400);
+        jsonResponse(['success' => false, 'message' => 'Teacher name is required.'], 400);
     }
     if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         jsonResponse(['success' => false, 'message' => 'A valid email address is required.'], 400);
@@ -200,6 +308,22 @@ if ($action === 'save') {
     $stmt->execute([$email, $id]);
     if ($stmt->fetch()) {
         jsonResponse(['success' => false, 'message' => 'This email address is already in use by another account.'], 400);
+    }
+
+    // Check phone uniqueness
+    if ($phone) {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE phone = ? AND id != ?");
+        $stmt->execute([$phone, $id]);
+        if ($stmt->fetch()) {
+            jsonResponse(['success' => false, 'message' => 'This contact phone number is already registered to another account.'], 400);
+        }
+    }
+
+    // Check duplicate teacher full name
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'teacher' AND LOWER(TRIM(full_name)) = LOWER(TRIM(?)) AND id != ?");
+    $stmt->execute([$fullName, $id]);
+    if ($stmt->fetch()) {
+        jsonResponse(['success' => false, 'message' => "A teacher account for \"$fullName\" already exists in the system."], 400);
     }
 
     $pdo->beginTransaction();
@@ -377,11 +501,15 @@ if ($action === 'delete') {
 
 // ─── SEND SIGNUP OTP (Public) ────────────────────────────────────────────────
 if ($action === 'send_signup_otp') {
-    $email     = strtolower(trim($_POST['email']      ?? ''));
-    $firstName = trim($_POST['first_name'] ?? '');
-    $lastName  = trim($_POST['last_name']  ?? '');
-    $phone     = trim($_POST['phone']      ?? '');
+    $email      = strtolower(trim($_POST['email']       ?? ''));
+    $firstName  = trim($_POST['first_name']  ?? '');
+    $middleName = trim($_POST['middle_name'] ?? '');
+    $lastName   = trim($_POST['last_name']   ?? '');
+    $phone      = trim($_POST['phone']       ?? '');
 
+    if (!$firstName || !$lastName) {
+        jsonResponse(['success' => false, 'message' => 'First name and last name are required.'], 400);
+    }
     if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         jsonResponse(['success' => false, 'message' => 'Valid email address is required.'], 400);
     }
@@ -392,10 +520,35 @@ if ($action === 'send_signup_otp') {
     $pdo = getDB();
 
     // Check duplicate email
-    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ?');
+    $stmt = $pdo->prepare('SELECT id, approval_status, is_active FROM users WHERE email = ?');
     $stmt->execute([$email]);
-    if ($stmt->fetch()) {
+    $existing = $stmt->fetch();
+    if ($existing) {
+        if ($existing['approval_status'] === 'pending') {
+            jsonResponse(['success' => false, 'message' => 'This email address has already been submitted and is currently pending administrator approval. Please contact the school administrator.'], 409);
+        }
         jsonResponse(['success' => false, 'message' => 'This email address is already registered. Please sign in or use another email.'], 409);
+    }
+
+    // Check duplicate phone
+    if ($phone) {
+        $stmt = $pdo->prepare('SELECT id FROM users WHERE phone = ?');
+        $stmt->execute([$phone]);
+        if ($stmt->fetch()) {
+            jsonResponse(['success' => false, 'message' => 'This phone number is already registered to another account.'], 409);
+        }
+    }
+
+    // Check duplicate teacher full name
+    $fullName = trim($firstName . ($middleName !== '' ? ' ' . $middleName : '') . ' ' . $lastName);
+    $stmt = $pdo->prepare("SELECT id, approval_status FROM users WHERE role = 'teacher' AND LOWER(TRIM(full_name)) = LOWER(TRIM(?))");
+    $stmt->execute([$fullName]);
+    $existingTeacher = $stmt->fetch();
+    if ($existingTeacher) {
+        $statusMsg = $existingTeacher['approval_status'] === 'pending'
+            ? ' This registration application is currently pending administrator review and approval.'
+            : ' Please sign in with your faculty credentials or contact the administrator.';
+        jsonResponse(['success' => false, 'message' => "A teacher account under the name \"$fullName\" is already registered.$statusMsg"], 409);
     }
 
     // Generate 6-digit OTP
@@ -408,7 +561,7 @@ if ($action === 'send_signup_otp') {
     $stmt = $pdo->prepare('INSERT INTO email_verifications (email, otp, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))');
     $stmt->execute([$email, $otp]);
 
-    $recipientName = trim("$firstName $lastName") ?: 'Faculty Applicant';
+    $recipientName = $fullName ?: 'Faculty Applicant';
     $subject = 'Teacher Registration OTP Verification – Lubo National High School';
     $bodyHtml = "
     <div style='font-family:Arial,Helvetica,sans-serif;max-width:540px;margin:0 auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;'>
@@ -457,14 +610,15 @@ if ($action === 'send_signup_otp') {
 
 // ─── REGISTER NEW TEACHER (Public) ───────────────────────────────────────────
 if ($action === 'register') {
-    $firstName = trim($_POST['first_name'] ?? '');
-    $lastName  = trim($_POST['last_name']  ?? '');
-    $email     = strtolower(trim($_POST['email'] ?? ''));
-    $password  = $_POST['password']            ?? '';
-    $phone     = trim($_POST['phone']          ?? '');
-    $gender    = trim($_POST['gender']         ?? 'Other');
-    $address   = trim($_POST['address']        ?? '');
-    $otp       = trim($_POST['otp']            ?? '');
+    $firstName  = trim($_POST['first_name']  ?? '');
+    $middleName = trim($_POST['middle_name'] ?? '');
+    $lastName   = trim($_POST['last_name']   ?? '');
+    $email      = strtolower(trim($_POST['email'] ?? ''));
+    $password   = $_POST['password']            ?? '';
+    $phone      = trim($_POST['phone']          ?? '');
+    $gender     = trim($_POST['gender']         ?? 'Other');
+    $address    = trim($_POST['address']        ?? '');
+    $otp        = trim($_POST['otp']            ?? '');
 
     if (!$firstName || !$lastName || !$email || !$password) {
         jsonResponse(['success' => false, 'message' => 'First name, last name, email, and password are required.'], 400);
@@ -494,8 +648,6 @@ if ($action === 'register') {
     if (!$verRow) {
         jsonResponse(['success' => false, 'message' => 'Invalid or expired OTP code. Please enter the correct code or request a new one.'], 400);
     }
-    // Mark OTP used
-    $pdo->prepare('UPDATE email_verifications SET used = 1 WHERE id = ?')->execute([$verRow['id']]);
 
     // Check duplicate email
     $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ?');
@@ -504,8 +656,27 @@ if ($action === 'register') {
         jsonResponse(['success' => false, 'message' => 'This email address is already registered.'], 409);
     }
 
+    // Check duplicate phone
+    if ($phone) {
+        $stmt = $pdo->prepare('SELECT id FROM users WHERE phone = ?');
+        $stmt->execute([$phone]);
+        if ($stmt->fetch()) {
+            jsonResponse(['success' => false, 'message' => 'This phone number is already registered to another account.'], 409);
+        }
+    }
+
+    // Check duplicate teacher full name
+    $fullName = trim($firstName . ($middleName !== '' ? ' ' . $middleName : '') . ' ' . $lastName);
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'teacher' AND LOWER(TRIM(full_name)) = LOWER(TRIM(?))");
+    $stmt->execute([$fullName]);
+    if ($stmt->fetch()) {
+        jsonResponse(['success' => false, 'message' => "A teacher account under the name \"$fullName\" is already registered."], 409);
+    }
+
+    // Mark OTP used
+    $pdo->prepare('UPDATE email_verifications SET used = 1 WHERE id = ?')->execute([$verRow['id']]);
+
     $hash = password_hash($password, PASSWORD_BCRYPT);
-    $fullName = trim("$firstName $lastName");
 
     $stmt = $pdo->prepare(
         "INSERT INTO users (full_name, email, password, role, phone, gender, address, is_active, approval_status, created_at)

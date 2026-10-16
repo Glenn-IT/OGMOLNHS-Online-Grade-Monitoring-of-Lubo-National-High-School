@@ -105,6 +105,47 @@ if ($action === 'list') {
             $subStmt->execute([$teacherId]);
             $subjects = $subStmt->fetchAll();
         }
+    } elseif ($_SESSION['role'] === 'student' || ($studentId > 0 && $_SESSION['role'] !== 'admin')) {
+        $targetStudentId = ($_SESSION['role'] === 'student') ? (int)$_SESSION['user_id'] : $studentId;
+
+        // Determine student's curriculum level (JHS vs SHS) based on enrolled section
+        $secStmt = $pdo->prepare(
+            "SELECT sec.grade_level 
+             FROM enrollments e 
+             JOIN sections sec ON sec.id = e.section_id 
+             WHERE e.student_id = ? AND e.school_year_id = ? 
+             ORDER BY e.id DESC LIMIT 1"
+        );
+        $secStmt->execute([$targetStudentId, $syId]);
+        $gradeLevel = $secStmt->fetchColumn();
+
+        if ($gradeLevel === false) {
+            // Check if student has grades in subjects of a specific level
+            $glStmt = $pdo->prepare(
+                "SELECT s.level 
+                 FROM grades g 
+                 JOIN subjects s ON s.id = g.subject_id 
+                 WHERE g.student_id = ? AND g.school_year_id = ? 
+                 LIMIT 1"
+            );
+            $glStmt->execute([$targetStudentId, $syId]);
+            $foundLevel = $glStmt->fetchColumn();
+            $studentLevel = $foundLevel ? $foundLevel : 'JHS';
+        } else {
+            $studentLevel = ((int)$gradeLevel >= 11) ? 'SHS' : 'JHS';
+        }
+
+        // Return only subjects belonging to the student's curriculum level
+        $subStmt = $pdo->prepare(
+            "SELECT s.id, s.name, s.code, s.level, s.teacher_id, u.full_name AS teacher_name,
+                    s.name AS display_name
+             FROM subjects s 
+             LEFT JOIN users u ON u.id = s.teacher_id 
+             WHERE s.level = ?
+             ORDER BY s.name"
+        );
+        $subStmt->execute([$studentLevel]);
+        $subjects = $subStmt->fetchAll();
     } else {
         $subjects = $pdo->query(
             "SELECT s.id, s.name, s.code, s.level, s.teacher_id, u.full_name AS teacher_name,

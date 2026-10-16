@@ -74,14 +74,20 @@ if (!empty($_SESSION['user_id'])) {
 
         <form id="teacherSignupForm" onsubmit="handleTeacherSignup(event)">
           <div class="row g-3">
-            <div class="col-6">
+            <div class="col-md-4 col-sm-6">
               <label class="form-label">First Name <span class="text-danger">*</span></label>
               <input type="text" id="tFirst" class="form-control" placeholder="Maria" required />
             </div>
-            <div class="col-6">
+            <div class="col-md-4 col-sm-6">
+              <label class="form-label">Middle Name <span class="text-muted" style="font-size:0.75rem;">(Optional)</span></label>
+              <input type="text" id="tMiddle" class="form-control" placeholder="A. or Angela" />
+            </div>
+            <div class="col-md-4 col-12">
               <label class="form-label">Last Name <span class="text-danger">*</span></label>
               <input type="text" id="tLast" class="form-control" placeholder="Santos" required />
             </div>
+            <div id="tNameFeedback" class="col-12" style="font-size:0.78rem;margin-top:0.25rem;display:none"></div>
+
             <div class="col-12">
               <label class="form-label">Email Address <span class="text-danger">*</span></label>
               <div class="input-group has-validation">
@@ -98,6 +104,7 @@ if (!empty($_SESSION['user_id'])) {
                 <input type="text" id="tPhone" class="form-control" placeholder="09XXXXXXXXX" maxlength="11" pattern="^09\d{9}$" />
               </div>
               <small class="text-muted" style="font-size:0.74rem">11 digits, starts with 09</small>
+              <div id="tPhoneFeedback" style="font-size:0.78rem;margin-top:0.25rem;display:none"></div>
             </div>
             <div class="col-md-6">
               <label class="form-label">Gender</label>
@@ -233,6 +240,13 @@ if (!empty($_SESSION['user_id'])) {
     <script src="../../assets/js/api-client.js"></script>
     <script src="../../assets/js/app.js"></script>
     <script>
+      let emailCheckTimeout = null;
+      let nameCheckTimeout = null;
+      let phoneCheckTimeout = null;
+      let isEmailDuplicate = false;
+      let isNameDuplicate = false;
+      let isPhoneDuplicate = false;
+
       function togglePwd(id, btn) {
         const el   = document.getElementById(id);
         const show = el.type === 'password';
@@ -244,32 +258,144 @@ if (!empty($_SESSION['user_id'])) {
         const input    = document.getElementById('tEmail');
         const icon     = document.getElementById('tEmailIcon');
         const feedback = document.getElementById('tEmailFeedback');
-        const value    = input.value.trim();
+        const value    = input.value.trim().toLowerCase();
+
+        if (emailCheckTimeout) clearTimeout(emailCheckTimeout);
 
         if (!value) {
           input.classList.remove('is-valid', 'is-invalid');
           icon.style.display = 'none';
           feedback.style.display = 'none';
+          isEmailDuplicate = false;
           return false;
         }
 
         const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const isValid = emailRe.test(value);
-        input.classList.toggle('is-valid', isValid);
-        input.classList.toggle('is-invalid', !isValid);
-        icon.style.display = '';
-        icon.innerHTML = isValid
-          ? '<i class="fas fa-check-circle text-success"></i>'
-          : '<i class="fas fa-times-circle text-danger"></i>';
-        feedback.style.display = '';
-        feedback.style.color = isValid ? '#10b981' : '#dc3545';
-        feedback.textContent = isValid
-          ? 'Valid email address format.'
-          : 'Please enter a valid email address.';
-        return isValid;
+        const isValidFormat = emailRe.test(value);
+
+        if (!isValidFormat) {
+          input.classList.remove('is-valid');
+          input.classList.add('is-invalid');
+          icon.style.display = '';
+          icon.innerHTML = '<i class="fas fa-times-circle text-danger"></i>';
+          feedback.style.display = '';
+          feedback.style.color = '#dc3545';
+          feedback.textContent = 'Please enter a valid email address.';
+          isEmailDuplicate = false;
+          return false;
+        }
+
+        // Debounce backend check for duplicate email
+        emailCheckTimeout = setTimeout(async () => {
+          try {
+            const res = await fetch(`../../api/teachers.php?action=check_duplicate&email=${encodeURIComponent(value)}`);
+            const json = await res.json();
+            if (json.duplicate && json.errors && json.errors.email) {
+              isEmailDuplicate = true;
+              input.classList.remove('is-valid');
+              input.classList.add('is-invalid');
+              icon.style.display = '';
+              icon.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i>';
+              feedback.style.display = '';
+              feedback.style.color = '#dc3545';
+              feedback.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>${json.errors.email}`;
+            } else {
+              isEmailDuplicate = false;
+              input.classList.remove('is-invalid');
+              input.classList.add('is-valid');
+              icon.style.display = '';
+              icon.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
+              feedback.style.display = '';
+              feedback.style.color = '#10b981';
+              feedback.textContent = 'Email address is available.';
+            }
+          } catch (e) {
+            // Network fallback
+          }
+        }, 400);
+
+        return true;
+      }
+
+      function checkDuplicateTeacherName() {
+        const first = document.getElementById('tFirst').value.trim();
+        const middle = document.getElementById('tMiddle').value.trim();
+        const last = document.getElementById('tLast').value.trim();
+        const feedback = document.getElementById('tNameFeedback');
+
+        if (nameCheckTimeout) clearTimeout(nameCheckTimeout);
+
+        if (!first || !last) {
+          feedback.style.display = 'none';
+          isNameDuplicate = false;
+          return;
+        }
+
+        nameCheckTimeout = setTimeout(async () => {
+          try {
+            const params = new URLSearchParams({
+              action: 'check_duplicate',
+              first_name: first,
+              middle_name: middle,
+              last_name: last
+            });
+            const res = await fetch(`../../api/teachers.php?${params.toString()}`);
+            const json = await res.json();
+            if (json.duplicate && json.errors && json.errors.name) {
+              isNameDuplicate = true;
+              feedback.style.display = 'block';
+              feedback.style.color = '#dc3545';
+              feedback.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>${json.errors.name}`;
+            } else {
+              isNameDuplicate = false;
+              feedback.style.display = 'none';
+            }
+          } catch (e) {
+            // Network fallback
+          }
+        }, 450);
+      }
+
+      function checkDuplicateTeacherPhone() {
+        const phone = document.getElementById('tPhone').value.trim();
+        const feedback = document.getElementById('tPhoneFeedback');
+
+        if (phoneCheckTimeout) clearTimeout(phoneCheckTimeout);
+
+        if (!phone || !/^09\d{9}$/.test(phone)) {
+          feedback.style.display = 'none';
+          isPhoneDuplicate = false;
+          return;
+        }
+
+        phoneCheckTimeout = setTimeout(async () => {
+          try {
+            const res = await fetch(`../../api/teachers.php?action=check_duplicate&phone=${encodeURIComponent(phone)}`);
+            const json = await res.json();
+            if (json.duplicate && json.errors && json.errors.phone) {
+              isPhoneDuplicate = true;
+              feedback.style.display = 'block';
+              feedback.style.color = '#dc3545';
+              feedback.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>${json.errors.phone}`;
+            } else {
+              isPhoneDuplicate = false;
+              feedback.style.display = 'none';
+            }
+          } catch (e) {
+            // Network fallback
+          }
+        }, 400);
       }
 
       document.getElementById('tEmail').addEventListener('input', validateTeacherEmail);
+      document.getElementById('tFirst').addEventListener('input', checkDuplicateTeacherName);
+      document.getElementById('tFirst').addEventListener('blur', checkDuplicateTeacherName);
+      document.getElementById('tMiddle').addEventListener('input', checkDuplicateTeacherName);
+      document.getElementById('tMiddle').addEventListener('blur', checkDuplicateTeacherName);
+      document.getElementById('tLast').addEventListener('input', checkDuplicateTeacherName);
+      document.getElementById('tLast').addEventListener('blur', checkDuplicateTeacherName);
+      document.getElementById('tPhone').addEventListener('input', checkDuplicateTeacherPhone);
+      document.getElementById('tPhone').addEventListener('blur', checkDuplicateTeacherPhone);
 
       let otpModalInstance = null;
       let approvalModalInstance = null;
@@ -292,9 +418,36 @@ if (!empty($_SESSION['user_id'])) {
       async function handleTeacherSignup(e) {
         e.preventDefault();
 
+        const firstName  = document.getElementById('tFirst').value.trim();
+        const middleName = document.getElementById('tMiddle').value.trim();
+        const lastName   = document.getElementById('tLast').value.trim();
+        const email      = document.getElementById('tEmail').value.trim().toLowerCase();
+
+        if (!firstName || !lastName) {
+          showToast('First Name and Last Name are required.', 'error');
+          return;
+        }
+
         if (!validateTeacherEmail()) {
           showToast('Please enter a valid email address.', 'error');
           document.getElementById('tEmail').focus();
+          return;
+        }
+
+        if (isEmailDuplicate) {
+          showToast('This email is already registered. Please sign in or use another email.', 'error');
+          document.getElementById('tEmail').focus();
+          return;
+        }
+
+        if (isNameDuplicate) {
+          showToast('A teacher account under this name is already registered.', 'error');
+          return;
+        }
+
+        if (isPhoneDuplicate) {
+          showToast('This mobile number is already linked to another account.', 'error');
+          document.getElementById('tPhone').focus();
           return;
         }
 
@@ -316,20 +469,17 @@ if (!empty($_SESSION['user_id'])) {
           return;
         }
 
-        const email     = document.getElementById('tEmail').value.trim().toLowerCase();
-        const firstName = document.getElementById('tFirst').value.trim();
-        const lastName  = document.getElementById('tLast').value.trim();
-
         const btn = document.getElementById('signupBtn');
         btn.disabled  = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending Verification OTP…';
 
         try {
           const body = new FormData();
-          body.append('action',     'send_signup_otp');
-          body.append('first_name', firstName);
-          body.append('last_name',  lastName);
-          body.append('email',      email);
+          body.append('action',      'send_signup_otp');
+          body.append('first_name',  firstName);
+          body.append('middle_name', middleName);
+          body.append('last_name',   lastName);
+          body.append('email',       email);
           if (phone) body.append('phone', phone);
 
           const res  = await fetch('../../api/teachers.php', { method: 'POST', body });
@@ -367,32 +517,35 @@ if (!empty($_SESSION['user_id'])) {
         verifyBtn.disabled = true;
         verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting application…';
 
-        const firstName = document.getElementById('tFirst').value.trim();
-        const lastName  = document.getElementById('tLast').value.trim();
-        const email     = document.getElementById('tEmail').value.trim().toLowerCase();
-        const password  = document.getElementById('tPwd').value;
-        const phone     = document.getElementById('tPhone').value.trim();
-        const gender    = document.getElementById('tGender').value;
-        const address   = document.getElementById('tAddress').value.trim();
+        const firstName  = document.getElementById('tFirst').value.trim();
+        const middleName = document.getElementById('tMiddle').value.trim();
+        const lastName   = document.getElementById('tLast').value.trim();
+        const email      = document.getElementById('tEmail').value.trim().toLowerCase();
+        const password   = document.getElementById('tPwd').value;
+        const phone      = document.getElementById('tPhone').value.trim();
+        const gender     = document.getElementById('tGender').value;
+        const address    = document.getElementById('tAddress').value.trim();
 
         try {
           const body = new FormData();
-          body.append('action',     'register');
-          body.append('first_name', firstName);
-          body.append('last_name',  lastName);
-          body.append('email',      email);
-          body.append('password',   password);
-          body.append('phone',      phone);
-          body.append('gender',     gender);
-          body.append('address',    address);
-          body.append('otp',        otp);
+          body.append('action',      'register');
+          body.append('first_name',  firstName);
+          body.append('middle_name', middleName);
+          body.append('last_name',   lastName);
+          body.append('email',       email);
+          body.append('password',    password);
+          body.append('phone',       phone);
+          body.append('gender',      gender);
+          body.append('address',     address);
+          body.append('otp',         otp);
 
           const res  = await fetch('../../api/teachers.php', { method: 'POST', body });
           const data = await res.json();
 
           if (data.success) {
             getOtpModal().hide();
-            document.getElementById('registeredTeacherName').textContent = `${firstName} ${lastName}`;
+            const fullName = `${firstName}${middleName ? ' ' + middleName : ''} ${lastName}`.trim();
+            document.getElementById('registeredTeacherName').textContent = fullName;
             getApprovalModal().show();
           } else {
             showToast(data.message || 'Registration failed.', 'error');
@@ -410,20 +563,22 @@ if (!empty($_SESSION['user_id'])) {
         const resendBtn = document.getElementById('resendOtpBtn');
         if (resendBtn.disabled) return;
 
-        const email     = document.getElementById('tEmail').value.trim().toLowerCase();
-        const firstName = document.getElementById('tFirst').value.trim();
-        const lastName  = document.getElementById('tLast').value.trim();
-        const phone     = document.getElementById('tPhone').value.trim();
+        const email      = document.getElementById('tEmail').value.trim().toLowerCase();
+        const firstName  = document.getElementById('tFirst').value.trim();
+        const middleName = document.getElementById('tMiddle').value.trim();
+        const lastName   = document.getElementById('tLast').value.trim();
+        const phone      = document.getElementById('tPhone').value.trim();
 
         resendBtn.disabled = true;
         resendBtn.textContent = 'Sending…';
 
         try {
           const body = new FormData();
-          body.append('action',     'send_signup_otp');
-          body.append('email',      email);
-          body.append('first_name', firstName);
-          body.append('last_name',  lastName);
+          body.append('action',      'send_signup_otp');
+          body.append('email',       email);
+          body.append('first_name',  firstName);
+          body.append('middle_name', middleName);
+          body.append('last_name',   lastName);
           if (phone) body.append('phone', phone);
 
           const res  = await fetch('../../api/teachers.php', { method: 'POST', body });

@@ -124,11 +124,27 @@ $adminActivePage = 'manage-teachers';
           </div>
 
           <div class="row g-3">
-            <div class="col-md-12">
-              <label class="form-label">Full Name <span class="text-danger">*</span></label>
+            <div class="col-md-4">
+              <label class="form-label">First Name <span class="text-danger">*</span></label>
               <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-user"></i></span>
-                <input type="text" id="tFullName" class="form-control" placeholder="e.g. Maria A. Santos" required/>
+                <input type="text" id="tFirstName" class="form-control" placeholder="e.g. Maria" required/>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Middle Name <span class="text-muted" style="font-size:0.75rem;">(Optional)</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                <input type="text" id="tMiddleName" class="form-control" placeholder="e.g. A. or Angela"/>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Last Name <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                <input type="text" id="tLastName" class="form-control" placeholder="e.g. Santos" required/>
               </div>
             </div>
 
@@ -528,6 +544,9 @@ $adminActivePage = 'manage-teachers';
     currentEditingTeacherId = null;
     document.getElementById('teacherForm').reset();
     document.getElementById('teacherIdField').value = '';
+    document.getElementById('tFirstName').value = '';
+    document.getElementById('tMiddleName').value = '';
+    document.getElementById('tLastName').value = '';
     document.getElementById('teacherModalTitle').innerHTML = '<i class="fas fa-user-plus me-2 text-primary"></i>Register Teacher';
     document.getElementById('tPasswordLabel').innerHTML = 'Password <span class="text-danger">*</span>';
     document.getElementById('tPassword').setAttribute('required', 'required');
@@ -549,7 +568,33 @@ $adminActivePage = 'manage-teachers';
 
       const t = json.data;
       document.getElementById('teacherIdField').value = t.id;
-      document.getElementById('tFullName').value = t.full_name || '';
+
+      // Populate separate First, Middle, and Last Name textboxes
+      if (t.first_name || t.last_name) {
+        document.getElementById('tFirstName').value = t.first_name || '';
+        document.getElementById('tMiddleName').value = t.middle_name || '';
+        document.getElementById('tLastName').value = t.last_name || '';
+      } else {
+        const parts = (t.full_name || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length === 1) {
+          document.getElementById('tFirstName').value = parts[0];
+          document.getElementById('tMiddleName').value = '';
+          document.getElementById('tLastName').value = '';
+        } else if (parts.length === 2) {
+          document.getElementById('tFirstName').value = parts[0];
+          document.getElementById('tMiddleName').value = '';
+          document.getElementById('tLastName').value = parts[1];
+        } else if (parts.length >= 3) {
+          document.getElementById('tFirstName').value = parts[0];
+          document.getElementById('tMiddleName').value = parts.slice(1, -1).join(' ');
+          document.getElementById('tLastName').value = parts[parts.length - 1];
+        } else {
+          document.getElementById('tFirstName').value = '';
+          document.getElementById('tMiddleName').value = '';
+          document.getElementById('tLastName').value = '';
+        }
+      }
+
       document.getElementById('tEmail').value = t.email || '';
       document.getElementById('tPassword').value = '';
       document.getElementById('tPassword').removeAttribute('required');
@@ -577,14 +622,23 @@ $adminActivePage = 'manage-teachers';
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving…';
 
-    const id        = document.getElementById('teacherIdField').value;
-    const fullName  = document.getElementById('tFullName').value.trim();
-    const email     = document.getElementById('tEmail').value.trim();
-    const password  = document.getElementById('tPassword').value;
-    const phone     = document.getElementById('tPhone').value.trim();
-    const gender    = document.getElementById('tGender').value;
-    const isActive  = document.getElementById('tIsActive').value;
-    const address   = document.getElementById('tAddress').value.trim();
+    const id         = document.getElementById('teacherIdField').value;
+    const firstName  = document.getElementById('tFirstName').value.trim();
+    const middleName = document.getElementById('tMiddleName').value.trim();
+    const lastName   = document.getElementById('tLastName').value.trim();
+    const email      = document.getElementById('tEmail').value.trim();
+    const password   = document.getElementById('tPassword').value;
+    const phone      = document.getElementById('tPhone').value.trim();
+    const gender     = document.getElementById('tGender').value;
+    const isActive   = document.getElementById('tIsActive').value;
+    const address    = document.getElementById('tAddress').value.trim();
+
+    if (!firstName || !lastName) {
+      showToast('First Name and Last Name are required.', 'warning');
+      btn.disabled = false;
+      btn.innerHTML = origText;
+      return;
+    }
 
     if (!id && (!password || password.length < 6)) {
       showToast('Please enter an initial password of at least 6 characters.', 'warning');
@@ -600,6 +654,8 @@ $adminActivePage = 'manage-teachers';
       return;
     }
 
+    const fullName = `${firstName}${middleName ? ' ' + middleName : ''} ${lastName}`.trim();
+
     // Collect all checked (subject_id, grade_level) pairs
     const selectedAssignments = [];
     document.querySelectorAll('.t-assignment-cb:checked').forEach(cb => {
@@ -614,6 +670,9 @@ $adminActivePage = 'manage-teachers';
     const formData = new URLSearchParams();
     formData.append('action', 'save');
     if (id) formData.append('id', id);
+    formData.append('first_name', firstName);
+    formData.append('middle_name', middleName);
+    formData.append('last_name', lastName);
     formData.append('full_name', fullName);
     formData.append('email', email);
     if (password) formData.append('password', password);
